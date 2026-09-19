@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generator Fleet — Testing and Monitoring Procedures</title>
 
-    <!-- jsPDF + AutoTable for multi-record PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
@@ -285,9 +284,6 @@
             color: #1e4a6d; font-weight: 500;
             letter-spacing: 1px; white-space: nowrap;
         }
-        .signature-pad img {
-            max-height: 50px; max-width: 200px; object-fit: contain;
-        }
 
         .btn-primary {
             background: #1e4a6d; color: white; border: none;
@@ -413,13 +409,9 @@
             padding: 12px 24px; border-radius: 40px; font-weight: 600;
             font-size: 0.95rem; cursor: pointer; border: none; transition: 0.15s;
         }
-        .modal-box .btn-cancel {
-            background: #e7f0f8; color: #1e4a6d;
-        }
+        .modal-box .btn-cancel { background: #e7f0f8; color: #1e4a6d; }
         .modal-box .btn-cancel:hover { background: #d4e3ef; }
-        .modal-box .btn-go {
-            background: #1e4a6d; color: white;
-        }
+        .modal-box .btn-go { background: #1e4a6d; color: white; }
         .modal-box .btn-go:hover { background: #0f3852; }
         .modal-box .btn-go:disabled { opacity: 0.6; cursor: wait; }
 
@@ -649,12 +641,10 @@
         </div>
     </div>
 
-    <!-- MODAL: Date range picker for multi-record PDF -->
     <div class="modal-overlay" id="pdfModal">
         <div class="modal-box">
             <h2>📚 Download All Records</h2>
             <p>Choose a date range. Each inspection will be printed on its own page in the PDF.</p>
-
             <div class="filter-selector" id="quickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -662,18 +652,10 @@
                 <div class="filter-chip" data-range="all">All time</div>
                 <div class="filter-chip" data-range="custom">Custom…</div>
             </div>
-
             <div id="customRangeFields" style="display:none;">
-                <div class="field-group">
-                    <label for="fromDate">From date</label>
-                    <input type="date" id="fromDate">
-                </div>
-                <div class="field-group">
-                    <label for="toDate">To date</label>
-                    <input type="date" id="toDate">
-                </div>
+                <div class="field-group"><label for="fromDate">From date</label><input type="date" id="fromDate"></div>
+                <div class="field-group"><label for="toDate">To date</label><input type="date" id="toDate"></div>
             </div>
-
             <div class="modal-actions">
                 <button class="btn-cancel" id="modalCancel">Cancel</button>
                 <button class="btn-go" id="modalGo">📄 Generate PDF</button>
@@ -681,12 +663,10 @@
         </div>
     </div>
 
-    <!-- MODAL: Date range picker for analysis PDF -->
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
-            <p>Choose a date range. The PDF will include KPIs, histogram, and tables summarizing fleet performance.</p>
-
+            <p>Choose a date range. The PDF will include KPIs, histogram, and tables.</p>
             <div class="filter-selector" id="analysisQuickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -694,18 +674,10 @@
                 <div class="filter-chip" data-range="all">All time</div>
                 <div class="filter-chip" data-range="custom">Custom…</div>
             </div>
-
             <div id="analysisCustomRange" style="display:none;">
-                <div class="field-group">
-                    <label for="analysisFromDate">From date</label>
-                    <input type="date" id="analysisFromDate">
-                </div>
-                <div class="field-group">
-                    <label for="analysisToDate">To date</label>
-                    <input type="date" id="analysisToDate">
-                </div>
+                <div class="field-group"><label for="analysisFromDate">From date</label><input type="date" id="analysisFromDate"></div>
+                <div class="field-group"><label for="analysisToDate">To date</label><input type="date" id="analysisToDate"></div>
             </div>
-
             <div class="modal-actions">
                 <button class="btn-cancel" id="analysisModalCancel">Cancel</button>
                 <button class="btn-go" id="analysisModalGo">📊 Generate Report</button>
@@ -715,14 +687,8 @@
 
     <script>
         (function() {
-            // ============================================================
-            // ⚙️ CONFIGURATION
-            // ============================================================
             const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxP3k23cM-EYB8Rv31xNYZvmXLYPKb5_ca_f-ITKsDSFeWRVGEuH23O44KOAxW_YvyZhQ/exec';
 
-            // ============================================================
-            // DOM REFERENCES
-            // ============================================================
             const generatorSelect = document.getElementById('generatorSelect');
             const technicianSelect = document.getElementById('technicianSelect');
             const signoffTechName = document.getElementById('signoffTechName');
@@ -755,7 +721,6 @@
             const protRemark = document.getElementById('protRemark');
             const atsRemark = document.getElementById('atsRemark');
 
-            // Multi-record PDF modal
             const pdfModal = document.getElementById('pdfModal');
             const modalCancel = document.getElementById('modalCancel');
             const modalGo = document.getElementById('modalGo');
@@ -764,7 +729,6 @@
             const fromDate = document.getElementById('fromDate');
             const toDate = document.getElementById('toDate');
 
-            // Analysis modal
             const analysisModal = document.getElementById('analysisModal');
             const analysisModalCancel = document.getElementById('analysisModalCancel');
             const analysisModalGo = document.getElementById('analysisModalGo');
@@ -775,11 +739,6 @@
 
             let selectedRange = '7';
             let analysisSelectedRange = '7';
-
-            // ============================================================
-            // 🖼️ SIGNATURE (optional)
-            const SIGNATURE_BASE64 = '';
-            // ============================================================
 
             // ============================================================
             // 💾 LOCAL QUEUE
@@ -912,10 +871,8 @@
             function updateTechnicianDisplay() {
                 const name = technicianSelect.value;
                 signoffTechName.textContent = name;
-                if (!SIGNATURE_BASE64) {
-                    const initials = name.split(' ').map(p => p[0]).join('') + '.';
-                    document.getElementById('signaturePad').textContent = initials;
-                }
+                const initials = name.split(' ').map(p => p[0]).join('') + '.';
+                document.getElementById('signaturePad').textContent = initials;
             }
 
             // ============================================================
@@ -958,6 +915,16 @@
                 return checked ? checked.value : '—';
             }
 
+            // ⭐ NEW — returns array of ticked item numbers as strings
+            function getTickedItems(prefix) {
+                const items = [];
+                for (let i = 1; i <= 6; i++) {
+                    const cb = document.getElementById(prefix + i);
+                    if (cb && cb.checked) items.push(String(i));
+                }
+                return items;
+            }
+
             function collectFormData() {
                 const s = getChecklistSummary();
                 const now = new Date();
@@ -987,6 +954,10 @@
                     visualRemark: visualRemark.value.trim() || '—',
                     protRemark: protRemark.value.trim() || '—',
                     atsRemark: atsRemark.value.trim() || '—',
+                    // ⭐ NEW — exact ticked items
+                    visualItems: getTickedItems('visual'),
+                    protItems: getTickedItems('prot'),
+                    atsItems: getTickedItems('ats'),
                     visualRating: document.querySelector('input[name="visualRating"]:checked')?.value || '—',
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
                     atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—'
@@ -1021,7 +992,7 @@
             }
 
             // ============================================================
-            // ✍️ SIGN-OFF → auto-reset on success
+            // ✍️ SIGN-OFF
             // ============================================================
             signOffBtn.addEventListener('click', async function() {
                 signOffBtn.disabled = true;
@@ -1076,13 +1047,15 @@
             }
 
             function buildReportHTML(data) {
-                const sigHTML = SIGNATURE_BASE64
-                    ? '<div style="border:none;padding:0;"><img src="' + SIGNATURE_BASE64 + '" alt="Signature" style="max-height:55px;max-width:220px;"></div>'
-                    : '<div class="signature">' + data.technician.split(' ').map(p => p[0]).join('') + '.</div>';
+                const initials = data.technician.split(' ').map(p => p[0]).join('') + '.';
+                const sigHTML = '<div class="signature">' + initials + '</div>';
 
-                const checkList = (allItems) => {
-                    return allItems.map(item => {
-                        return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:700;color:#1b6b3f;">✔</span>' + item + '</li>';
+                const checkList = (ids, allItems) => {
+                    return allItems.map((item, idx) => {
+                        const isChecked = ids.indexOf(String(idx + 1)) !== -1;
+                        const mark = isChecked ? '✔' : '✘';
+                        const color = isChecked ? '#1b6b3f' : '#b33a3a';
+                        return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:700;color:' + color + ';">' + mark + '</span>' + item + '</li>';
                     }).join('');
                 };
 
@@ -1140,21 +1113,21 @@ ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr;
 <div class="section-title">🔧 Visual & Mechanical (${data.visualChecks}/${data.visualTotal})</div>
 <div class="rating-tag">Condition: ${data.visualRating}</div>
 <ul class="check-list">
-${checkList(['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'])}
+${checkList(data.visualItems, ['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'])}
 </ul>
 ${data.visualRemark !== '—' ? '<div class="remark-box">📝 ' + data.visualRemark + '</div>' : ''}
 
 <div class="section-title">🛡️ Protection Systems (${data.protChecks}/${data.protTotal})</div>
 <div class="rating-tag">Status: ${data.protRating}</div>
 <ul class="check-list">
-${checkList(['Low oil pressure shutdown','High coolant temperature shutdown','Overcrank / overspeed trip','Low coolant level alarm','Emergency stop function','Battery charger & voltage (24V)'])}
+${checkList(data.protItems, ['Low oil pressure shutdown','High coolant temperature shutdown','Overcrank / overspeed trip','Low coolant level alarm','Emergency stop function','Battery charger & voltage (24V)'])}
 </ul>
 ${data.protRemark !== '—' ? '<div class="remark-box">📝 ' + data.protRemark + '</div>' : ''}
 
 <div class="section-title">🔄 ATS / Transfer (${data.atsChecks}/${data.atsTotal})</div>
 <div class="rating-tag">Performance: ${data.atsRating}</div>
 <ul class="check-list">
-${checkList(['ATS panel indicators (normal / emergency)','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','No excessive arching / contact wear','Manual transfer test (if applicable)'])}
+${checkList(data.atsItems, ['ATS panel indicators (normal / emergency)','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','No excessive arching / contact wear','Manual transfer test (if applicable)'])}
 </ul>
 ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + '</div>' : ''}
 
@@ -1174,7 +1147,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             }
 
             // ============================================================
-            // 📚 DOWNLOAD ALL RECORDS AS PDF (multi-page)
+            // 📚 DOWNLOAD ALL RECORDS AS PDF
             // ============================================================
             pdfAllBtn.addEventListener('click', function() {
                 const today = new Date();
@@ -1182,11 +1155,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 weekAgo.setDate(today.getDate() - 7);
                 toDate.value = today.toISOString().slice(0,10);
                 fromDate.value = weekAgo.toISOString().slice(0,10);
-
                 selectedRange = '7';
                 quickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
                 customRangeFields.style.display = 'none';
-
                 pdfModal.classList.add('show');
             });
 
@@ -1207,18 +1178,15 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 modalGo.disabled = true;
                 const orig = modalGo.innerHTML;
                 modalGo.innerHTML = '⏳ Loading...';
-
                 try {
                     const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
                     const json = await res.json();
-
                     if (!json.records || json.records.length === 0) {
                         showStatus('📭 No records found in the sheet yet.', false);
                         modalGo.disabled = false;
                         modalGo.innerHTML = orig;
                         return;
                     }
-
                     const filtered = filterRecords(json.records);
                     if (filtered.length === 0) {
                         showStatus('📭 No records match the selected date range.', false);
@@ -1226,7 +1194,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         modalGo.innerHTML = orig;
                         return;
                     }
-
                     modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
                     await generateMultiRecordPDF(filtered);
                     showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
@@ -1235,27 +1202,21 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     console.error(err);
                     showStatus('⚠️ Could not load records: ' + err.message, false);
                 }
-
                 modalGo.disabled = false;
                 modalGo.innerHTML = orig;
             });
 
             function filterRecords(records) {
                 if (selectedRange === 'all') return records;
-
                 let from, to;
                 if (selectedRange === 'custom') {
                     from = fromDate.value ? new Date(fromDate.value + 'T00:00:00') : null;
                     to = toDate.value ? new Date(toDate.value + 'T23:59:59') : null;
                 } else {
                     const days = parseInt(selectedRange, 10);
-                    to = new Date();
-                    to.setHours(23, 59, 59, 999);
-                    from = new Date();
-                    from.setDate(from.getDate() - days);
-                    from.setHours(0, 0, 0, 0);
+                    to = new Date(); to.setHours(23, 59, 59, 999);
+                    from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
                 }
-
                 return records.filter(r => {
                     const ts = r['Timestamp'] || r['timestamp'];
                     if (!ts) return false;
@@ -1270,7 +1231,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             async function generateMultiRecordPDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
                 const pageW = 210;
                 const pageH = 297;
                 const marginL = 14;
@@ -1279,25 +1239,21 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
                 for (let i = 0; i < records.length; i++) {
                     if (i > 0) doc.addPage();
-
                     const r = records[i];
                     let y = 18;
 
                     doc.setFillColor(30, 74, 109);
                     doc.rect(0, 0, pageW, 6, 'F');
-
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(14);
                     doc.setTextColor(18, 64, 94);
                     doc.text('Generator Fleet — Testing and Monitoring Report', marginL, y);
                     y += 5;
-
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(8.5);
                     doc.setTextColor(58, 101, 131);
                     doc.text('Site: CHUB · 400V · 50Hz · Weekly Friday Inspection', marginL, y);
                     y += 4;
-
                     doc.setFontSize(8);
                     doc.setTextColor(91, 123, 150);
                     const workDate = formatDateForPDF(r['Work Date']);
@@ -1306,7 +1262,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.text('Work date: ' + workDate, pageW - marginR, 18, { align: 'right' });
                     doc.text('Technician: ' + technician, pageW - marginR, 23, { align: 'right' });
                     doc.text('Generated: ' + genAt, pageW - marginR, 28, { align: 'right' });
-
                     y += 6;
 
                     doc.setFillColor(30, 74, 109);
@@ -1357,6 +1312,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     });
                     y += 20;
 
+                    // Visual
+                    const visualIds = (r['Visual Items'] || '').split('|').filter(Boolean);
+                    const visualArg = visualIds.length > 0 ? visualIds : (r['Visual Checks'] || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
                     y = drawRating(doc, r['Visual Rating'], marginL, y);
                     y = drawChecklist(doc, [
@@ -1366,11 +1324,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Radiator / cooling fins clean',
                         'Battery terminals & electrolyte level',
                         'Mounting bolts & vibration isolators'
-                    ], r['Visual Checks'] || '0/6', marginL, y, contentW);
+                    ], visualArg, marginL, y, contentW);
                     if (r['Visual Remarks'] && r['Visual Remarks'] !== '—') {
                         y = drawRemark(doc, r['Visual Remarks'], marginL, y, contentW);
                     }
 
+                    // Protection
+                    const protIds = (r['Protection Items'] || '').split('|').filter(Boolean);
+                    const protArg = protIds.length > 0 ? protIds : (r['Protection Checks'] || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
                     y = drawRating(doc, r['Protection Rating'], marginL, y);
                     y = drawChecklist(doc, [
@@ -1380,11 +1341,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Low coolant level alarm',
                         'Emergency stop function',
                         'Battery charger & voltage (24V)'
-                    ], r['Protection Checks'] || '0/6', marginL, y, contentW);
+                    ], protArg, marginL, y, contentW);
                     if (r['Protection Remarks'] && r['Protection Remarks'] !== '—') {
                         y = drawRemark(doc, r['Protection Remarks'], marginL, y, contentW);
                     }
 
+                    // ATS
+                    const atsIds = (r['ATS Items'] || '').split('|').filter(Boolean);
+                    const atsArg = atsIds.length > 0 ? atsIds : (r['ATS Checks'] || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
                     y = drawRating(doc, r['ATS Rating'], marginL, y);
                     y = drawChecklist(doc, [
@@ -1394,7 +1358,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Return to normal after delay',
                         'No excessive arching / contact wear',
                         'Manual transfer test (if applicable)'
-                    ], r['ATS Checks'] || '0/6', marginL, y, contentW);
+                    ], atsArg, marginL, y, contentW);
                     if (r['ATS Remarks'] && r['ATS Remarks'] !== '—') {
                         y = drawRemark(doc, r['ATS Remarks'], marginL, y, contentW);
                     }
@@ -1415,7 +1379,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFontSize(7.5);
                     doc.setTextColor(58, 101, 131);
                     doc.text('CHUB Site · Work date: ' + workDate, marginL + 4, signoffY + 16.5);
-
                     const initials = (r['Technician'] || 'HK').split(' ').map(p => p[0]).join('') + '.';
                     doc.setFont('times', 'italic');
                     doc.setFontSize(14);
@@ -1451,7 +1414,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             function drawSection(doc, title, x, y, w) {
                 doc.setFillColor(30, 74, 109);
                 doc.rect(x, y - 3.5, 1.5, 4, 'F');
-
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.setTextColor(18, 64, 94);
@@ -1476,8 +1438,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return y + 5;
             }
 
-            function drawChecklist(doc, items, checks, x, y, contentW) {
-                const done = parseInt((checks || '0/6').split('/')[0], 10) || 0;
+            // ⭐ UPDATED — supports exact IDs OR fallback count
+            function drawChecklist(doc, items, checksOrIds, x, y, contentW) {
+                let tickedIds;
+                if (Array.isArray(checksOrIds)) {
+                    tickedIds = checksOrIds.map(String);
+                } else {
+                    const done = parseInt((checksOrIds || '0/6').split('/')[0], 10) || 0;
+                    tickedIds = [];
+                    for (let i = 1; i <= done; i++) tickedIds.push(String(i));
+                }
 
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(8);
@@ -1490,7 +1460,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const bx = x + col * (colW + 4);
                     const by = y + row * rowH;
 
-                    const isChecked = i < done;
+                    const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
                     const mark = isChecked ? '✔' : '✘';
                     doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
                     doc.setFont('helvetica', 'bold');
@@ -1523,7 +1493,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             }
 
             // ============================================================
-            // 📊 ANALYSIS PDF — open modal + generate
+            // 📊 ANALYSIS PDF
             // ============================================================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
@@ -1531,11 +1501,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 weekAgo.setDate(today.getDate() - 7);
                 analysisToDate.value = today.toISOString().slice(0,10);
                 analysisFromDate.value = weekAgo.toISOString().slice(0,10);
-
                 analysisSelectedRange = '7';
                 analysisQuickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
                 analysisCustomRange.style.display = 'none';
-
                 analysisModal.classList.add('show');
             });
 
@@ -1556,18 +1524,15 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 analysisModalGo.disabled = true;
                 const orig = analysisModalGo.innerHTML;
                 analysisModalGo.innerHTML = '⏳ Loading...';
-
                 try {
                     const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
                     const json = await res.json();
-
                     if (!json.records || json.records.length === 0) {
                         showStatus('📭 No records found.', false);
                         analysisModalGo.disabled = false;
                         analysisModalGo.innerHTML = orig;
                         return;
                     }
-
                     const filtered = filterAnalysisRecords(json.records);
                     if (filtered.length === 0) {
                         showStatus('📭 No records match the selected date range.', false);
@@ -1575,7 +1540,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         analysisModalGo.innerHTML = orig;
                         return;
                     }
-
                     analysisModalGo.innerHTML = '📊 Generating...';
                     await generateAnalysisPDF(filtered);
                     showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true);
@@ -1584,27 +1548,21 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     console.error(err);
                     showStatus('⚠️ Could not load records: ' + err.message, false);
                 }
-
                 analysisModalGo.disabled = false;
                 analysisModalGo.innerHTML = orig;
             });
 
             function filterAnalysisRecords(records) {
                 if (analysisSelectedRange === 'all') return records;
-
                 let from, to;
                 if (analysisSelectedRange === 'custom') {
                     from = analysisFromDate.value ? new Date(analysisFromDate.value + 'T00:00:00') : null;
                     to = analysisToDate.value ? new Date(analysisToDate.value + 'T23:59:59') : null;
                 } else {
                     const days = parseInt(analysisSelectedRange, 10);
-                    to = new Date();
-                    to.setHours(23, 59, 59, 999);
-                    from = new Date();
-                    from.setDate(from.getDate() - days);
-                    from.setHours(0, 0, 0, 0);
+                    to = new Date(); to.setHours(23, 59, 59, 999);
+                    from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
                 }
-
                 return records.filter(r => {
                     const ts = r['Timestamp'] || r['timestamp'];
                     if (!ts) return false;
@@ -1619,29 +1577,22 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             async function generateAnalysisPDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
                 const pageW = 210;
                 const pageH = 297;
                 const mL = 14;
                 const mR = 14;
                 const cW = pageW - mL - mR;
 
-                // ============================================================
-                // PAGE 1 — KPIs + HISTOGRAM + BY GENERATOR
-                // ============================================================
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 6, 'F');
-
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(16);
                 doc.setTextColor(18, 64, 94);
                 doc.text('Generator Fleet — Analysis Report', mL, 20);
-
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(9);
                 doc.setTextColor(58, 101, 131);
                 doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
-
                 doc.setFontSize(8);
                 doc.setTextColor(91, 123, 150);
                 const genAt = new Date().toLocaleString('en-GB', {
@@ -1653,7 +1604,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.text('Generated: ' + genAt, pageW - mR, 20, { align: 'right' });
                 doc.text('Range: ' + rangeLabel, pageW - mR, 25, { align: 'right' });
                 doc.text('Records: ' + records.length, pageW - mR, 30, { align: 'right' });
-
                 doc.setDrawColor(212, 227, 239);
                 doc.setLineWidth(0.5);
                 doc.line(mL, 34, pageW - mR, 34);
@@ -1678,32 +1628,26 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     { label: 'Avg Fuel Level', value: roundClient(avgFuel, 1) + ' %' },
                     { label: 'Avg Run Hours / Check', value: roundClient(avgRunHours, 1) + ' h' }
                 ];
-
                 const kpiBoxW = (cW - 8) / 3;
                 const kpiBoxH = 22;
                 const kpiGap = 4;
-
                 kpiBoxes.forEach((b, i) => {
                     const col = i % 3;
                     const row = Math.floor(i / 3);
                     const bx = mL + col * (kpiBoxW + kpiGap);
                     const by = y + row * (kpiBoxH + kpiGap);
-
                     doc.setFillColor(249, 252, 255);
                     doc.setDrawColor(212, 227, 239);
                     doc.roundedRect(bx, by, kpiBoxW, kpiBoxH, 2, 2, 'FD');
-
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(7);
                     doc.setTextColor(91, 123, 150);
                     doc.text(b.label.toUpperCase(), bx + 3, by + 6);
-
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(15);
                     doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, by + 16);
                 });
-
                 y += 2 * (kpiBoxH + kpiGap) + 4;
 
                 y = drawAnalysisSection(doc, 'Weekly Run Hours Distribution (Histogram)', mL, y, cW);
@@ -1717,7 +1661,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     { label: '40 – 50 h', min: 40, max: 50 },
                     { label: '50+ h', min: 50, max: Infinity }
                 ];
-
                 const histogramData = bins.map(b => ({
                     label: b.label,
                     count: records.filter(r => {
@@ -1725,12 +1668,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         return h >= b.min && h < b.max;
                     }).length
                 }));
-
                 const histMax = Math.max(1, ...histogramData.map(h => h.count));
                 const chartRowH = 5;
                 const labelW = 30;
                 const barMaxW = cW - labelW - 20;
-
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(8);
                 histogramData.forEach((h, i) => {
@@ -1745,9 +1686,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.text(String(h.count), mL + labelW + barW + 2, rowY + 3.5);
                     doc.setFont('helvetica', 'normal');
                 });
-
                 y += histogramData.length * chartRowH + 4;
-
                 const dominantBin = histogramData.reduce((a, b) => b.count > a.count ? b : a, histogramData[0]);
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(8);
@@ -1756,7 +1695,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y += 8;
 
                 y = drawAnalysisSection(doc, 'Breakdown by Generator', mL, y, cW);
-
                 const byGen = {};
                 records.forEach(r => {
                     const g = r['Generator'] || 'Unknown';
@@ -1765,25 +1703,18 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     byGen[g].diesel += parseNumClient(r['Diesel Refilled (L)']);
                     byGen[g].hours += parseNumClient(r['Run Hours']);
                 });
-
                 const genRows = Object.keys(byGen).map(g => [
                     g,
                     byGen[g].count,
                     roundClient(byGen[g].diesel, 1),
                     roundClient(byGen[g].hours, 1)
                 ]);
-
                 y = drawSimpleTable(doc, ['Generator', 'Inspections', 'Diesel (L)', 'Run Hours'], genRows, mL, y, cW);
 
-                // ============================================================
-                // PAGE 2 — TECHNICIAN + WEEKLY + FUEL
-                // ============================================================
                 doc.addPage();
                 let y2 = 20;
-
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 4, 'F');
-
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.setTextColor(18, 64, 94);
@@ -1791,7 +1722,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y2 += 8;
 
                 y2 = drawAnalysisSection(doc, 'Breakdown by Technician', mL, y2, cW);
-
                 const byTech = {};
                 records.forEach(r => {
                     const t = r['Technician'] || 'Unknown';
@@ -1801,7 +1731,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y2 = drawSimpleTable(doc, ['Technician', 'Inspections'], techRows, mL, y2, cW);
 
                 y2 = drawAnalysisSection(doc, 'Weekly Trend', mL, y2, cW);
-
                 const byWeek = {};
                 records.forEach(r => {
                     const d = new Date(r['Timestamp']);
@@ -1821,7 +1750,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
 
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
-
                 const fuelBuckets = {
                     'Low (0–25%)': 0,
                     'Medium (26–50%)': 0,
@@ -1839,7 +1767,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
                 y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
 
-                // Footer on all pages
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
                     doc.setPage(p);
@@ -1875,11 +1802,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.text('(no data)', x, y + 4);
                     return y + 8;
                 }
-
                 const colCount = headers.length;
                 const colW = w / colCount;
                 const rowH = 6;
-
                 doc.setFillColor(212, 227, 239);
                 doc.rect(x, y, w, rowH, 'F');
                 doc.setFont('helvetica', 'bold');
@@ -1889,7 +1814,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.text(h, x + i * colW + 2, y + 4);
                 });
                 y += rowH;
-
                 doc.setFont('helvetica', 'normal');
                 rows.forEach((row, rIdx) => {
                     if (rIdx % 2 === 1) {
@@ -1905,11 +1829,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     });
                     y += rowH;
                 });
-
                 doc.setDrawColor(212, 227, 239);
                 doc.setLineWidth(0.2);
                 doc.rect(x, y - rows.length * rowH - rowH, w, rows.length * rowH + rowH);
-
                 return y + 4;
             }
 
@@ -1935,14 +1857,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
-            // ============================================================
-            // 🔄 RESET BUTTON
-            // ============================================================
             resetBtn.addEventListener('click', function() { resetForm(true); });
 
-            // ============================================================
-            // 🚀 INIT
-            // ============================================================
             setAutoWorkDate();
             updateGeneratorBanner();
             updateTechnicianDisplay();
