@@ -95,12 +95,6 @@
             display: flex; align-items: center; gap: 14px;
             font-size: 1.05rem; color: #0b3b5c; font-weight: 500;
         }
-        .friday-tag {
-            background: #d4e6f5; color: #12405e;
-            padding: 8px 22px; border-radius: 40px;
-            font-weight: 600; font-size: 1rem;
-            display: flex; align-items: center; gap: 8px;
-        }
         .workdate-tag {
             background: #fff3cd; color: #7a5300;
             padding: 8px 22px; border-radius: 40px;
@@ -331,6 +325,18 @@
         .btn-pdf-all:hover { background: #5d3578; transform: scale(1.01); }
         .btn-pdf-all:disabled { opacity: 0.6; cursor: wait; }
 
+        .btn-analysis {
+            background: #1b6b3f; color: white; border: none;
+            padding: 16px 36px; border-radius: 40px;
+            font-weight: 600; font-size: 1.1rem; cursor: pointer;
+            transition: 0.15s; display: inline-flex;
+            align-items: center; gap: 12px;
+            box-shadow: 0 10px 18px -8px rgba(20,90,50,0.35);
+            letter-spacing: 0.3px;
+        }
+        .btn-analysis:hover { background: #155231; transform: scale(1.01); }
+        .btn-analysis:disabled { opacity: 0.6; cursor: wait; }
+
         .btn-secondary {
             background: white; border: 1.5px solid #b8cfdf;
             color: #1e4a6d; padding: 12px 26px;
@@ -379,7 +385,6 @@
             margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
         }
 
-        /* Modal for date-range selection */
         .modal-overlay {
             display: none; position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -630,6 +635,7 @@
         <div class="action-buttons">
             <button class="btn-pdf" id="pdfBtn"><span>📄</span> Export Current as PDF</button>
             <button class="btn-pdf-all" id="pdfAllBtn"><span>📚</span> Download All Records (PDF)</button>
+            <button class="btn-analysis" id="analysisPdfBtn"><span>📊</span> Download Analysis Report (PDF)</button>
             <button class="btn-sync" id="syncBtn"><span>🔄</span> Sync pending (<span id="pendingCount">0</span>)</button>
             <button class="btn-secondary" id="resetBtn">⟲ Reset form</button>
         </div>
@@ -675,6 +681,38 @@
         </div>
     </div>
 
+    <!-- MODAL: Date range picker for analysis PDF -->
+    <div class="modal-overlay" id="analysisModal">
+        <div class="modal-box">
+            <h2>📊 Download Analysis Report</h2>
+            <p>Choose a date range. The PDF will include KPIs, histogram, and tables summarizing fleet performance.</p>
+
+            <div class="filter-selector" id="analysisQuickFilters">
+                <div class="filter-chip active" data-range="7">Last 7 days</div>
+                <div class="filter-chip" data-range="30">Last 30 days</div>
+                <div class="filter-chip" data-range="90">Last 90 days</div>
+                <div class="filter-chip" data-range="all">All time</div>
+                <div class="filter-chip" data-range="custom">Custom…</div>
+            </div>
+
+            <div id="analysisCustomRange" style="display:none;">
+                <div class="field-group">
+                    <label for="analysisFromDate">From date</label>
+                    <input type="date" id="analysisFromDate">
+                </div>
+                <div class="field-group">
+                    <label for="analysisToDate">To date</label>
+                    <input type="date" id="analysisToDate">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" id="analysisModalCancel">Cancel</button>
+                <button class="btn-go" id="analysisModalGo">📊 Generate Report</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         (function() {
             // ============================================================
@@ -694,6 +732,7 @@
             const resetBtn = document.getElementById('resetBtn');
             const pdfBtn = document.getElementById('pdfBtn');
             const pdfAllBtn = document.getElementById('pdfAllBtn');
+            const analysisPdfBtn = document.getElementById('analysisPdfBtn');
             const syncBtn = document.getElementById('syncBtn');
             const pendingCount = document.getElementById('pendingCount');
             const syncStatus = document.getElementById('syncStatus');
@@ -716,7 +755,7 @@
             const protRemark = document.getElementById('protRemark');
             const atsRemark = document.getElementById('atsRemark');
 
-            // Modal
+            // Multi-record PDF modal
             const pdfModal = document.getElementById('pdfModal');
             const modalCancel = document.getElementById('modalCancel');
             const modalGo = document.getElementById('modalGo');
@@ -725,7 +764,17 @@
             const fromDate = document.getElementById('fromDate');
             const toDate = document.getElementById('toDate');
 
-            let selectedRange = '7'; // days, or 'all', or 'custom'
+            // Analysis modal
+            const analysisModal = document.getElementById('analysisModal');
+            const analysisModalCancel = document.getElementById('analysisModalCancel');
+            const analysisModalGo = document.getElementById('analysisModalGo');
+            const analysisQuickFilters = document.querySelectorAll('#analysisQuickFilters .filter-chip');
+            const analysisCustomRange = document.getElementById('analysisCustomRange');
+            const analysisFromDate = document.getElementById('analysisFromDate');
+            const analysisToDate = document.getElementById('analysisToDate');
+
+            let selectedRange = '7';
+            let analysisSelectedRange = '7';
 
             // ============================================================
             // 🖼️ SIGNATURE (optional)
@@ -1026,381 +1075,6 @@
                 iframe.srcdoc = reportHTML;
             }
 
-            // ============================================================
-            // 📚 DOWNLOAD ALL RECORDS AS PDF (multi-page)
-            // ============================================================
-            pdfAllBtn.addEventListener('click', function() {
-                // Set default custom range
-                const today = new Date();
-                const weekAgo = new Date();
-                weekAgo.setDate(today.getDate() - 7);
-                toDate.value = today.toISOString().slice(0,10);
-                fromDate.value = weekAgo.toISOString().slice(0,10);
-
-                // Reset to default chip
-                selectedRange = '7';
-                quickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
-                customRangeFields.style.display = 'none';
-
-                pdfModal.classList.add('show');
-            });
-
-            quickFilters.forEach(chip => {
-                chip.addEventListener('click', function() {
-                    quickFilters.forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    selectedRange = this.dataset.range;
-                    customRangeFields.style.display = selectedRange === 'custom' ? 'block' : 'none';
-                });
-            });
-
-            modalCancel.addEventListener('click', function() {
-                pdfModal.classList.remove('show');
-            });
-
-            modalGo.addEventListener('click', async function() {
-                modalGo.disabled = true;
-                const orig = modalGo.innerHTML;
-                modalGo.innerHTML = '⏳ Loading...';
-
-                try {
-                    // Fetch all records from the Google Sheet endpoint
-                    const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
-                    const json = await res.json();
-
-                    if (!json.records || json.records.length === 0) {
-                        showStatus('📭 No records found in the sheet yet.', false);
-                        modalGo.disabled = false;
-                        modalGo.innerHTML = orig;
-                        return;
-                    }
-
-                    // Filter by date range
-                    const filtered = filterRecords(json.records);
-                    if (filtered.length === 0) {
-                        showStatus('📭 No records match the selected date range.', false);
-                        modalGo.disabled = false;
-                        modalGo.innerHTML = orig;
-                        return;
-                    }
-
-                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
-                    await generateMultiRecordPDF(filtered);
-                    showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
-                    pdfModal.classList.remove('show');
-                } catch (err) {
-                    console.error(err);
-                    showStatus('⚠️ Could not load records: ' + err.message, false);
-                }
-
-                modalGo.disabled = false;
-                modalGo.innerHTML = orig;
-            });
-
-            function filterRecords(records) {
-                if (selectedRange === 'all') return records;
-
-                let from, to;
-                if (selectedRange === 'custom') {
-                    from = fromDate.value ? new Date(fromDate.value + 'T00:00:00') : null;
-                    to = toDate.value ? new Date(toDate.value + 'T23:59:59') : null;
-                } else {
-                    const days = parseInt(selectedRange, 10);
-                    to = new Date();
-                    to.setHours(23, 59, 59, 999);
-                    from = new Date();
-                    from.setDate(from.getDate() - days);
-                    from.setHours(0, 0, 0, 0);
-                }
-
-                return records.filter(r => {
-                    // Use the Timestamp column (created by Apps Script on save)
-                    const ts = r['Timestamp'] || r['timestamp'];
-                    if (!ts) return false;
-                    const d = new Date(ts);
-                    if (isNaN(d.getTime())) return false;
-                    if (from && d < from) return false;
-                    if (to && d > to) return false;
-                    return true;
-                });
-            }
-
-            // ============================================================
-            // 🎨 MULTI-RECORD PDF — each record = one page
-            // ============================================================
-            async function generateMultiRecordPDF(records) {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-                const pageW = 210;
-                const pageH = 297;
-                const marginL = 14;
-                const marginR = 14;
-                const contentW = pageW - marginL - marginR;
-
-                for (let i = 0; i < records.length; i++) {
-                    if (i > 0) doc.addPage();
-
-                    const r = records[i];
-                    let y = 18;
-
-                    // ===== HEADER BAR =====
-                    doc.setFillColor(30, 74, 109);
-                    doc.rect(0, 0, pageW, 6, 'F');
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(14);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('Generator Fleet — Testing and Monitoring Report', marginL, y);
-                    y += 5;
-
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8.5);
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('Site: CHUB · 400V · 50Hz · Weekly Friday Inspection', marginL, y);
-                    y += 4;
-
-                    // Right side meta
-                    doc.setFontSize(8);
-                    doc.setTextColor(91, 123, 150);
-                    const workDate = formatDateForPDF(r['Work Date']);
-                    const technician = r['Technician'] || '—';
-                    const genAt = formatDateForPDF(r['Timestamp']);
-                    doc.text('Work date: ' + workDate, pageW - marginR, 18, { align: 'right' });
-                    doc.text('Technician: ' + technician, pageW - marginR, 23, { align: 'right' });
-                    doc.text('Generated: ' + genAt, pageW - marginR, 28, { align: 'right' });
-
-                    y += 6;
-
-                    // ===== GENERATOR BANNER =====
-                    doc.setFillColor(30, 74, 109);
-                    doc.roundedRect(marginL, y, contentW, 16, 2, 2, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text(r['Generator'] || '—', marginL + 4, y + 6);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(203, 228, 247);
-                    doc.text('400V / 50Hz · field checklist', marginL + 4, y + 11);
-                    doc.setFontSize(7);
-                    doc.setTextColor(179, 217, 242);
-                    doc.text('Weekly Friday inspection · CHUB site', marginL + 4, y + 14.5);
-                    y += 20;
-
-                    // ===== FLUIDS & OPERATIONAL DATA =====
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(10);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('FLUIDS & OPERATIONAL DATA', marginL, y);
-                    y += 2;
-                    doc.setDrawColor(212, 227, 239);
-                    doc.setLineWidth(0.4);
-                    doc.line(marginL, y, pageW - marginR, y);
-                    y += 5;
-
-                    // 4 info boxes
-                    const boxW = (contentW - 6) / 4;
-                    const boxes = [
-                        { label: 'Fuel Level', value: r['Fuel %'] || '—' },
-                        { label: 'Coolant Level', value: r['Coolant'] || '—' },
-                        { label: 'Refilled Diesel', value: r['Diesel Refilled (L)'] || '—' },
-                        { label: 'Run Hours', value: r['Run Hours'] || '—' }
-                    ];
-                    boxes.forEach((b, idx) => {
-                        const bx = marginL + idx * (boxW + 2);
-                        doc.setFillColor(249, 252, 255);
-                        doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, boxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(6);
-                        doc.setTextColor(91, 123, 150);
-                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(10);
-                        doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
-                    y += 20;
-
-                    // ===== Visual & Mechanical =====
-                    y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW, pageH);
-                    y = drawRating(doc, r['Visual Rating'], marginL, y);
-                    y = drawChecklist(doc, [
-                        'No leaks (oil, coolant, fuel)',
-                        'Belt tension & wear',
-                        'Hoses & connections condition',
-                        'Radiator / cooling fins clean',
-                        'Battery terminals & electrolyte level',
-                        'Mounting bolts & vibration isolators'
-                    ], r['Visual Checks'] || '0/6', marginL, y, contentW);
-                    if (r['Visual Remarks'] && r['Visual Remarks'] !== '—') {
-                        y = drawRemark(doc, r['Visual Remarks'], marginL, y, contentW);
-                    }
-
-                    // ===== Protection Systems =====
-                    y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW, pageH);
-                    y = drawRating(doc, r['Protection Rating'], marginL, y);
-                    y = drawChecklist(doc, [
-                        'Low oil pressure shutdown',
-                        'High coolant temperature shutdown',
-                        'Overcrank / overspeed trip',
-                        'Low coolant level alarm',
-                        'Emergency stop function',
-                        'Battery charger & voltage (24V)'
-                    ], r['Protection Checks'] || '0/6', marginL, y, contentW);
-                    if (r['Protection Remarks'] && r['Protection Remarks'] !== '—') {
-                        y = drawRemark(doc, r['Protection Remarks'], marginL, y, contentW);
-                    }
-
-                    // ===== ATS / Transfer =====
-                    y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW, pageH);
-                    y = drawRating(doc, r['ATS Rating'], marginL, y);
-                    y = drawChecklist(doc, [
-                        'ATS panel indicators (normal / emergency)',
-                        'Automatic transfer test (simulate outage)',
-                        'Voltage & frequency on transfer (400V / 50Hz)',
-                        'Return to normal after delay',
-                        'No excessive arching / contact wear',
-                        'Manual transfer test (if applicable)'
-                    ], r['ATS Checks'] || '0/6', marginL, y, contentW);
-                    if (r['ATS Remarks'] && r['ATS Remarks'] !== '—') {
-                        y = drawRemark(doc, r['ATS Remarks'], marginL, y, contentW);
-                    }
-
-                    // ===== SIGN-OFF =====
-                    // Place at bottom of page
-                    const signoffY = pageH - 30;
-                    doc.setFillColor(240, 246, 252);
-                    doc.setDrawColor(207, 224, 238);
-                    doc.roundedRect(marginL, signoffY, contentW, 22, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(6.5);
-                    doc.setTextColor(91, 123, 150);
-                    doc.text('SIGNED OFF BY', marginL + 4, signoffY + 5);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(11);
-                    doc.setTextColor(10, 42, 63);
-                    doc.text(r['Technician'] || '—', marginL + 4, signoffY + 11);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('CHUB Site · Work date: ' + workDate, marginL + 4, signoffY + 16.5);
-
-                    // Signature (right side) — initials or base64 image
-                    const initials = (r['Technician'] || 'HK').split(' ').map(p => p[0]).join('') + '.';
-                    doc.setFont('times', 'italic');
-                    doc.setFontSize(14);
-                    doc.setTextColor(30, 74, 109);
-                    doc.text(initials, pageW - marginR - 6, signoffY + 13, { align: 'right' });
-
-                    // ===== FOOTER =====
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(6.5);
-                    doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from Generator Fleet — Testing and Monitoring Procedures',
-                        pageW / 2, pageH - 6, { align: 'center' });
-                    doc.text('Page ' + (i + 1) + ' of ' + records.length + ' · ' + genAt,
-                        pageW / 2, pageH - 2, { align: 'center' });
-                }
-
-                // Save the file
-                const filename = 'CHUB_Generator_Reports_' +
-                    new Date().toISOString().slice(0,10) + '_' +
-                    records.length + 'records.pdf';
-                doc.save(filename);
-            }
-
-            function formatDateForPDF(val) {
-                if (!val) return '—';
-                if (typeof val === 'string' && val.includes('T')) {
-                    return new Date(val).toLocaleString('en-GB', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    });
-                }
-                return String(val);
-            }
-
-            function drawSection(doc, title, x, y, w, pageH) {
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(18, 64, 94);
-                doc.text(title, x, y);
-                y += 2;
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.4);
-                doc.line(x, y, x + w, y);
-                return y + 5;
-            }
-
-            function drawRating(doc, rating, x, y) {
-                const label = (rating || '—').toString();
-                const text = 'Rating: ' + label;
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(7.5);
-                const tw = doc.getTextWidth(text) + 6;
-                doc.setFillColor(231, 240, 248);
-                doc.roundedRect(x, y - 3, tw, 5.5, 1.5, 1.5, 'F');
-                doc.setTextColor(18, 64, 94);
-                doc.text(text, x + 3, y + 0.8);
-                return y + 5;
-            }
-
-            function drawChecklist(doc, items, checks, x, y, contentW) {
-                // checks is like "4/6"
-                const total = parseInt((checks || '0/6').split('/')[1], 10) || 6;
-                const done = parseInt((checks || '0/6').split('/')[0], 10) || 0;
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                const colW = (contentW - 6) / 2;
-                const rowH = 5;
-
-                items.forEach((item, i) => {
-                    const col = i % 2;
-                    const row = Math.floor(i / 2);
-                    const bx = x + col * (colW + 4);
-                    const by = y + row * rowH;
-
-                    // Since we don't have per-item check state in the sheet,
-                    // we show first "done" items as checked (approximation)
-                    const isChecked = i < done;
-                    const mark = isChecked ? '✔' : '✘';
-                    doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(mark, bx, by + 3.5);
-
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(31, 60, 84);
-                    // Truncate long labels if needed
-                    const maxChars = 42;
-                    const label = item.length > maxChars ? item.substring(0, maxChars - 1) + '…' : item;
-                    doc.text(label, bx + 5, by + 3.5);
-                });
-
-                const rows = Math.ceil(items.length / 2);
-                return y + rows * rowH + 2;
-            }
-
-            function drawRemark(doc, remark, x, y, contentW) {
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(7.5);
-                doc.setTextColor(58, 101, 131);
-                doc.setFillColor(251, 253, 255);
-                doc.setDrawColor(156, 185, 208);
-                const text = 'Remark: ' + remark;
-                const wrapped = doc.splitTextToSize(text, contentW - 6);
-                const h = wrapped.length * 3.5 + 3;
-                doc.roundedRect(x, y, contentW, h, 1, 1, 'FD');
-                doc.line(x, y, x, y + h); // left accent (approximation)
-                doc.text(wrapped, x + 3, y + 4);
-                return y + h + 2;
-            }
-
-            // ============================================================
-            // 📄 BUILD SINGLE RECORD PDF (print approach — same as before)
-            // ============================================================
             function buildReportHTML(data) {
                 const sigHTML = SIGNATURE_BASE64
                     ? '<div style="border:none;padding:0;"><img src="' + SIGNATURE_BASE64 + '" alt="Signature" style="max-height:55px;max-width:220px;"></div>'
@@ -1497,6 +1171,768 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
   This report was generated automatically from the Generator Fleet — Testing and Monitoring Procedures · ${data.generatedAt}
 </div>
 </body></html>`;
+            }
+
+            // ============================================================
+            // 📚 DOWNLOAD ALL RECORDS AS PDF (multi-page)
+            // ============================================================
+            pdfAllBtn.addEventListener('click', function() {
+                const today = new Date();
+                const weekAgo = new Date();
+                weekAgo.setDate(today.getDate() - 7);
+                toDate.value = today.toISOString().slice(0,10);
+                fromDate.value = weekAgo.toISOString().slice(0,10);
+
+                selectedRange = '7';
+                quickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
+                customRangeFields.style.display = 'none';
+
+                pdfModal.classList.add('show');
+            });
+
+            quickFilters.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    quickFilters.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedRange = this.dataset.range;
+                    customRangeFields.style.display = selectedRange === 'custom' ? 'block' : 'none';
+                });
+            });
+
+            modalCancel.addEventListener('click', function() {
+                pdfModal.classList.remove('show');
+            });
+
+            modalGo.addEventListener('click', async function() {
+                modalGo.disabled = true;
+                const orig = modalGo.innerHTML;
+                modalGo.innerHTML = '⏳ Loading...';
+
+                try {
+                    const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
+                    const json = await res.json();
+
+                    if (!json.records || json.records.length === 0) {
+                        showStatus('📭 No records found in the sheet yet.', false);
+                        modalGo.disabled = false;
+                        modalGo.innerHTML = orig;
+                        return;
+                    }
+
+                    const filtered = filterRecords(json.records);
+                    if (filtered.length === 0) {
+                        showStatus('📭 No records match the selected date range.', false);
+                        modalGo.disabled = false;
+                        modalGo.innerHTML = orig;
+                        return;
+                    }
+
+                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
+                    await generateMultiRecordPDF(filtered);
+                    showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
+                    pdfModal.classList.remove('show');
+                } catch (err) {
+                    console.error(err);
+                    showStatus('⚠️ Could not load records: ' + err.message, false);
+                }
+
+                modalGo.disabled = false;
+                modalGo.innerHTML = orig;
+            });
+
+            function filterRecords(records) {
+                if (selectedRange === 'all') return records;
+
+                let from, to;
+                if (selectedRange === 'custom') {
+                    from = fromDate.value ? new Date(fromDate.value + 'T00:00:00') : null;
+                    to = toDate.value ? new Date(toDate.value + 'T23:59:59') : null;
+                } else {
+                    const days = parseInt(selectedRange, 10);
+                    to = new Date();
+                    to.setHours(23, 59, 59, 999);
+                    from = new Date();
+                    from.setDate(from.getDate() - days);
+                    from.setHours(0, 0, 0, 0);
+                }
+
+                return records.filter(r => {
+                    const ts = r['Timestamp'] || r['timestamp'];
+                    if (!ts) return false;
+                    const d = new Date(ts);
+                    if (isNaN(d.getTime())) return false;
+                    if (from && d < from) return false;
+                    if (to && d > to) return false;
+                    return true;
+                });
+            }
+
+            async function generateMultiRecordPDF(records) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                const pageW = 210;
+                const pageH = 297;
+                const marginL = 14;
+                const marginR = 14;
+                const contentW = pageW - marginL - marginR;
+
+                for (let i = 0; i < records.length; i++) {
+                    if (i > 0) doc.addPage();
+
+                    const r = records[i];
+                    let y = 18;
+
+                    doc.setFillColor(30, 74, 109);
+                    doc.rect(0, 0, pageW, 6, 'F');
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.setTextColor(18, 64, 94);
+                    doc.text('Generator Fleet — Testing and Monitoring Report', marginL, y);
+                    y += 5;
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(58, 101, 131);
+                    doc.text('Site: CHUB · 400V · 50Hz · Weekly Friday Inspection', marginL, y);
+                    y += 4;
+
+                    doc.setFontSize(8);
+                    doc.setTextColor(91, 123, 150);
+                    const workDate = formatDateForPDF(r['Work Date']);
+                    const technician = r['Technician'] || '—';
+                    const genAt = formatDateForPDF(r['Timestamp']);
+                    doc.text('Work date: ' + workDate, pageW - marginR, 18, { align: 'right' });
+                    doc.text('Technician: ' + technician, pageW - marginR, 23, { align: 'right' });
+                    doc.text('Generated: ' + genAt, pageW - marginR, 28, { align: 'right' });
+
+                    y += 6;
+
+                    doc.setFillColor(30, 74, 109);
+                    doc.roundedRect(marginL, y, contentW, 16, 2, 2, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(255, 255, 255);
+                    doc.text(r['Generator'] || '—', marginL + 4, y + 6);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(203, 228, 247);
+                    doc.text('400V / 50Hz · field checklist', marginL + 4, y + 11);
+                    doc.setFontSize(7);
+                    doc.setTextColor(179, 217, 242);
+                    doc.text('Weekly Friday inspection · CHUB site', marginL + 4, y + 14.5);
+                    y += 20;
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(10);
+                    doc.setTextColor(18, 64, 94);
+                    doc.text('FLUIDS & OPERATIONAL DATA', marginL, y);
+                    y += 2;
+                    doc.setDrawColor(212, 227, 239);
+                    doc.setLineWidth(0.4);
+                    doc.line(marginL, y, pageW - marginR, y);
+                    y += 5;
+
+                    const boxW = (contentW - 6) / 4;
+                    const boxes = [
+                        { label: 'Fuel Level', value: r['Fuel %'] || '—' },
+                        { label: 'Coolant Level', value: r['Coolant'] || '—' },
+                        { label: 'Refilled Diesel', value: r['Diesel Refilled (L)'] || '—' },
+                        { label: 'Run Hours', value: r['Run Hours'] || '—' }
+                    ];
+                    boxes.forEach((b, idx) => {
+                        const bx = marginL + idx * (boxW + 2);
+                        doc.setFillColor(249, 252, 255);
+                        doc.setDrawColor(212, 227, 239);
+                        doc.roundedRect(bx, y, boxW, 14, 1.5, 1.5, 'FD');
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(6);
+                        doc.setTextColor(91, 123, 150);
+                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(10);
+                        doc.setTextColor(18, 64, 94);
+                        doc.text(String(b.value), bx + 2, y + 10.5);
+                    });
+                    y += 20;
+
+                    y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
+                    y = drawRating(doc, r['Visual Rating'], marginL, y);
+                    y = drawChecklist(doc, [
+                        'No leaks (oil, coolant, fuel)',
+                        'Belt tension & wear',
+                        'Hoses & connections condition',
+                        'Radiator / cooling fins clean',
+                        'Battery terminals & electrolyte level',
+                        'Mounting bolts & vibration isolators'
+                    ], r['Visual Checks'] || '0/6', marginL, y, contentW);
+                    if (r['Visual Remarks'] && r['Visual Remarks'] !== '—') {
+                        y = drawRemark(doc, r['Visual Remarks'], marginL, y, contentW);
+                    }
+
+                    y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
+                    y = drawRating(doc, r['Protection Rating'], marginL, y);
+                    y = drawChecklist(doc, [
+                        'Low oil pressure shutdown',
+                        'High coolant temperature shutdown',
+                        'Overcrank / overspeed trip',
+                        'Low coolant level alarm',
+                        'Emergency stop function',
+                        'Battery charger & voltage (24V)'
+                    ], r['Protection Checks'] || '0/6', marginL, y, contentW);
+                    if (r['Protection Remarks'] && r['Protection Remarks'] !== '—') {
+                        y = drawRemark(doc, r['Protection Remarks'], marginL, y, contentW);
+                    }
+
+                    y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
+                    y = drawRating(doc, r['ATS Rating'], marginL, y);
+                    y = drawChecklist(doc, [
+                        'ATS panel indicators (normal / emergency)',
+                        'Automatic transfer test (simulate outage)',
+                        'Voltage & frequency on transfer (400V / 50Hz)',
+                        'Return to normal after delay',
+                        'No excessive arching / contact wear',
+                        'Manual transfer test (if applicable)'
+                    ], r['ATS Checks'] || '0/6', marginL, y, contentW);
+                    if (r['ATS Remarks'] && r['ATS Remarks'] !== '—') {
+                        y = drawRemark(doc, r['ATS Remarks'], marginL, y, contentW);
+                    }
+
+                    const signoffY = pageH - 30;
+                    doc.setFillColor(240, 246, 252);
+                    doc.setDrawColor(207, 224, 238);
+                    doc.roundedRect(marginL, signoffY, contentW, 22, 2, 2, 'FD');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(91, 123, 150);
+                    doc.text('SIGNED OFF BY', marginL + 4, signoffY + 5);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(10, 42, 63);
+                    doc.text(r['Technician'] || '—', marginL + 4, signoffY + 11);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(58, 101, 131);
+                    doc.text('CHUB Site · Work date: ' + workDate, marginL + 4, signoffY + 16.5);
+
+                    const initials = (r['Technician'] || 'HK').split(' ').map(p => p[0]).join('') + '.';
+                    doc.setFont('times', 'italic');
+                    doc.setFontSize(14);
+                    doc.setTextColor(30, 74, 109);
+                    doc.text(initials, pageW - marginR - 6, signoffY + 13, { align: 'right' });
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(150, 170, 190);
+                    doc.text('Generated automatically from Generator Fleet — Testing and Monitoring Procedures',
+                        pageW / 2, pageH - 6, { align: 'center' });
+                    doc.text('Page ' + (i + 1) + ' of ' + records.length + ' · ' + genAt,
+                        pageW / 2, pageH - 2, { align: 'center' });
+                }
+
+                const filename = 'CHUB_Generator_Reports_' +
+                    new Date().toISOString().slice(0,10) + '_' +
+                    records.length + 'records.pdf';
+                doc.save(filename);
+            }
+
+            function formatDateForPDF(val) {
+                if (!val) return '—';
+                if (typeof val === 'string' && val.includes('T')) {
+                    return new Date(val).toLocaleString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+                return String(val);
+            }
+
+            function drawSection(doc, title, x, y, w) {
+                doc.setFillColor(30, 74, 109);
+                doc.rect(x, y - 3.5, 1.5, 4, 'F');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(18, 64, 94);
+                doc.text(title, x + 4, y);
+                y += 2;
+                doc.setDrawColor(212, 227, 239);
+                doc.setLineWidth(0.4);
+                doc.line(x, y, x + w, y);
+                return y + 5;
+            }
+
+            function drawRating(doc, rating, x, y) {
+                const label = (rating || '—').toString();
+                const text = 'Rating: ' + label;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7.5);
+                const tw = doc.getTextWidth(text) + 6;
+                doc.setFillColor(231, 240, 248);
+                doc.roundedRect(x, y - 3, tw, 5.5, 1.5, 1.5, 'F');
+                doc.setTextColor(18, 64, 94);
+                doc.text(text, x + 3, y + 0.8);
+                return y + 5;
+            }
+
+            function drawChecklist(doc, items, checks, x, y, contentW) {
+                const done = parseInt((checks || '0/6').split('/')[0], 10) || 0;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                const colW = (contentW - 6) / 2;
+                const rowH = 5;
+
+                items.forEach((item, i) => {
+                    const col = i % 2;
+                    const row = Math.floor(i / 2);
+                    const bx = x + col * (colW + 4);
+                    const by = y + row * rowH;
+
+                    const isChecked = i < done;
+                    const mark = isChecked ? '✔' : '✘';
+                    doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(mark, bx, by + 3.5);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(31, 60, 84);
+                    const maxChars = 42;
+                    const label = item.length > maxChars ? item.substring(0, maxChars - 1) + '…' : item;
+                    doc.text(label, bx + 5, by + 3.5);
+                });
+
+                const rows = Math.ceil(items.length / 2);
+                return y + rows * rowH + 2;
+            }
+
+            function drawRemark(doc, remark, x, y, contentW) {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(7.5);
+                doc.setTextColor(58, 101, 131);
+                doc.setFillColor(251, 253, 255);
+                doc.setDrawColor(156, 185, 208);
+                const text = 'Remark: ' + remark;
+                const wrapped = doc.splitTextToSize(text, contentW - 6);
+                const h = wrapped.length * 3.5 + 3;
+                doc.roundedRect(x, y, contentW, h, 1, 1, 'FD');
+                doc.line(x, y, x, y + h);
+                doc.text(wrapped, x + 3, y + 4);
+                return y + h + 2;
+            }
+
+            // ============================================================
+            // 📊 ANALYSIS PDF — open modal + generate
+            // ============================================================
+            analysisPdfBtn.addEventListener('click', function() {
+                const today = new Date();
+                const weekAgo = new Date();
+                weekAgo.setDate(today.getDate() - 7);
+                analysisToDate.value = today.toISOString().slice(0,10);
+                analysisFromDate.value = weekAgo.toISOString().slice(0,10);
+
+                analysisSelectedRange = '7';
+                analysisQuickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
+                analysisCustomRange.style.display = 'none';
+
+                analysisModal.classList.add('show');
+            });
+
+            analysisQuickFilters.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    analysisQuickFilters.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    analysisSelectedRange = this.dataset.range;
+                    analysisCustomRange.style.display = analysisSelectedRange === 'custom' ? 'block' : 'none';
+                });
+            });
+
+            analysisModalCancel.addEventListener('click', function() {
+                analysisModal.classList.remove('show');
+            });
+
+            analysisModalGo.addEventListener('click', async function() {
+                analysisModalGo.disabled = true;
+                const orig = analysisModalGo.innerHTML;
+                analysisModalGo.innerHTML = '⏳ Loading...';
+
+                try {
+                    const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
+                    const json = await res.json();
+
+                    if (!json.records || json.records.length === 0) {
+                        showStatus('📭 No records found.', false);
+                        analysisModalGo.disabled = false;
+                        analysisModalGo.innerHTML = orig;
+                        return;
+                    }
+
+                    const filtered = filterAnalysisRecords(json.records);
+                    if (filtered.length === 0) {
+                        showStatus('📭 No records match the selected date range.', false);
+                        analysisModalGo.disabled = false;
+                        analysisModalGo.innerHTML = orig;
+                        return;
+                    }
+
+                    analysisModalGo.innerHTML = '📊 Generating...';
+                    await generateAnalysisPDF(filtered);
+                    showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true);
+                    analysisModal.classList.remove('show');
+                } catch (err) {
+                    console.error(err);
+                    showStatus('⚠️ Could not load records: ' + err.message, false);
+                }
+
+                analysisModalGo.disabled = false;
+                analysisModalGo.innerHTML = orig;
+            });
+
+            function filterAnalysisRecords(records) {
+                if (analysisSelectedRange === 'all') return records;
+
+                let from, to;
+                if (analysisSelectedRange === 'custom') {
+                    from = analysisFromDate.value ? new Date(analysisFromDate.value + 'T00:00:00') : null;
+                    to = analysisToDate.value ? new Date(analysisToDate.value + 'T23:59:59') : null;
+                } else {
+                    const days = parseInt(analysisSelectedRange, 10);
+                    to = new Date();
+                    to.setHours(23, 59, 59, 999);
+                    from = new Date();
+                    from.setDate(from.getDate() - days);
+                    from.setHours(0, 0, 0, 0);
+                }
+
+                return records.filter(r => {
+                    const ts = r['Timestamp'] || r['timestamp'];
+                    if (!ts) return false;
+                    const d = new Date(ts);
+                    if (isNaN(d.getTime())) return false;
+                    if (from && d < from) return false;
+                    if (to && d > to) return false;
+                    return true;
+                });
+            }
+
+            async function generateAnalysisPDF(records) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                const pageW = 210;
+                const pageH = 297;
+                const mL = 14;
+                const mR = 14;
+                const cW = pageW - mL - mR;
+
+                // ============================================================
+                // PAGE 1 — KPIs + HISTOGRAM + BY GENERATOR
+                // ============================================================
+                doc.setFillColor(30, 74, 109);
+                doc.rect(0, 0, pageW, 6, 'F');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.setTextColor(18, 64, 94);
+                doc.text('Generator Fleet — Analysis Report', mL, 20);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.setTextColor(58, 101, 131);
+                doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
+
+                doc.setFontSize(8);
+                doc.setTextColor(91, 123, 150);
+                const genAt = new Date().toLocaleString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const rangeLabel = analysisSelectedRange === 'all' ? 'All time' :
+                                   analysisSelectedRange === 'custom' ? (analysisFromDate.value + ' → ' + analysisToDate.value) :
+                                   'Last ' + analysisSelectedRange + ' days';
+                doc.text('Generated: ' + genAt, pageW - mR, 20, { align: 'right' });
+                doc.text('Range: ' + rangeLabel, pageW - mR, 25, { align: 'right' });
+                doc.text('Records: ' + records.length, pageW - mR, 30, { align: 'right' });
+
+                doc.setDrawColor(212, 227, 239);
+                doc.setLineWidth(0.5);
+                doc.line(mL, 34, pageW - mR, 34);
+
+                const totalRecords = records.length;
+                const totalDiesel = records.reduce((s, r) => s + parseNumClient(r['Diesel Refilled (L)']), 0);
+                const totalRunHours = records.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0);
+                const avgFuel = totalRecords ? records.reduce((s, r) => s + parseNumClient(r['Fuel %']), 0) / totalRecords : 0;
+                const avgRunHours = totalRecords ? totalRunHours / totalRecords : 0;
+
+                let y = 44;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(18, 64, 94);
+                doc.text('KEY PERFORMANCE INDICATORS', mL, y);
+                y += 6;
+
+                const kpiBoxes = [
+                    { label: 'Total Records', value: String(totalRecords) },
+                    { label: 'Total Diesel Refilled', value: roundClient(totalDiesel, 1) + ' L' },
+                    { label: 'Total Run Hours', value: roundClient(totalRunHours, 1) + ' h' },
+                    { label: 'Avg Fuel Level', value: roundClient(avgFuel, 1) + ' %' },
+                    { label: 'Avg Run Hours / Check', value: roundClient(avgRunHours, 1) + ' h' }
+                ];
+
+                const kpiBoxW = (cW - 8) / 3;
+                const kpiBoxH = 22;
+                const kpiGap = 4;
+
+                kpiBoxes.forEach((b, i) => {
+                    const col = i % 3;
+                    const row = Math.floor(i / 3);
+                    const bx = mL + col * (kpiBoxW + kpiGap);
+                    const by = y + row * (kpiBoxH + kpiGap);
+
+                    doc.setFillColor(249, 252, 255);
+                    doc.setDrawColor(212, 227, 239);
+                    doc.roundedRect(bx, by, kpiBoxW, kpiBoxH, 2, 2, 'FD');
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7);
+                    doc.setTextColor(91, 123, 150);
+                    doc.text(b.label.toUpperCase(), bx + 3, by + 6);
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(15);
+                    doc.setTextColor(18, 64, 94);
+                    doc.text(String(b.value), bx + 3, by + 16);
+                });
+
+                y += 2 * (kpiBoxH + kpiGap) + 4;
+
+                y = drawAnalysisSection(doc, 'Weekly Run Hours Distribution (Histogram)', mL, y, cW);
+
+                const bins = [
+                    { label: '0 – 5 h', min: 0, max: 5 },
+                    { label: '5 – 10 h', min: 5, max: 10 },
+                    { label: '10 – 20 h', min: 10, max: 20 },
+                    { label: '20 – 30 h', min: 20, max: 30 },
+                    { label: '30 – 40 h', min: 30, max: 40 },
+                    { label: '40 – 50 h', min: 40, max: 50 },
+                    { label: '50+ h', min: 50, max: Infinity }
+                ];
+
+                const histogramData = bins.map(b => ({
+                    label: b.label,
+                    count: records.filter(r => {
+                        const h = parseNumClient(r['Run Hours']);
+                        return h >= b.min && h < b.max;
+                    }).length
+                }));
+
+                const histMax = Math.max(1, ...histogramData.map(h => h.count));
+                const chartRowH = 5;
+                const labelW = 30;
+                const barMaxW = cW - labelW - 20;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                histogramData.forEach((h, i) => {
+                    const rowY = y + i * chartRowH;
+                    doc.setTextColor(31, 60, 84);
+                    doc.text(h.label, mL, rowY + 3.5);
+                    const barW = (h.count / histMax) * barMaxW;
+                    doc.setFillColor(30, 74, 109);
+                    doc.rect(mL + labelW, rowY, barW, 3.5, 'F');
+                    doc.setTextColor(18, 64, 94);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(String(h.count), mL + labelW + barW + 2, rowY + 3.5);
+                    doc.setFont('helvetica', 'normal');
+                });
+
+                y += histogramData.length * chartRowH + 4;
+
+                const dominantBin = histogramData.reduce((a, b) => b.count > a.count ? b : a, histogramData[0]);
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8);
+                doc.setTextColor(58, 101, 131);
+                doc.text('Most common range: ' + dominantBin.label + ' (' + dominantBin.count + ' inspections)', mL, y);
+                y += 8;
+
+                y = drawAnalysisSection(doc, 'Breakdown by Generator', mL, y, cW);
+
+                const byGen = {};
+                records.forEach(r => {
+                    const g = r['Generator'] || 'Unknown';
+                    if (!byGen[g]) byGen[g] = { count: 0, diesel: 0, hours: 0 };
+                    byGen[g].count++;
+                    byGen[g].diesel += parseNumClient(r['Diesel Refilled (L)']);
+                    byGen[g].hours += parseNumClient(r['Run Hours']);
+                });
+
+                const genRows = Object.keys(byGen).map(g => [
+                    g,
+                    byGen[g].count,
+                    roundClient(byGen[g].diesel, 1),
+                    roundClient(byGen[g].hours, 1)
+                ]);
+
+                y = drawSimpleTable(doc, ['Generator', 'Inspections', 'Diesel (L)', 'Run Hours'], genRows, mL, y, cW);
+
+                // ============================================================
+                // PAGE 2 — TECHNICIAN + WEEKLY + FUEL
+                // ============================================================
+                doc.addPage();
+                let y2 = 20;
+
+                doc.setFillColor(30, 74, 109);
+                doc.rect(0, 0, pageW, 4, 'F');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(18, 64, 94);
+                doc.text('Generator Fleet — Analysis Report (continued)', mL, y2);
+                y2 += 8;
+
+                y2 = drawAnalysisSection(doc, 'Breakdown by Technician', mL, y2, cW);
+
+                const byTech = {};
+                records.forEach(r => {
+                    const t = r['Technician'] || 'Unknown';
+                    byTech[t] = (byTech[t] || 0) + 1;
+                });
+                const techRows = Object.keys(byTech).map(t => [t, byTech[t]]);
+                y2 = drawSimpleTable(doc, ['Technician', 'Inspections'], techRows, mL, y2, cW);
+
+                y2 = drawAnalysisSection(doc, 'Weekly Trend', mL, y2, cW);
+
+                const byWeek = {};
+                records.forEach(r => {
+                    const d = new Date(r['Timestamp']);
+                    if (isNaN(d.getTime())) return;
+                    const wk = getISOWeekKeyClient(d);
+                    if (!byWeek[wk]) byWeek[wk] = { count: 0, diesel: 0, hours: 0 };
+                    byWeek[wk].count++;
+                    byWeek[wk].diesel += parseNumClient(r['Diesel Refilled (L)']);
+                    byWeek[wk].hours += parseNumClient(r['Run Hours']);
+                });
+                const weekRows = Object.keys(byWeek).sort().map(w => [
+                    w,
+                    byWeek[w].count,
+                    roundClient(byWeek[w].diesel, 1),
+                    roundClient(byWeek[w].hours, 1)
+                ]);
+                y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
+
+                y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
+
+                const fuelBuckets = {
+                    'Low (0–25%)': 0,
+                    'Medium (26–50%)': 0,
+                    'Good (51–75%)': 0,
+                    'Full (76–100%)': 0
+                };
+                records.forEach(r => {
+                    const f = parseNumClient(r['Fuel %']);
+                    if (isNaN(f)) return;
+                    if (f <= 25) fuelBuckets['Low (0–25%)']++;
+                    else if (f <= 50) fuelBuckets['Medium (26–50%)']++;
+                    else if (f <= 75) fuelBuckets['Good (51–75%)']++;
+                    else fuelBuckets['Full (76–100%)']++;
+                });
+                const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
+                y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
+
+                // Footer on all pages
+                const totalPages = doc.getNumberOfPages();
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(150, 170, 190);
+                    doc.text('Generated automatically from CHUB Generator Monitoring System',
+                        pageW / 2, pageH - 6, { align: 'center' });
+                    doc.text('Page ' + p + ' of ' + totalPages,
+                        pageW / 2, pageH - 2, { align: 'center' });
+                }
+
+                const filename = 'CHUB_Generator_Analysis_' +
+                    new Date().toISOString().slice(0,10) + '.pdf';
+                doc.save(filename);
+            }
+
+            function drawAnalysisSection(doc, title, x, y, w) {
+                doc.setFillColor(238, 246, 252);
+                doc.rect(x, y - 4, w, 6, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(18, 64, 94);
+                doc.text(title, x + 2, y);
+                return y + 6;
+            }
+
+            function drawSimpleTable(doc, headers, rows, x, y, w) {
+                if (rows.length === 0) {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 170, 190);
+                    doc.text('(no data)', x, y + 4);
+                    return y + 8;
+                }
+
+                const colCount = headers.length;
+                const colW = w / colCount;
+                const rowH = 6;
+
+                doc.setFillColor(212, 227, 239);
+                doc.rect(x, y, w, rowH, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8);
+                doc.setTextColor(18, 64, 94);
+                headers.forEach((h, i) => {
+                    doc.text(h, x + i * colW + 2, y + 4);
+                });
+                y += rowH;
+
+                doc.setFont('helvetica', 'normal');
+                rows.forEach((row, rIdx) => {
+                    if (rIdx % 2 === 1) {
+                        doc.setFillColor(249, 252, 255);
+                        doc.rect(x, y, w, rowH, 'F');
+                    }
+                    doc.setTextColor(31, 60, 84);
+                    row.forEach((cell, i) => {
+                        const text = String(cell);
+                        const maxChars = Math.floor(colW / 1.8);
+                        const display = text.length > maxChars ? text.substring(0, maxChars - 1) + '…' : text;
+                        doc.text(display, x + i * colW + 2, y + 4);
+                    });
+                    y += rowH;
+                });
+
+                doc.setDrawColor(212, 227, 239);
+                doc.setLineWidth(0.2);
+                doc.rect(x, y - rows.length * rowH - rowH, w, rows.length * rowH + rowH);
+
+                return y + 4;
+            }
+
+            function parseNumClient(val) {
+                if (val === null || val === undefined || val === '') return 0;
+                if (typeof val === 'number') return val;
+                const s = String(val).replace(/[^\d.-]/g, '');
+                const n = parseFloat(s);
+                return isNaN(n) ? 0 : n;
+            }
+
+            function roundClient(n, decimals) {
+                const f = Math.pow(10, decimals);
+                return Math.round(n * f) / f;
+            }
+
+            function getISOWeekKeyClient(date) {
+                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
             // ============================================================
