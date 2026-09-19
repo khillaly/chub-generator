@@ -915,7 +915,6 @@
                 return checked ? checked.value : '—';
             }
 
-            // ⭐ NEW — returns array of ticked item numbers as strings
             function getTickedItems(prefix) {
                 const items = [];
                 for (let i = 1; i <= 6; i++) {
@@ -954,7 +953,6 @@
                     visualRemark: visualRemark.value.trim() || '—',
                     protRemark: protRemark.value.trim() || '—',
                     atsRemark: atsRemark.value.trim() || '—',
-                    // ⭐ NEW — exact ticked items
                     visualItems: getTickedItems('visual'),
                     protItems: getTickedItems('prot'),
                     atsItems: getTickedItems('ats'),
@@ -1312,7 +1310,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     });
                     y += 20;
 
-                    // Visual
                     const visualIds = (r['Visual Items'] || '').split('|').filter(Boolean);
                     const visualArg = visualIds.length > 0 ? visualIds : (r['Visual Checks'] || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
@@ -1329,7 +1326,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         y = drawRemark(doc, r['Visual Remarks'], marginL, y, contentW);
                     }
 
-                    // Protection
                     const protIds = (r['Protection Items'] || '').split('|').filter(Boolean);
                     const protArg = protIds.length > 0 ? protIds : (r['Protection Checks'] || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
@@ -1346,7 +1342,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         y = drawRemark(doc, r['Protection Remarks'], marginL, y, contentW);
                     }
 
-                    // ATS
                     const atsIds = (r['ATS Items'] || '').split('|').filter(Boolean);
                     const atsArg = atsIds.length > 0 ? atsIds : (r['ATS Checks'] || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
@@ -1438,7 +1433,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return y + 5;
             }
 
-            // ⭐ UPDATED — supports exact IDs OR fallback count
             function drawChecklist(doc, items, checksOrIds, x, y, contentW) {
                 let tickedIds;
                 if (Array.isArray(checksOrIds)) {
@@ -1493,7 +1487,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             }
 
             // ============================================================
-            // 📊 ANALYSIS PDF
+            // 📊 ANALYSIS PDF — with fixed fuel analysis
             // ============================================================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
@@ -1574,6 +1568,13 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
+            function validNum(raw) {
+                if (raw === null || raw === undefined || raw === '' || raw === '—' || raw === '-') return null;
+                const n = parseNumClient(raw);
+                if (n === 0 && String(raw).replace(/[^\d]/g, '') === '') return null;
+                return n;
+            }
+
             async function generateAnalysisPDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -1609,10 +1610,18 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.line(mL, 34, pageW - mR, 34);
 
                 const totalRecords = records.length;
-                const totalDiesel = records.reduce((s, r) => s + parseNumClient(r['Diesel Refilled (L)']), 0);
-                const totalRunHours = records.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0);
-                const avgFuel = totalRecords ? records.reduce((s, r) => s + parseNumClient(r['Fuel %']), 0) / totalRecords : 0;
-                const avgRunHours = totalRecords ? totalRunHours / totalRecords : 0;
+                const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
+                const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
+
+                const validFuelRecords = records.filter(r => validNum(r['Fuel %']) !== null);
+                const avgFuel = validFuelRecords.length
+                    ? validFuelRecords.reduce((s, r) => s + parseNumClient(r['Fuel %']), 0) / validFuelRecords.length
+                    : 0;
+
+                const validHoursRecords = records.filter(r => validNum(r['Run Hours']) !== null);
+                const avgRunHours = validHoursRecords.length
+                    ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length
+                    : 0;
 
                 let y = 44;
                 doc.setFont('helvetica', 'bold');
@@ -1664,7 +1673,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const histogramData = bins.map(b => ({
                     label: b.label,
                     count: records.filter(r => {
-                        const h = parseNumClient(r['Run Hours']);
+                        const h = validNum(r['Run Hours']);
+                        if (h === null) return false;
                         return h >= b.min && h < b.max;
                     }).length
                 }));
@@ -1700,8 +1710,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const g = r['Generator'] || 'Unknown';
                     if (!byGen[g]) byGen[g] = { count: 0, diesel: 0, hours: 0 };
                     byGen[g].count++;
-                    byGen[g].diesel += parseNumClient(r['Diesel Refilled (L)']);
-                    byGen[g].hours += parseNumClient(r['Run Hours']);
+                    byGen[g].diesel += validNum(r['Diesel Refilled (L)']) || 0;
+                    byGen[g].hours += validNum(r['Run Hours']) || 0;
                 });
                 const genRows = Object.keys(byGen).map(g => [
                     g,
@@ -1738,8 +1748,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const wk = getISOWeekKeyClient(d);
                     if (!byWeek[wk]) byWeek[wk] = { count: 0, diesel: 0, hours: 0 };
                     byWeek[wk].count++;
-                    byWeek[wk].diesel += parseNumClient(r['Diesel Refilled (L)']);
-                    byWeek[wk].hours += parseNumClient(r['Run Hours']);
+                    byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0;
+                    byWeek[wk].hours += validNum(r['Run Hours']) || 0;
                 });
                 const weekRows = Object.keys(byWeek).sort().map(w => [
                     w,
@@ -1749,6 +1759,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 ]);
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
 
+                // ⭐ FIXED Fuel Distribution
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
                 const fuelBuckets = {
                     'Low (0–25%)': 0,
@@ -1756,9 +1767,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     'Good (51–75%)': 0,
                     'Full (76–100%)': 0
                 };
+                let fuelSkipped = 0;
                 records.forEach(r => {
-                    const f = parseNumClient(r['Fuel %']);
-                    if (isNaN(f)) return;
+                    const f = validNum(r['Fuel %']);
+                    if (f === null) { fuelSkipped++; return; }
                     if (f <= 25) fuelBuckets['Low (0–25%)']++;
                     else if (f <= 50) fuelBuckets['Medium (26–50%)']++;
                     else if (f <= 75) fuelBuckets['Good (51–75%)']++;
@@ -1766,6 +1778,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
                 const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
                 y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
+
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8);
+                doc.setTextColor(91, 123, 150);
+                doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
