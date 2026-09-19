@@ -1192,7 +1192,7 @@
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(10);
                     doc.setTextColor(18, 64, 94);
-                    doc.text('⛽ Fluids & Operational Data', marginL, y);
+                    doc.text('FLUIDS & OPERATIONAL DATA', marginL, y);
                     y += 2;
                     doc.setDrawColor(212, 227, 239);
                     doc.setLineWidth(0.4);
@@ -1224,7 +1224,7 @@
                     y += 20;
 
                     // ===== Visual & Mechanical =====
-                    y = drawSection(doc, '🔧 Visual & Mechanical', marginL, y, contentW, pageH);
+                    y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW, pageH);
                     y = drawRating(doc, r['Visual Rating'], marginL, y);
                     y = drawChecklist(doc, [
                         'No leaks (oil, coolant, fuel)',
@@ -1239,7 +1239,7 @@
                     }
 
                     // ===== Protection Systems =====
-                    y = drawSection(doc, '🛡️ Protection Systems', marginL, y + 3, contentW, pageH);
+                    y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW, pageH);
                     y = drawRating(doc, r['Protection Rating'], marginL, y);
                     y = drawChecklist(doc, [
                         'Low oil pressure shutdown',
@@ -1254,7 +1254,7 @@
                     }
 
                     // ===== ATS / Transfer =====
-                    y = drawSection(doc, '🔄 ATS / Transfer', marginL, y + 3, contentW, pageH);
+                    y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW, pageH);
                     y = drawRating(doc, r['ATS Rating'], marginL, y);
                     y = drawChecklist(doc, [
                         'ATS panel indicators (normal / emergency)',
@@ -1389,7 +1389,7 @@
                 doc.setTextColor(58, 101, 131);
                 doc.setFillColor(251, 253, 255);
                 doc.setDrawColor(156, 185, 208);
-                const text = '📝 ' + remark;
+                const text = 'Remark: ' + remark;
                 const wrapped = doc.splitTextToSize(text, contentW - 6);
                 const h = wrapped.length * 3.5 + 3;
                 doc.roundedRect(x, y, contentW, h, 1, 1, 'FD');
