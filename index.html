@@ -249,6 +249,7 @@
         .field-group input[type="number"],
         .field-group input[type="text"],
         .field-group input[type="date"],
+        .field-group input[type="password"],
         .field-group select {
             padding: 12px 16px; border-radius: 16px;
             border: 1.5px solid #cfdfeb; background: #fbfdff;
@@ -477,14 +478,21 @@
         <div class="subhead">
             <div class="tech-info">
                 <span>👨‍🔧 Technician:</span>
-                <select id="technicianSelect" style="min-width: 240px; padding: 10px 18px;">
-                    <option value="Hillaly KUBWIMANA" selected>Hillaly KUBWIMANA</option>
+                <span class="sync-status" style="background:#e2f0e6; color:#1b6b3f; border-color:#b8dfc3; padding: 8px 20px; font-size: 1rem;">
+                    🔒 <span id="lockedTechName">—</span>
+                </span>
+                <select id="technicianSelect" style="display:none;">
+                    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
                     <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
                     <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
                     <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
                 </select>
             </div>
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div class="sync-status" id="loggedInUser" style="background:#1e4a6d; color:white; border-color:#1e4a6d;">
+                    <span>👤</span> <span id="loggedInUserName">—</span>
+                </div>
+                <button id="logoutBtn" class="btn-secondary" style="padding: 8px 18px; font-size: 0.85rem;">🚪 Logout</button>
                 <div class="workdate-tag">
                     <span>📅</span> Work date: <strong id="workDateDisplay">—</strong>
                 </div>
@@ -642,11 +650,11 @@
         <div class="signoff-section">
             <div class="signoff-left">
                 <span class="label">✅ SIGN-OFF · Generator check completed by</span>
-                <span class="tech" id="signoffTechName">Hillaly KUBWIMANA</span>
+                <span class="tech" id="signoffTechName">—</span>
                 <span style="font-size: 0.9rem; color: #3a6583;">Site: CHUB · Work date: <strong id="signoffWorkDate">—</strong></span>
             </div>
             <div class="signoff-right">
-                <div class="signature-pad" id="signaturePad">Hillaly K.</div>
+                <div class="signature-pad" id="signaturePad">—</div>
                 <button class="btn-primary" id="signOffBtn"><span>✍️</span> Sign-off & Save to Sheet</button>
             </div>
         </div>
@@ -665,6 +673,39 @@
 
         <div class="flex-row" style="margin-top: 24px; justify-content: center;">
             <span class="footer-note">All checks performed on Friday · 400V / 50Hz · CHUB site · Data syncs to Google Sheets</span>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div class="modal-overlay show" id="loginModal">
+        <div class="modal-box" style="max-width: 420px; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🔐</div>
+            <h2 style="justify-content: center;">Technician Login</h2>
+            <p style="margin-bottom: 22px;">Select your name and enter your PIN to continue.</p>
+
+            <div class="field-group" style="text-align: left;">
+                <label for="loginTechSelect">Your name</label>
+                <select id="loginTechSelect" style="width: 100%;">
+                    <option value="">— Choose your name —</option>
+                    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
+                    <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
+                    <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
+                    <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
+                </select>
+            </div>
+
+            <div class="field-group" style="text-align: left;">
+                <label for="loginPinInput">Your PIN</label>
+                <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8"
+                       placeholder="••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;"
+                       onkeypress="if(event.key==='Enter'){document.getElementById('loginBtn').click();}">
+            </div>
+
+            <div id="loginError" style="color: #b33a3a; font-size: 0.9rem; margin-top: 6px; min-height: 20px;"></div>
+
+            <button class="btn-primary" id="loginBtn" style="width: 100%; justify-content: center; margin-top: 14px;">
+                🔓 Unlock &amp; Continue
+            </button>
         </div>
     </div>
 
@@ -715,6 +756,16 @@
     <script>
         (function() {
             const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxP3k23cM-EYB8Rv31xNYZvmXLYPKb5_ca_f-ITKsDSFeWRVGEuH23O44KOAxW_YvyZhQ/exec';
+
+            // ============================================================
+            // 🔐 TECHNICIAN PINs
+            // ============================================================
+            const TECHNICIAN_PINS = {
+                'Hillaly KUBWIMANA':      '0806',
+                'YANDEREYE Felecien':     '1723',
+                'HIRWA Jean Deluce':      '2451',
+                'HABARUREMA Jean Claude': '3904'
+            };
 
             const generatorSelect = document.getElementById('generatorSelect');
             const technicianSelect = document.getElementById('technicianSelect');
@@ -899,7 +950,7 @@
             function updateTechnicianDisplay() {
                 const name = technicianSelect.value;
                 signoffTechName.textContent = name;
-                const initials = name.split(' ').map(p => p[0]).join('') + '.';
+                const initials = name ? name.split(' ').map(p => p[0]).join('') + '.' : '—';
                 document.getElementById('signaturePad').textContent = initials;
             }
 
@@ -1025,7 +1076,6 @@
                 document.querySelector('input[name="protRating"][value="good"]').checked = true;
                 document.querySelector('input[name="atsRating"][value="good"]').checked = true;
                 generatorSelect.selectedIndex = 0;
-                technicianSelect.selectedIndex = 0;
                 updateGeneratorBanner();
                 updateTechnicianDisplay();
                 setAutoWorkDate();
@@ -1662,7 +1712,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
                 const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
 
-                                    const fuelValues = records.map(r => {
+                const fuelValues = records.map(r => {
                     let v = validNum(r['Fuel %']);
                     if (v === null) return null;
                     if (v >= 0 && v <= 1) v = v * 100;
@@ -1820,11 +1870,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     'Good (51–75%)': 0,
                     'Full (76–100%)': 0
                 };
-                  let fuelSkipped = 0;
+                let fuelSkipped = 0;
                 records.forEach(r => {
                     let f = validNum(r['Fuel %']);
                     if (f === null) { fuelSkipped++; return; }
-                    // ⭐ FIX: Sheets stores "75%" as 0.75 — convert back to 75
                     if (f >= 0 && f <= 1) f = f * 100;
                     if (f <= 25) fuelBuckets['Low (0–25%)']++;
                     else if (f <= 50) fuelBuckets['Medium (26–50%)']++;
@@ -1929,6 +1978,103 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
+            // ============================================================
+            // 🔐 PIN AUTHENTICATION
+            // ============================================================
+            const loginModal = document.getElementById('loginModal');
+            const loginTechSelect = document.getElementById('loginTechSelect');
+            const loginPinInput = document.getElementById('loginPinInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loggedInUserName = document.getElementById('loggedInUserName');
+            const lockedTechName = document.getElementById('lockedTechName');
+
+            const SESSION_KEY = 'chub_generator_session';
+
+            function saveSession(name) {
+                try {
+                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+                        name: name,
+                        time: Date.now()
+                    }));
+                } catch(e) {}
+            }
+
+            function loadSession() {
+                try {
+                    const raw = sessionStorage.getItem(SESSION_KEY);
+                    if (!raw) return null;
+                    const s = JSON.parse(raw);
+                    if (Date.now() - s.time > 12 * 60 * 60 * 1000) {
+                        sessionStorage.removeItem(SESSION_KEY);
+                        return null;
+                    }
+                    return s.name;
+                } catch(e) { return null; }
+            }
+
+            function clearSession() {
+                try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+            }
+
+            function unlockApp(name) {
+                technicianSelect.value = name;
+                loggedInUserName.textContent = name;
+                lockedTechName.textContent = name;
+                updateTechnicianDisplay();
+                loginModal.classList.remove('show');
+            }
+
+            function lockApp() {
+                clearSession();
+                loginModal.classList.add('show');
+                loginPinInput.value = '';
+                loginError.textContent = '';
+                loginTechSelect.value = '';
+                loginTechSelect.focus();
+            }
+
+            loginBtn.addEventListener('click', function() {
+                const name = loginTechSelect.value;
+                const pin = loginPinInput.value.trim();
+
+                loginError.textContent = '';
+
+                if (!name) {
+                    loginError.textContent = '⚠️ Please select your name.';
+                    return;
+                }
+                if (!pin) {
+                    loginError.textContent = '⚠️ Please enter your PIN.';
+                    return;
+                }
+                if (TECHNICIAN_PINS[name] !== pin) {
+                    loginError.textContent = '❌ Wrong PIN for ' + name;
+                    loginPinInput.value = '';
+                    loginPinInput.focus();
+                    return;
+                }
+
+                saveSession(name);
+                unlockApp(name);
+                showStatus('✅ Welcome, ' + name + '!', true);
+            });
+
+            logoutBtn.addEventListener('click', function() {
+                if (confirm('Log out and lock the app?')) {
+                    lockApp();
+                    showStatus('🔒 Logged out.', true);
+                }
+            });
+
+            const existingSession = loadSession();
+            if (existingSession && TECHNICIAN_PINS[existingSession]) {
+                unlockApp(existingSession);
+            } else {
+                lockApp();
+            }
+
             resetBtn.addEventListener('click', function() { resetForm(true); });
 
             setAutoWorkDate();
@@ -1936,7 +2082,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             updateTechnicianDisplay();
             updatePendingCount();
             generatorSelect.addEventListener('change', updateGeneratorBanner);
-            technicianSelect.addEventListener('change', updateTechnicianDisplay);
             workDateInput.addEventListener('change', updateWorkDateDisplay);
 
             setTimeout(() => { if (getQueue().length > 0) flushQueue(); }, 1200);
