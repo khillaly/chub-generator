@@ -819,6 +819,9 @@
             let selectedRange = '7';
             let analysisSelectedRange = '7';
 
+            // ⭐ Snapshot of the last submitted sign-off (for PDF export reliability)
+            let lastSubmittedSnapshot = null;
+
             // ============================================================
             // 💾 LOCAL QUEUE
             // ============================================================
@@ -1093,6 +1096,10 @@
                 const orig = signOffBtn.innerHTML;
                 signOffBtn.innerHTML = '<span>⏳</span> Sending...';
                 const data = collectFormData();
+
+                // ⭐ Save snapshot of submitted data so we can generate a proper PDF later
+                lastSubmittedSnapshot = JSON.parse(JSON.stringify(data));
+
                 const success = await queueAndSend(data);
                 signOffBtn.disabled = false;
                 signOffBtn.innerHTML = orig;
@@ -1113,7 +1120,19 @@
             pdfBtn.addEventListener('click', function() { exportCurrentPDF(); });
 
             function exportCurrentPDF() {
-                const data = collectFormData();
+                // ⭐ If form is empty but we have a recent snapshot, use the snapshot
+                const current = collectFormData();
+                const isEmpty = (
+                    current.visualItems.length === 0 &&
+                    current.protItems.length === 0 &&
+                    current.atsItems.length === 0 &&
+                    current.fuelLevel === '—' &&
+                    current.refilledDiesel === '—' &&
+                    current.totalRunHours === '—'
+                );
+
+                const data = (isEmpty && lastSubmittedSnapshot) ? lastSubmittedSnapshot : current;
+
                 pdfBtn.disabled = true;
                 const orig = pdfBtn.innerHTML;
                 pdfBtn.innerHTML = '<span>⏳</span> Preparing PDF...';
@@ -2075,7 +2094,13 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 lockApp();
             }
 
-            resetBtn.addEventListener('click', function() { resetForm(true); });
+            // ============================================================
+            // 🔄 RESET BUTTON — clears snapshot too
+            // ============================================================
+            resetBtn.addEventListener('click', function() {
+                lastSubmittedSnapshot = null;
+                resetForm(true);
+            });
 
             setAutoWorkDate();
             updateGeneratorBanner();
