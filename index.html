@@ -1060,28 +1060,29 @@
                 return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>CHUB Generator Report</title>
 <style>
-@page { size: A4; margin: 14mm 12mm; }
+@page { size: A4; margin: 10mm 10mm; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e45; background: white; padding: 8px 4px; }
-.header { border-bottom: 3px solid #1e4a6d; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
-.header h1 { font-size: 1.4rem; color: #12405e; letter-spacing: -0.3px; }
-.header .sub { font-size: 0.9rem; color: #3a6583; margin-top: 3px; }
-.header .meta { font-size: 0.85rem; color: #5b7b96; text-align: right; line-height: 1.5; }
-.gen-banner { background: linear-gradient(90deg, #1e4a6d 0%, #2a6b96 100%); color: white; padding: 14px 20px; border-radius: 10px; margin-bottom: 20px; }
-.gen-banner .gen-name { font-size: 1.2rem; font-weight: 800; }
-.gen-banner .gen-sub { font-size: 0.85rem; color: #cbe4f7; margin-top: 3px; }
-.section-title { font-size: 1.05rem; font-weight: 700; color: #12405e; margin: 22px 0 10px 0; padding-bottom: 5px; border-bottom: 2px solid #d4e3ef; }
-.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
-.info-box { background: #f9fcff; border: 1px solid #d4e3ef; border-radius: 10px; padding: 10px 12px; }
-.info-box .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 4px; }
-.info-box .value { font-size: 1.05rem; font-weight: 700; color: #12405e; }
-.rating-tag { display: inline-block; background: #e7f0f8; color: #12405e; padding: 3px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; text-transform: capitalize; }
-ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 22px; margin-bottom: 6px; }
-.remark-box { background: #fbfdff; border-left: 3px solid #9cb9d0; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; color: #3a6583; margin-bottom: 8px; font-style: italic; }
-.signoff-block { margin-top: 26px; padding: 18px 20px; background: #f0f6fc; border-radius: 12px; border: 1px solid #cfe0ee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-.signoff-block .tech-name { font-size: 1.15rem; font-weight: 700; color: #0a2a3f; }
-.signature { font-family: 'Segoe UI', cursive; font-size: 1.2rem; color: #1e4a6d; border-bottom: 2px dashed #9cb9d0; padding: 0 18px 4px 18px; }
-.footer { margin-top: 26px; padding-top: 12px; border-top: 1px solid #d4e3ef; text-align: center; font-size: 0.75rem; color: #5b7b96; }
+body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e45; background: white; padding: 0 4px; font-size: 10pt; line-height: 1.35; }
+.header { border-bottom: 3px solid #1e4a6d; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.header h1 { font-size: 1.25rem; color: #12405e; letter-spacing: -0.3px; }
+.header .sub { font-size: 0.85rem; color: #3a6583; margin-top: 3px; }
+.header .meta { font-size: 0.8rem; color: #5b7b96; text-align: right; line-height: 1.4; }
+.gen-banner { background: linear-gradient(90deg, #1e4a6d 0%, #2a6b96 100%); color: white; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; }
+.gen-banner .gen-name { font-size: 1.1rem; font-weight: 800; }
+.gen-banner .gen-sub { font-size: 0.8rem; color: #cbe4f7; margin-top: 2px; }
+.section-title { font-size: 0.98rem; font-weight: 700; color: #12405e; margin: 12px 0 6px 0; padding-bottom: 3px; border-bottom: 2px solid #d4e3ef; }
+.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.info-box { background: #f9fcff; border: 1px solid #d4e3ef; border-radius: 8px; padding: 8px 10px; }
+.info-box .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 3px; }
+.info-box .value { font-size: 0.95rem; font-weight: 700; color: #12405e; }
+.rating-tag { display: inline-block; background: #e7f0f8; color: #12405e; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
+ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1px 20px; margin-bottom: 4px; }
+ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
+.remark-box { background: #fbfdff; border-left: 3px solid #9cb9d0; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; color: #3a6583; margin-bottom: 6px; font-style: italic; }
+.signoff-block { margin-top: 14px; padding: 12px 16px; background: #f0f6fc; border-radius: 10px; border: 1px solid #cfe0ee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; page-break-inside: avoid; }
+.signoff-block .tech-name { font-size: 1.05rem; font-weight: 700; color: #0a2a3f; }
+.signature { font-family: 'Segoe UI', cursive; font-size: 1.1rem; color: #1e4a6d; border-bottom: 2px dashed #9cb9d0; padding: 0 16px 3px 16px; }
+.footer { margin-top: 12px; padding-top: 8px; border-top: 1px solid #d4e3ef; text-align: center; font-size: 0.7rem; color: #5b7b96; page-break-before: avoid; }
 </style></head><body>
 <div class="header">
   <div>
