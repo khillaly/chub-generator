@@ -16,7 +16,7 @@
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-                body {
+        body {
             background: linear-gradient(135deg, #eef4fa 0%, #f5f7fa 100%);
             padding: 24px 16px;
             display: flex;
@@ -25,7 +25,7 @@
             min-height: 100vh;
         }
 
-               body::before {
+        body::before {
             content: 'CHUB MAINTENANCE';
             position: fixed;
             top: 50%;
@@ -523,7 +523,7 @@
         <div class="section-title"><span>⛽</span> Fluids & Operational Data</div>
         <div class="grid-3-wide" style="margin-bottom: 32px;">
             <div class="card">
-                <div class="card-header"><span>💧</span> Fuel & Coolant Levels</div>
+                <div class="card-header"><span>💧</span> Fuel, Coolant & Oil Levels</div>
                 <div class="card-body">
                     <div class="field-group">
                         <label for="fuelLevel">Fuel level (%)</label>
@@ -535,6 +535,14 @@
                             <div class="level-option" data-value="MIN"><input type="radio" name="coolantLevel" value="MIN"> MIN</div>
                             <div class="level-option" data-value="MEDIUM"><input type="radio" name="coolantLevel" value="MEDIUM"> MEDIUM</div>
                             <div class="level-option" data-value="MAX"><input type="radio" name="coolantLevel" value="MAX"> MAX</div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label>Oil level</label>
+                        <div class="level-selector" id="oilLevelGroup">
+                            <div class="level-option" data-value="LOW"><input type="radio" name="oilLevel" value="LOW"> LOW</div>
+                            <div class="level-option" data-value="MEDIUM"><input type="radio" name="oilLevel" value="MEDIUM"> MEDIUM</div>
+                            <div class="level-option" data-value="MAX"><input type="radio" name="oilLevel" value="MAX"> MAX</div>
                         </div>
                     </div>
                 </div>
@@ -732,6 +740,7 @@
 
             const fuelLevel = document.getElementById('fuelLevel');
             const coolantLevelRadios = document.querySelectorAll('input[name="coolantLevel"]');
+            const oilLevelRadios = document.querySelectorAll('input[name="oilLevel"]');
             const refilledDiesel = document.getElementById('refilledDiesel');
             const totalRunHours = document.getElementById('totalRunHours');
 
@@ -895,12 +904,22 @@
             }
 
             // ============================================================
-            // 🌡️ COOLANT
+            // 🌡️ COOLANT + 🛢️ OIL level selectors
             // ============================================================
             const levelOptions = document.querySelectorAll('#coolantLevelGroup .level-option');
             levelOptions.forEach(opt => {
                 opt.addEventListener('click', function() {
                     levelOptions.forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = true;
+                });
+            });
+
+            const oilLevelOptions = document.querySelectorAll('#oilLevelGroup .level-option');
+            oilLevelOptions.forEach(opt => {
+                opt.addEventListener('click', function() {
+                    oilLevelOptions.forEach(o => o.classList.remove('active'));
                     this.classList.add('active');
                     const radio = this.querySelector('input[type="radio"]');
                     if (radio) radio.checked = true;
@@ -934,6 +953,11 @@
                 return checked ? checked.value : '—';
             }
 
+            function getOilLevel() {
+                const checked = document.querySelector('input[name="oilLevel"]:checked');
+                return checked ? checked.value : '—';
+            }
+
             function getTickedItems(prefix) {
                 const items = [];
                 for (let i = 1; i <= 6; i++) {
@@ -961,6 +985,7 @@
                     generatedAt: timestamp,
                     fuelLevel: fuelLevel.value ? fuelLevel.value + '%' : '—',
                     coolantLevel: getCoolantLevel(),
+                    oilLevel: getOilLevel(),
                     refilledDiesel: refilledDiesel.value ? refilledDiesel.value + ' L' : '—',
                     totalRunHours: totalRunHours.value ? totalRunHours.value + ' h' : '—',
                     visualChecks: s.visual,
@@ -994,6 +1019,8 @@
                 totalRunHours.value = '';
                 coolantLevelRadios.forEach(r => r.checked = false);
                 levelOptions.forEach(o => o.classList.remove('active'));
+                oilLevelRadios.forEach(r => r.checked = false);
+                oilLevelOptions.forEach(o => o.classList.remove('active'));
                 document.querySelector('input[name="visualRating"][value="good"]').checked = true;
                 document.querySelector('input[name="protRating"][value="good"]').checked = true;
                 document.querySelector('input[name="atsRating"][value="good"]').checked = true;
@@ -1090,10 +1117,10 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e45; background: w
 .gen-banner .gen-name { font-size: 1.1rem; font-weight: 800; }
 .gen-banner .gen-sub { font-size: 0.8rem; color: #cbe4f7; margin-top: 2px; }
 .section-title { font-size: 0.98rem; font-weight: 700; color: #12405e; margin: 12px 0 6px 0; padding-bottom: 3px; border-bottom: 2px solid #d4e3ef; }
-.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.info-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
 .info-box { background: #f9fcff; border: 1px solid #d4e3ef; border-radius: 8px; padding: 8px 10px; }
-.info-box .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 3px; }
-.info-box .value { font-size: 0.95rem; font-weight: 700; color: #12405e; }
+.info-box .label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 3px; }
+.info-box .value { font-size: 0.92rem; font-weight: 700; color: #12405e; }
 .rating-tag { display: inline-block; background: #e7f0f8; color: #12405e; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
 ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1px 20px; margin-bottom: 4px; }
 ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
@@ -1122,10 +1149,11 @@ ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
 
 <div class="section-title">⛽ Fluids & Operational Data</div>
 <div class="info-grid">
-  <div class="info-box"><div class="label">Fuel Level</div><div class="value">${data.fuelLevel}</div></div>
-  <div class="info-box"><div class="label">Coolant Level</div><div class="value">${data.coolantLevel}</div></div>
-  <div class="info-box"><div class="label">Weekly Refilled Diesel</div><div class="value">${data.refilledDiesel}</div></div>
-  <div class="info-box"><div class="label">Weekly Total Run Hours</div><div class="value">${data.totalRunHours}</div></div>
+  <div class="info-box"><div class="label">Fuel</div><div class="value">${data.fuelLevel}</div></div>
+  <div class="info-box"><div class="label">Coolant</div><div class="value">${data.coolantLevel}</div></div>
+  <div class="info-box"><div class="label">Oil Level</div><div class="value">${data.oilLevel}</div></div>
+  <div class="info-box"><div class="label">Diesel Refilled</div><div class="value">${data.refilledDiesel}</div></div>
+  <div class="info-box"><div class="label">Run Hours</div><div class="value">${data.totalRunHours}</div></div>
 </div>
 
 <div class="section-title">🔧 Visual & Mechanical (${data.visualChecks}/${data.visualTotal})</div>
@@ -1307,11 +1335,12 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.line(marginL, y, pageW - marginR, y);
                     y += 5;
 
-                    const boxW = (contentW - 6) / 4;
+                    const boxW = (contentW - 10) / 5;
                     const boxes = [
-                        { label: 'Fuel Level', value: r['Fuel %'] || '—' },
-                        { label: 'Coolant Level', value: r['Coolant'] || '—' },
-                        { label: 'Refilled Diesel', value: r['Diesel Refilled (L)'] || '—' },
+                        { label: 'Fuel', value: r['Fuel %'] || '—' },
+                        { label: 'Coolant', value: r['Coolant'] || '—' },
+                        { label: 'Oil Level', value: r['Oil Level'] || '—' },
+                        { label: 'Diesel Refilled', value: r['Diesel Refilled (L)'] || '—' },
                         { label: 'Run Hours', value: r['Run Hours'] || '—' }
                     ];
                     boxes.forEach((b, idx) => {
@@ -1320,11 +1349,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         doc.setDrawColor(212, 227, 239);
                         doc.roundedRect(bx, y, boxW, 14, 1.5, 1.5, 'FD');
                         doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(6);
+                        doc.setFontSize(5.5);
                         doc.setTextColor(91, 123, 150);
                         doc.text(b.label.toUpperCase(), bx + 2, y + 4);
                         doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(10);
+                        doc.setFontSize(9);
                         doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
@@ -1507,7 +1536,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             }
 
             // ============================================================
-            // 📊 ANALYSIS PDF — with fixed fuel analysis
+            // 📊 ANALYSIS PDF
             // ============================================================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
@@ -1779,7 +1808,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 ]);
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
 
-                // ⭐ FIXED Fuel Distribution
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
                 const fuelBuckets = {
                     'Low (0–25%)': 0,
@@ -1908,7 +1936,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
         })();
     </script>
-        <script>
+    <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
