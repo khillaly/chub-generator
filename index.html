@@ -1662,13 +1662,15 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
                 const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
 
-                const validFuelRecords = records.filter(r => validNum(r['Fuel %']) !== null);
-                const avgFuel = validFuelRecords.length
-                    ? validFuelRecords.reduce((s, r) => s + parseNumClient(r['Fuel %']), 0) / validFuelRecords.length
-                    : 0;
-
-                const validHoursRecords = records.filter(r => validNum(r['Run Hours']) !== null);
-                const avgRunHours = validHoursRecords.length
+                    const fuelValues = records.map(r => {
+                    let v = validNum(r['Fuel %']);
+                    if (v === null) return null;
+                    if (v >= 0 && v <= 1) v = v * 100;
+                    return v;
+                }).filter(v => v !== null);
+                const avgFuel = fuelValues.length
+                    ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length
+                    : 0;rs = validHoursRecords.length
                     ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length
                     : 0;
 
@@ -1815,10 +1817,12 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     'Good (51–75%)': 0,
                     'Full (76–100%)': 0
                 };
-                let fuelSkipped = 0;
+                  let fuelSkipped = 0;
                 records.forEach(r => {
-                    const f = validNum(r['Fuel %']);
+                    let f = validNum(r['Fuel %']);
                     if (f === null) { fuelSkipped++; return; }
+                    // ⭐ FIX: Sheets stores "75%" as 0.75 — convert back to 75
+                    if (f >= 0 && f <= 1) f = f * 100;
                     if (f <= 25) fuelBuckets['Low (0–25%)']++;
                     else if (f <= 50) fuelBuckets['Medium (26–50%)']++;
                     else if (f <= 75) fuelBuckets['Good (51–75%)']++;
