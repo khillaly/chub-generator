@@ -1662,7 +1662,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
                 const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
 
-                    const fuelValues = records.map(r => {
+                                    const fuelValues = records.map(r => {
                     let v = validNum(r['Fuel %']);
                     if (v === null) return null;
                     if (v >= 0 && v <= 1) v = v * 100;
@@ -1670,7 +1670,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 }).filter(v => v !== null);
                 const avgFuel = fuelValues.length
                     ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length
-                    : 0;rs = validHoursRecords.length
+                    : 0;
+
+                const validHoursRecords = records.filter(r => validNum(r['Run Hours']) !== null);
+                const avgRunHours = validHoursRecords.length
                     ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length
                     : 0;
 
