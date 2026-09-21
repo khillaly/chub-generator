@@ -565,10 +565,13 @@
                         <label for="refilledDiesel">Weekly capacity of refilled diesel (Liters)</label>
                         <input type="number" id="refilledDiesel" min="0" step="0.1" placeholder="e.g. 120.5">
                     </div>
-                    <div class="field-group">
-                        <label for="totalRunHours">Weekly total ran hours (Hours)</label>
-                        <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 42.5">
-                    </div>
+                   <div class="field-group">
+    <label for="totalRunHours">Current total run hours on meter (Hours)</label>
+    <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 12450.5 (reading from generator)">
+    <span style="font-size: 0.78rem; color: #5b7b96; margin-top: 4px;">
+        ℹ️ Enter the number shown on the generator's hour meter. Weekly hours are computed automatically.
+    </span>
+</div>
                 </div>
             </div>
         </div>
@@ -1064,6 +1067,7 @@
                     coolantLevel: getCoolantLevel(),
                     oilLevel: getOilLevel(),
                     refilledDiesel: refilledDiesel.value ? refilledDiesel.value + ' L' : '—',
+                    currentRunHours: totalRunHours.value ? totalRunHours.value : '',
                     totalRunHours: totalRunHours.value ? totalRunHours.value + ' h' : '—',
                     visualChecks: s.visual,
                     visualTotal: s.visualTotal,
