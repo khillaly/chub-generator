@@ -483,13 +483,13 @@
                 <span class="sync-status" style="background:#e2f0e6; color:#1b6b3f; border-color:#b8dfc3; padding: 8px 20px; font-size: 1rem;">
                     🔒 <span id="lockedTechName">—</span>
                 </span>
-               <select id="technicianSelect" style="display:none;">
-    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
-    <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
-    <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
-    <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
-    <option value="GATANGANWA Raissa">GATANGANWA Raissa</option>
-</select>
+                <select id="technicianSelect" style="display:none;">
+                    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
+                    <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
+                    <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
+                    <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
+                    <option value="GATANGANWA Raissa">GATANGANWA Raissa</option>
+                </select>
             </div>
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
                 <div class="sync-status" id="loggedInUser" style="background:#1e4a6d; color:white; border-color:#1e4a6d;">
@@ -689,13 +689,13 @@
             <div class="field-group" style="text-align: left;">
                 <label for="loginTechSelect">Your name</label>
                 <select id="loginTechSelect" style="width: 100%;">
-    <option value="">— Choose your name —</option>
-    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
-    <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
-    <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
-    <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
-    <option value="GATANGANWA Raissa">GATANGANWA Raissa</option>
-</select>
+                    <option value="">— Choose your name —</option>
+                    <option value="Hillaly KUBWIMANA">Hillaly KUBWIMANA</option>
+                    <option value="YANDEREYE Felecien">YANDEREYE Felecien</option>
+                    <option value="HIRWA Jean Deluce">HIRWA Jean Deluce</option>
+                    <option value="HABARUREMA Jean Claude">HABARUREMA Jean Claude</option>
+                    <option value="GATANGANWA Raissa">GATANGANWA Raissa</option>
+                </select>
             </div>
 
             <div class="field-group" style="text-align: left;">
@@ -764,13 +764,32 @@
             // ============================================================
             // 🔐 TECHNICIAN PINs
             // ============================================================
-           const TECHNICIAN_PINS = {
-    'Hillaly KUBWIMANA':      '0806',
-    'YANDEREYE Felecien':     '1723',
-    'HIRWA Jean Deluce':      '2451',
-    'HABARUREMA Jean Claude': '3904',
-    'GATANGANWA Raissa':      '0401'
-};
+            const TECHNICIAN_PINS = {
+                'Hillaly KUBWIMANA':      '0806',
+                'YANDEREYE Felecien':     '1723',
+                'HIRWA Jean Deluce':      '2451',
+                'HABARUREMA Jean Claude': '3904',
+                'GATANGANWA Raissa':      '0401'
+            };
+
+            // ============================================================
+            // 🛡️ ROBUST HELPERS — fix "split is not a function" crash
+            // ============================================================
+            function safeSplit(val, sep) {
+                if (val === null || val === undefined) return [];
+                if (Array.isArray(val)) {
+                    return val.reduce((acc, v) => acc.concat(Array.isArray(v) ? v : [v]), [])
+                              .map(v => String(v).trim())
+                              .filter(Boolean);
+                }
+                return String(val).split(sep).map(v => v.trim()).filter(Boolean);
+            }
+
+            function safeStr(val) {
+                if (val === null || val === undefined) return '';
+                if (Array.isArray(val)) return val.join(' ').trim();
+                return String(val);
+            }
 
             const generatorSelect = document.getElementById('generatorSelect');
             const technicianSelect = document.getElementById('technicianSelect');
@@ -824,7 +843,6 @@
             let selectedRange = '7';
             let analysisSelectedRange = '7';
 
-            // ⭐ Snapshot of the last submitted sign-off (for PDF export reliability)
             let lastSubmittedSnapshot = null;
 
             // ============================================================
@@ -1102,7 +1120,6 @@
                 signOffBtn.innerHTML = '<span>⏳</span> Sending...';
                 const data = collectFormData();
 
-                // ⭐ Save snapshot of submitted data so we can generate a proper PDF later
                 lastSubmittedSnapshot = JSON.parse(JSON.stringify(data));
 
                 const success = await queueAndSend(data);
@@ -1125,7 +1142,6 @@
             pdfBtn.addEventListener('click', function() { exportCurrentPDF(); });
 
             function exportCurrentPDF() {
-                // ⭐ If form is empty but we have a recent snapshot, use the snapshot
                 const current = collectFormData();
                 const isEmpty = (
                     current.visualItems.length === 0 &&
@@ -1377,7 +1393,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFontSize(8);
                     doc.setTextColor(91, 123, 150);
                     const workDate = formatDateForPDF(r['Work Date']);
-                    const technician = r['Technician'] || '—';
+                    const technician = safeStr(r['Technician']) || '—';
                     const genAt = formatDateForPDF(r['Timestamp']);
                     doc.text('Work date: ' + workDate, pageW - marginR, 18, { align: 'right' });
                     doc.text('Technician: ' + technician, pageW - marginR, 23, { align: 'right' });
@@ -1389,7 +1405,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(12);
                     doc.setTextColor(255, 255, 255);
-                    doc.text(r['Generator'] || '—', marginL + 4, y + 6);
+                    doc.text(safeStr(r['Generator']) || '—', marginL + 4, y + 6);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(8);
                     doc.setTextColor(203, 228, 247);
@@ -1411,11 +1427,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
                     const boxW = (contentW - 10) / 5;
                     const boxes = [
-                        { label: 'Fuel', value: r['Fuel %'] || '—' },
-                        { label: 'Coolant', value: r['Coolant'] || '—' },
-                        { label: 'Oil Level', value: r['Oil Level'] || '—' },
-                        { label: 'Diesel Refilled', value: r['Diesel Refilled (L)'] || '—' },
-                        { label: 'Run Hours', value: r['Run Hours'] || '—' }
+                        { label: 'Fuel', value: safeStr(r['Fuel %']) || '—' },
+                        { label: 'Coolant', value: safeStr(r['Coolant']) || '—' },
+                        { label: 'Oil Level', value: safeStr(r['Oil Level']) || '—' },
+                        { label: 'Diesel Refilled', value: safeStr(r['Diesel Refilled (L)']) || '—' },
+                        { label: 'Run Hours', value: safeStr(r['Run Hours']) || '—' }
                     ];
                     boxes.forEach((b, idx) => {
                         const bx = marginL + idx * (boxW + 2);
@@ -1433,10 +1449,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     });
                     y += 20;
 
-                    const visualIds = (r['Visual Items'] || '').split('|').filter(Boolean);
-                    const visualArg = visualIds.length > 0 ? visualIds : (r['Visual Checks'] || '0/6');
+                    // ✅ FIXED: use safeSplit() instead of raw .split('|')
+                    const visualIds = safeSplit(r['Visual Items'], '|');
+                    const visualArg = visualIds.length > 0 ? visualIds : (safeStr(r['Visual Checks']) || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
-                    y = drawRating(doc, r['Visual Rating'], marginL, y);
+                    y = drawRating(doc, safeStr(r['Visual Rating']), marginL, y);
                     y = drawChecklist(doc, [
                         'No leaks (oil, coolant, fuel)',
                         'Belt tension & wear',
@@ -1445,14 +1462,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Battery terminals & electrolyte level',
                         'Mounting bolts & vibration isolators'
                     ], visualArg, marginL, y, contentW);
-                    if (r['Visual Remarks'] && r['Visual Remarks'] !== '—') {
-                        y = drawRemark(doc, r['Visual Remarks'], marginL, y, contentW);
+                    const visualRemarkVal = safeStr(r['Visual Remarks']);
+                    if (visualRemarkVal && visualRemarkVal !== '—') {
+                        y = drawRemark(doc, visualRemarkVal, marginL, y, contentW);
                     }
 
-                    const protIds = (r['Protection Items'] || '').split('|').filter(Boolean);
-                    const protArg = protIds.length > 0 ? protIds : (r['Protection Checks'] || '0/6');
+                    // ✅ FIXED
+                    const protIds = safeSplit(r['Protection Items'], '|');
+                    const protArg = protIds.length > 0 ? protIds : (safeStr(r['Protection Checks']) || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
-                    y = drawRating(doc, r['Protection Rating'], marginL, y);
+                    y = drawRating(doc, safeStr(r['Protection Rating']), marginL, y);
                     y = drawChecklist(doc, [
                         'Low oil pressure shutdown',
                         'High coolant temperature shutdown',
@@ -1461,14 +1480,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Emergency stop function',
                         'Battery charger & voltage (24V)'
                     ], protArg, marginL, y, contentW);
-                    if (r['Protection Remarks'] && r['Protection Remarks'] !== '—') {
-                        y = drawRemark(doc, r['Protection Remarks'], marginL, y, contentW);
+                    const protRemarkVal = safeStr(r['Protection Remarks']);
+                    if (protRemarkVal && protRemarkVal !== '—') {
+                        y = drawRemark(doc, protRemarkVal, marginL, y, contentW);
                     }
 
-                    const atsIds = (r['ATS Items'] || '').split('|').filter(Boolean);
-                    const atsArg = atsIds.length > 0 ? atsIds : (r['ATS Checks'] || '0/6');
+                    // ✅ FIXED
+                    const atsIds = safeSplit(r['ATS Items'], '|');
+                    const atsArg = atsIds.length > 0 ? atsIds : (safeStr(r['ATS Checks']) || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
-                    y = drawRating(doc, r['ATS Rating'], marginL, y);
+                    y = drawRating(doc, safeStr(r['ATS Rating']), marginL, y);
                     y = drawChecklist(doc, [
                         'ATS panel indicators (normal / emergency)',
                         'Automatic transfer test (simulate outage)',
@@ -1477,8 +1498,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'No excessive arching / contact wear',
                         'Manual transfer test (if applicable)'
                     ], atsArg, marginL, y, contentW);
-                    if (r['ATS Remarks'] && r['ATS Remarks'] !== '—') {
-                        y = drawRemark(doc, r['ATS Remarks'], marginL, y, contentW);
+                    const atsRemarkVal = safeStr(r['ATS Remarks']);
+                    if (atsRemarkVal && atsRemarkVal !== '—') {
+                        y = drawRemark(doc, atsRemarkVal, marginL, y, contentW);
                     }
 
                     const signoffY = pageH - 30;
@@ -1492,12 +1514,12 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(11);
                     doc.setTextColor(10, 42, 63);
-                    doc.text(r['Technician'] || '—', marginL + 4, signoffY + 11);
+                    doc.text(technician, marginL + 4, signoffY + 11);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7.5);
                     doc.setTextColor(58, 101, 131);
                     doc.text('CHUB Site · Work date: ' + workDate, marginL + 4, signoffY + 16.5);
-                    const initials = (r['Technician'] || 'HK').split(' ').map(p => p[0]).join('') + '.';
+                    const initials = (technician || 'HK').split(' ').map(p => p[0]).join('') + '.';
                     doc.setFont('times', 'italic');
                     doc.setFontSize(14);
                     doc.setTextColor(30, 74, 109);
@@ -1544,7 +1566,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             }
 
             function drawRating(doc, rating, x, y) {
-                const label = (rating || '—').toString();
+                const label = safeStr(rating) || '—';
                 const text = 'Rating: ' + label;
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(7.5);
@@ -1561,7 +1583,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 if (Array.isArray(checksOrIds)) {
                     tickedIds = checksOrIds.map(String);
                 } else {
-                    const done = parseInt((checksOrIds || '0/6').split('/')[0], 10) || 0;
+                    // ✅ FIXED: wrap in safeStr first so .split('/') can't crash
+                    const rawStr = safeStr(checksOrIds || '0/6');
+                    const done = parseInt(rawStr.split('/')[0], 10) || 0;
                     tickedIds = [];
                     for (let i = 1; i <= done; i++) tickedIds.push(String(i));
                 }
@@ -1600,7 +1624,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.setTextColor(58, 101, 131);
                 doc.setFillColor(251, 253, 255);
                 doc.setDrawColor(156, 185, 208);
-                const text = 'Remark: ' + remark;
+                const text = 'Remark: ' + safeStr(remark);
                 const wrapped = doc.splitTextToSize(text, contentW - 6);
                 const h = wrapped.length * 3.5 + 3;
                 doc.roundedRect(x, y, contentW, h, 1, 1, 'FD');
@@ -1693,6 +1717,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
             function validNum(raw) {
                 if (raw === null || raw === undefined || raw === '' || raw === '—' || raw === '-') return null;
+                if (Array.isArray(raw)) raw = raw[0];
                 const n = parseNumClient(raw);
                 if (n === 0 && String(raw).replace(/[^\d]/g, '') === '') return null;
                 return n;
@@ -1835,7 +1860,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y = drawAnalysisSection(doc, 'Breakdown by Generator', mL, y, cW);
                 const byGen = {};
                 records.forEach(r => {
-                    const g = r['Generator'] || 'Unknown';
+                    const g = safeStr(r['Generator']) || 'Unknown';
                     if (!byGen[g]) byGen[g] = { count: 0, diesel: 0, hours: 0 };
                     byGen[g].count++;
                     byGen[g].diesel += validNum(r['Diesel Refilled (L)']) || 0;
@@ -1862,7 +1887,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 y2 = drawAnalysisSection(doc, 'Breakdown by Technician', mL, y2, cW);
                 const byTech = {};
                 records.forEach(r => {
-                    const t = r['Technician'] || 'Unknown';
+                    const t = safeStr(r['Technician']) || 'Unknown';
                     byTech[t] = (byTech[t] || 0) + 1;
                 });
                 const techRows = Object.keys(byTech).map(t => [t, byTech[t]]);
@@ -1983,6 +2008,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             function parseNumClient(val) {
                 if (val === null || val === undefined || val === '') return 0;
                 if (typeof val === 'number') return val;
+                if (Array.isArray(val)) val = val[0];
                 const s = String(val).replace(/[^\d.-]/g, '');
                 const n = parseFloat(s);
                 return isNaN(n) ? 0 : n;
@@ -2119,9 +2145,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
         })();
     </script>
     <script>
+        // Register service worker with cache-busting query (bump ?v= when you update the app)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
+                navigator.serviceWorker.register('sw.js?v=2')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
