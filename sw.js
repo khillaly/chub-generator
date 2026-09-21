@@ -1,7 +1,7 @@
 // ============================================================
 // Service Worker — makes the app work offline
 // ============================================================
-const CACHE_NAME = 'chub-generator-v2';
+const CACHE_NAME = 'chub-generator-v3';
 const ASSETS = [
   './',
   './index.html',
