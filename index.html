@@ -565,13 +565,95 @@
                         <label for="refilledDiesel">Weekly capacity of refilled diesel (Liters)</label>
                         <input type="number" id="refilledDiesel" min="0" step="0.1" placeholder="e.g. 120.5">
                     </div>
-                   <div class="field-group">
+                                <div class="field-group">
     <label for="totalRunHours">Current total run hours on meter (Hours)</label>
     <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 12450.5 (reading from generator)">
     <span style="font-size: 0.78rem; color: #5b7b96; margin-top: 4px;">
         ℹ️ Enter the number shown on the generator's hour meter. Weekly hours are computed automatically.
     </span>
 </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== PREDICTIVE SERVICING ======================== -->
+        <div class="section-title" style="margin-top: 28px;"><span>🛠️</span> Predictive Servicing (250 h interval)</div>
+        <div class="grid-3-wide" style="margin-bottom: 32px;">
+            <div class="card">
+                <div class="card-header"><span>📋</span> Last Service Reference</div>
+                <div class="card-body">
+                    <div class="field-group">
+                        <label for="lastServiceDate">Last service date</label>
+                        <input type="date" id="lastServiceDate">
+                    </div>
+                    <div class="field-group">
+                        <label for="lastServiceHours">Hour meter at last service (h)</label>
+                        <input type="number" id="lastServiceHours" min="0" step="0.1" placeholder="e.g. 12200.0">
+                    </div>
+                    <div class="field-group">
+                        <label for="lastServiceType">Service type performed</label>
+                        <select id="lastServiceType">
+                            <option value="Oil + Filters">Oil + Filters (full 250h service)</option>
+                            <option value="Oil only">Oil only</option>
+                            <option value="Filters only">Filters only</option>
+                            <option value="Major service">Major service</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" id="saveServiceRefBtn" style="width:100%; margin-top:6px;">
+                        💾 Save service reference
+                    </button>
+                    <div style="font-size:0.78rem; color:#5b7b96; margin-top:8px;">
+                        ℹ️ Saved per-generator in your browser. Pre-fills next time.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="predictionCard">
+                <div class="card-header"><span>🔮</span> Next Service Prediction</div>
+                <div class="card-body">
+                    <div id="predictionStatus" style="
+                        padding: 14px 18px; border-radius: 16px;
+                        background: #e2f0e6; color: #1b6b3f;
+                        font-weight: 700; font-size: 1.05rem;
+                        display: flex; align-items: center; gap: 10px;
+                        margin-bottom: 18px; border: 1.5px solid #b8dfc3;">
+                        <span style="font-size:1.4rem;">✅</span>
+                        <span id="predictionStatusText">Enter service reference to see prediction</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Current hour meter reading</label>
+                        <div style="font-size: 1.4rem; font-weight: 800; color:#0a2a3f;" id="predCurrentHours">—</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Hours run since last service</label>
+                        <div style="font-size: 1.4rem; font-weight: 800; color:#1e4a6d;" id="predHoursSince">—</div>
+                        <div style="height:10px; background:#e7f0f8; border-radius:6px; margin-top:8px; overflow:hidden;">
+                            <div id="predProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#2a6b96,#1b6b3f); transition:width 0.4s;"></div>
+                        </div>
+                        <div style="font-size:0.78rem; color:#5b7b96; margin-top:4px;" id="predProgressLabel">0 / 250 h</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Hours remaining until service</label>
+                        <div style="font-size: 1.4rem; font-weight: 800; color:#1b6b3f;" id="predHoursRemaining">—</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Average running rate</label>
+                        <div style="font-size: 1.05rem; font-weight: 700; color:#1e4a6d;" id="predAvgRate">—</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>🗓️ Predicted next service date</label>
+                        <div style="font-size: 1.3rem; font-weight: 800; color:#7a4c9c;" id="predNextDate">—</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>📅 Recommended service window</label>
+                        <div style="font-size: 0.95rem; font-weight: 600; color:#3a6583;" id="predWindow">—</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2031,6 +2113,186 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
+            // ============================================================
+            // 🛠️ PREDICTIVE SERVICING (250 h interval)
+            // ============================================================
+            const SERVICE_INTERVAL_HOURS = 250;
+            const SERVICE_REF_KEY = 'chub_service_refs';
+
+            const lastServiceDateInput = document.getElementById('lastServiceDate');
+            const lastServiceHoursInput = document.getElementById('lastServiceHours');
+            const lastServiceTypeInput = document.getElementById('lastServiceType');
+            const saveServiceRefBtn = document.getElementById('saveServiceRefBtn');
+            const predictionStatus = document.getElementById('predictionStatus');
+            const predictionStatusText = document.getElementById('predictionStatusText');
+
+            function getServiceRefs() {
+                try { return JSON.parse(localStorage.getItem(SERVICE_REF_KEY) || '{}'); }
+                catch(e) { return {}; }
+            }
+
+            function saveServiceRefs(refs) {
+                localStorage.setItem(SERVICE_REF_KEY, JSON.stringify(refs));
+            }
+
+            function loadServiceRefForGenerator(gen) {
+                const refs = getServiceRefs();
+                const ref = refs[gen];
+                if (ref) {
+                    lastServiceDateInput.value = ref.lastServiceDate || '';
+                    lastServiceHoursInput.value = ref.lastServiceHours || '';
+                    lastServiceTypeInput.value = ref.lastServiceType || 'Oil + Filters';
+                } else {
+                    lastServiceDateInput.value = '';
+                    lastServiceHoursInput.value = '';
+                    lastServiceTypeInput.value = 'Oil + Filters';
+                }
+            }
+
+            saveServiceRefBtn.addEventListener('click', function() {
+                const gen = generatorSelect.value;
+                const refs = getServiceRefs();
+                refs[gen] = {
+                    lastServiceDate: lastServiceDateInput.value,
+                    lastServiceHours: lastServiceHoursInput.value,
+                    lastServiceType: lastServiceTypeInput.value,
+                    savedAt: new Date().toISOString()
+                };
+                saveServiceRefs(refs);
+                showStatus('💾 Service reference saved for ' + gen, true);
+                updatePrediction();
+            });
+
+            [lastServiceDateInput, lastServiceHoursInput, lastServiceTypeInput].forEach(el => {
+                el.addEventListener('change', function() {
+                    const gen = generatorSelect.value;
+                    if (!gen) return;
+                    const refs = getServiceRefs();
+                    refs[gen] = {
+                        lastServiceDate: lastServiceDateInput.value,
+                        lastServiceHours: lastServiceHoursInput.value,
+                        lastServiceType: lastServiceTypeInput.value,
+                        savedAt: new Date().toISOString()
+                    };
+                    saveServiceRefs(refs);
+                });
+            });
+
+            function updatePrediction() {
+                const lastDate = lastServiceDateInput.value;
+                const lastHours = parseFloat(lastServiceHoursInput.value);
+                const currentHours = parseFloat(totalRunHours.value);
+
+                if (!lastDate || isNaN(lastHours) || isNaN(currentHours)) {
+                    predictionStatus.style.background = '#e7f0f8';
+                    predictionStatus.style.color = '#1e4a6d';
+                    predictionStatus.style.borderColor = '#cfdfeb';
+                    predictionStatus.querySelector('span:first-child').textContent = 'ℹ️';
+                    predictionStatusText.textContent = 'Fill in last service ref + current hour meter';
+                    document.getElementById('predCurrentHours').textContent = isNaN(currentHours) ? '—' : currentHours.toFixed(1) + ' h';
+                    document.getElementById('predHoursSince').textContent = '—';
+                    document.getElementById('predHoursRemaining').textContent = '—';
+                    document.getElementById('predAvgRate').textContent = '—';
+                    document.getElementById('predNextDate').textContent = '—';
+                    document.getElementById('predWindow').textContent = '—';
+                    document.getElementById('predProgressBar').style.width = '0%';
+                    document.getElementById('predProgressLabel').textContent = '0 / 250 h';
+                    return;
+                }
+
+                const hoursSince = Math.max(0, currentHours - lastHours);
+                const hoursRemaining = Math.max(0, SERVICE_INTERVAL_HOURS - hoursSince);
+                const percent = Math.min(100, (hoursSince / SERVICE_INTERVAL_HOURS) * 100);
+
+                const now = new Date();
+                const lastD = new Date(lastDate + 'T00:00:00');
+                let daysElapsed = Math.max(1, Math.round((now - lastD) / 86400000));
+                let avgDailyHours = hoursSince / daysElapsed;
+
+                if (!isFinite(avgDailyHours) || avgDailyHours <= 0) {
+                    avgDailyHours = 0;
+                }
+                if (avgDailyHours > 24) avgDailyHours = 24;
+
+                let daysToService = null;
+                let nextDate = null;
+                if (avgDailyHours > 0 && hoursRemaining > 0) {
+                    daysToService = Math.ceil(hoursRemaining / avgDailyHours);
+                    nextDate = new Date(now);
+                    nextDate.setDate(nextDate.getDate() + daysToService);
+                } else if (hoursRemaining <= 0) {
+                    daysToService = 0;
+                    nextDate = new Date(now);
+                }
+
+                document.getElementById('predCurrentHours').textContent = currentHours.toFixed(1) + ' h';
+                document.getElementById('predHoursSince').textContent = hoursSince.toFixed(1) + ' h';
+                document.getElementById('predHoursRemaining').textContent = hoursRemaining.toFixed(1) + ' h';
+                document.getElementById('predProgressBar').style.width = percent + '%';
+                document.getElementById('predProgressLabel').textContent =
+                    hoursSince.toFixed(1) + ' / ' + SERVICE_INTERVAL_HOURS + ' h (' + percent.toFixed(1) + '%)';
+
+                if (avgDailyHours > 0) {
+                    document.getElementById('predAvgRate').textContent =
+                        avgDailyHours.toFixed(2) + ' h/day (' +
+                        (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
+                } else {
+                    document.getElementById('predAvgRate').textContent =
+                        'Insufficient data (no hours run since last service)';
+                }
+
+                if (nextDate) {
+                    const dateStr = nextDate.toLocaleDateString('en-GB', {
+                        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
+                    });
+                    document.getElementById('predNextDate').textContent = dateStr;
+
+                    const winStart = new Date(nextDate); winStart.setDate(winStart.getDate() - 3);
+                    const winEnd = new Date(nextDate); winEnd.setDate(winEnd.getDate() + 3);
+                    document.getElementById('predWindow').textContent =
+                        winStart.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + '  →  ' +
+                        winEnd.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                } else {
+                    document.getElementById('predNextDate').textContent = '—';
+                    document.getElementById('predWindow').textContent = '—';
+                }
+
+                let bg, color, border, icon, msg;
+                if (hoursRemaining <= 0) {
+                    bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8';
+                    icon = '🚨';
+                    msg = 'SERVICE OVERDUE — ' + Math.abs(hoursRemaining).toFixed(1) + ' h past interval';
+                } else if (hoursRemaining <= 25) {
+                    bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8';
+                    icon = '⚠️';
+                    msg = 'SERVICE DUE SOON — only ' + hoursRemaining.toFixed(1) + ' h left';
+                } else if (hoursRemaining <= 50) {
+                    bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a';
+                    icon = '🔔';
+                    msg = 'Plan service — ' + hoursRemaining.toFixed(1) + ' h remaining';
+                } else {
+                    bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3';
+                    icon = '✅';
+                    msg = 'OK — ' + hoursRemaining.toFixed(1) + ' h until next service';
+                }
+                predictionStatus.style.background = bg;
+                predictionStatus.style.color = color;
+                predictionStatus.style.borderColor = border;
+                predictionStatus.querySelector('span:first-child').textContent = icon;
+                predictionStatusText.textContent = msg;
+            }
+
+            totalRunHours.addEventListener('input', updatePrediction);
+            lastServiceDateInput.addEventListener('change', updatePrediction);
+            lastServiceHoursInput.addEventListener('input', updatePrediction);
+
+            generatorSelect.addEventListener('change', function() {
+                loadServiceRefForGenerator(generatorSelect.value);
+                updatePrediction();
+            });
+
+            loadServiceRefForGenerator(generatorSelect.value);
+            updatePrediction();
 
             // ============================================================
             // 🔐 PIN AUTHENTICATION
