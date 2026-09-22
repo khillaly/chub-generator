@@ -137,9 +137,10 @@
             background: #f9fcff; padding: 18px 24px;
             border-radius: 24px; border: 1.5px solid #cfdfeb; margin-bottom: 20px;
         }
-             .chub-logo {
-            width: 260px;          /* ← makes the logo longer */
-            height: auto;          /* ← keeps aspect ratio correct */
+            .chub-logo {
+            flex: 1 1 180px;
+            max-width: 320px;
+            height: auto;
             margin-left: 15px;
             margin-right: 15px;
             vertical-align: middle;
@@ -465,6 +466,7 @@
             .app-container { padding: 20px 16px; }
             select, input[type="date"] { min-width: 100%; }
             .generator-banner .gen-title { font-size: 1.1rem; }
+            .chub-logo { flex: 1 1 100px; max-width: 160px; margin-left: 8px; margin-right: 8px; }
         }
     </style>
 </head>
@@ -528,7 +530,7 @@
                 <option value="DAF 80 KVA" data-sub="DAF 80 kVA · 400V / 50Hz · field checklist">DAF 80 KVA</option>
             </select>
             <img src="chub-logo.png" alt="CHUB Logo" class="chub-logo">
-            <span style="margin-left: auto; font-size: 0.9rem; color: #2a577b;">All rated 400V / 50H
+            <span style="font-size: 0.9rem; color: #2a577b;">All rated 400V / 50Hz</span>
         </div>
 
         <div class="generator-banner" id="generatorBanner">
