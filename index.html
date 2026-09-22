@@ -1302,8 +1302,8 @@
 
                 const checkList = (ids, allItems) => {
                     return allItems.map((item, idx) => {
-                        const isChecked = ids.indexOf(String(idx + 1)) !== -1;
-                        const mark = isChecked ? '✔' : '✘';
+                     const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
+                    const mark = isChecked ? 'v' : 'x';
                         const color = isChecked ? '#1b6b3f' : '#b33a3a';
                         return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:700;color:' + color + ';">' + mark + '</span>' + item + '</li>';
                     }).join('');
@@ -1996,14 +1996,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 }).length;
 
                 y = drawAnalysisSection(doc, 'Servicing Status Overview', mL, y, cW);
-                const servRows = [
-                    ['✅ OK (> 50 h remaining)', okCount],
-                    ['🔔 Due soon (≤ 50 h)', records.filter(r => {
+                                const servRows = [
+                    ['[OK]      > 50 h remaining', okCount],
+                    ['[SOON]    <= 50 h remaining', records.filter(r => {
                         const rem = parseNumClient(r['Hours Until Service']);
                         return rem > 25 && rem <= 50;
                     }).length],
-                    ['⚠️ Service due (≤ 25 h)', dueSoonCount],
-                    ['🚨 OVERDUE', overdueCount]
+                    ['[DUE]     <= 25 h remaining', dueSoonCount],
+                    ['[OVERDUE] Service required', overdueCount]
                 ];
                 y = drawSimpleTable(doc, ['Status', 'Inspections'], servRows, mL, y, cW);
 
