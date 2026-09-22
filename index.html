@@ -137,6 +137,13 @@
             background: #f9fcff; padding: 18px 24px;
             border-radius: 24px; border: 1.5px solid #cfdfeb; margin-bottom: 20px;
         }
+                .chub-logo {
+            height: 40px;
+            width: auto;
+            margin-left: 15px;
+            vertical-align: middle;
+            object-fit: contain;
+        }
         .generator-selector label {
             font-weight: 600; color: #1e4a6d;
             font-size: 1.05rem; white-space: nowrap;
@@ -2523,7 +2530,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
         // Register service worker with cache-busting query (bump ?v= when you update the app)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=2')
+                navigator.serviceWorker.register('sw.js?v=3')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
