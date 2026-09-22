@@ -1165,7 +1165,33 @@
                     atsItems: getTickedItems('ats'),
                     visualRating: document.querySelector('input[name="visualRating"]:checked')?.value || '—',
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
-                    atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—'
+                                      atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
+                    lastServiceDate: lastServiceDateInput.value || '—',
+                    lastServiceHours: lastServiceHoursInput.value || '—',
+                    lastServiceType: lastServiceTypeInput.value || '—',
+                    currentHourMeter: totalRunHours.value || '—',
+                    hoursSinceService: (function(){
+                        const lh = parseFloat(lastServiceHoursInput.value);
+                        const ch = parseFloat(totalRunHours.value);
+                        if (isNaN(lh) || isNaN(ch)) return '—';
+                        return Math.max(0, ch - lh).toFixed(1);
+                    })(),
+                    hoursUntilService: (function(){
+                        const lh = parseFloat(lastServiceHoursInput.value);
+                        const ch = parseFloat(totalRunHours.value);
+                        if (isNaN(lh) || isNaN(ch)) return '—';
+                        return Math.max(0, SERVICE_INTERVAL_HOURS - (ch - lh)).toFixed(1);
+                    })(),
+                    predictedNextServiceDate: document.getElementById('predNextDate').textContent || '—',
+                    avgDailyRunRate: (function(){
+                        const lh = parseFloat(lastServiceHoursInput.value);
+                        const ch = parseFloat(totalRunHours.value);
+                        const ld = lastServiceDateInput.value;
+                        if (isNaN(lh) || isNaN(ch) || !ld) return '—';
+                        const days = Math.max(1, Math.round((new Date() - new Date(ld + 'T00:00:00')) / 86400000));
+                        return ((ch - lh) / days).toFixed(2);
+                    })(),
+                    predictionStatus: predictionStatusText.textContent || '—'
                 };
             }
 
@@ -1177,9 +1203,13 @@
                 visualRemark.value = '';
                 protRemark.value = '';
                 atsRemark.value = '';
-                fuelLevel.value = '';
+               fuelLevel.value = '';
                 refilledDiesel.value = '';
                 totalRunHours.value = '';
+                lastServiceDateInput.value = '';
+                lastServiceHoursInput.value = '';
+                lastServiceTypeInput.value = 'Oil + Filters';
+                updatePrediction();
                 coolantLevelRadios.forEach(r => r.checked = false);
                 levelOptions.forEach(o => o.classList.remove('active'));
                 oilLevelRadios.forEach(r => r.checked = false);
@@ -1331,7 +1361,18 @@ ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
   <div class="info-box"><div class="label">Diesel Refilled</div><div class="value">${data.refilledDiesel}</div></div>
   <div class="info-box"><div class="label">Run Hours</div><div class="value">${data.totalRunHours}</div></div>
 </div>
-
+<div class="section-title">🛠️ Predictive Servicing (250 h interval)</div>
+<div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="info-box"><div class="label">Last Service</div><div class="value">${data.lastServiceDate || '—'}</div></div>
+  <div class="info-box"><div class="label">Hours @ Service</div><div class="value">${data.lastServiceHours || '—'}</div></div>
+  <div class="info-box"><div class="label">Hours Since</div><div class="value">${data.hoursSinceService || '—'} h</div></div>
+  <div class="info-box"><div class="label">Hours Remaining</div><div class="value">${data.hoursUntilService || '—'} h</div></div>
+</div>
+<div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="info-box"><div class="label">Avg Rate</div><div class="value">${data.avgDailyRunRate || '—'} h/day</div></div>
+  <div class="info-box"><div class="label">Predicted Next Service</div><div class="value">${data.predictedNextServiceDate || '—'}</div></div>
+  <div class="info-box"><div class="label">Status</div><div class="value" style="font-size:0.78rem;">${data.predictionStatus || '—'}</div></div>
+</div>
 <div class="section-title">🔧 Visual & Mechanical (${data.visualChecks}/${data.visualTotal})</div>
 <div class="rating-tag">Condition: ${data.visualRating}</div>
 <ul class="check-list">
@@ -1533,7 +1574,49 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
-                    y += 20;
+                                       y += 20;
+
+                    // ---- Predictive servicing block ----
+                    y = drawSection(doc, 'PREDICTIVE SERVICING (250 h INTERVAL)', marginL, y, contentW);
+                    const predBoxW = (contentW - 6) / 4;
+                    const predBoxes = [
+                        { label: 'Last Service', value: safeStr(r['Last Service Date']) || '—' },
+                        { label: 'Hours @ Service', value: safeStr(r['Last Service Hours']) || '—' },
+                        { label: 'Hours Since', value: (safeStr(r['Hours Since Service']) || '—') + ' h' },
+                        { label: 'Hours Remaining', value: (safeStr(r['Hours Until Service']) || '—') + ' h' }
+                    ];
+                    predBoxes.forEach((b, idx) => {
+                        const bx = marginL + idx * (predBoxW + 2);
+                        doc.setFillColor(249, 252, 255);
+                        doc.setDrawColor(212, 227, 239);
+                        doc.roundedRect(bx, y, predBoxW, 14, 1.5, 1.5, 'FD');
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(5.5);
+                        doc.setTextColor(91, 123, 150);
+                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(9);
+                        doc.setTextColor(18, 64, 94);
+                        doc.text(String(b.value), bx + 2, y + 10.5);
+                    });
+                    y += 18;
+
+                    doc.setFillColor(240, 246, 252);
+                    doc.setDrawColor(207, 224, 238);
+                    doc.roundedRect(marginL, y, contentW, 12, 2, 2, 'FD');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(18, 64, 94);
+                    doc.text('Predicted next service:', marginL + 3, y + 5);
+                    doc.setTextColor(122, 76, 156);
+                    doc.setFontSize(9);
+                    doc.text(safeStr(r['Predicted Next Service Date']) || '—', marginL + 40, y + 5);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(58, 101, 131);
+                    doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'),
+                        marginL + 3, y + 10);
+                    y += 18;
 
                     // ✅ FIXED: use safeSplit() instead of raw .split('|')
                     const visualIds = safeSplit(r['Visual Items'], '|');
@@ -1896,10 +1979,35 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, by + 16);
                 });
-                y += 2 * (kpiBoxH + kpiGap) + 4;
+                               y += 2 * (kpiBoxH + kpiGap) + 4;
+
+                // ---- Servicing KPIs ----
+                const overdueCount = records.filter(r => {
+                    const rem = parseNumClient(r['Hours Until Service']);
+                    return rem <= 0 && safeStr(r['Hours Until Service']) !== '';
+                }).length;
+                const dueSoonCount = records.filter(r => {
+                    const rem = parseNumClient(r['Hours Until Service']);
+                    return rem > 0 && rem <= 25;
+                }).length;
+                const okCount = records.filter(r => {
+                    const rem = parseNumClient(r['Hours Until Service']);
+                    return rem > 25;
+                }).length;
+
+                y = drawAnalysisSection(doc, 'Servicing Status Overview', mL, y, cW);
+                const servRows = [
+                    ['✅ OK (> 50 h remaining)', okCount],
+                    ['🔔 Due soon (≤ 50 h)', records.filter(r => {
+                        const rem = parseNumClient(r['Hours Until Service']);
+                        return rem > 25 && rem <= 50;
+                    }).length],
+                    ['⚠️ Service due (≤ 25 h)', dueSoonCount],
+                    ['🚨 OVERDUE', overdueCount]
+                ];
+                y = drawSimpleTable(doc, ['Status', 'Inspections'], servRows, mL, y, cW);
 
                 y = drawAnalysisSection(doc, 'Weekly Run Hours Distribution (Histogram)', mL, y, cW);
-
                 const bins = [
                     { label: '0 – 5 h', min: 0, max: 5 },
                     { label: '5 – 10 h', min: 5, max: 10 },
