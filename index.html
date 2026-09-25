@@ -505,23 +505,22 @@
             }
 
             function formatDateOnly(val) {
-    if (val === null || val === undefined) return '—';
-    const s = String(val).trim();
-    if (!s || s === '—' || s === '-') return '—';
+                if (val === null || val === undefined) return '—';
+                const s = String(val).trim();
+                if (!s || s === '—' || s === '-') return '—';
 
-    let d;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        d = new Date(s + 'T00:00:00');       // plain "2026-03-01"
-    } else {
-        d = new Date(s);                     // ISO "2026-02-28T22:00:00.000Z"
-    }
-    if (isNaN(d.getTime())) return s;
+                let d;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                    d = new Date(s + 'T00:00:00');
+                } else {
+                    d = new Date(s);
+                }
+                if (isNaN(d.getTime())) return s;
 
-    const dd   = String(d.getDate()).padStart(2, '0');
-    const mm   = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return dd + '/' + mm + '/' + yyyy;       // → 01/03/2026
-}
+                const dd   = String(d.getDate()).padStart(2, '0');
+                const mm   = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                return dd + '/' + mm + '/' + yyyy;
             }
 
             const TANK_CAPACITY_BY_KEY = {
@@ -895,9 +894,6 @@
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
-            // ============================================================
-            // 📄 EXPORT CURRENT AS PDF
-            // ============================================================
             pdfBtn.addEventListener('click', function() { exportCurrentPDF(); });
 
             function exportCurrentPDF() {
@@ -1052,9 +1048,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 </body></html>`;
             }
 
-            // ============================================================
-            // 📚 DOWNLOAD ALL RECORDS AS PDF
-            // ============================================================
             pdfAllBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1129,7 +1122,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
-            // Helper to draw the legend in the multi-record PDF
             function drawLegend(doc, x, y) {
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(7.5);
@@ -1300,7 +1292,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const visualArg = visualIds.length > 0 ? visualIds : (safeStr(r['Visual Checks']) || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
                     y = drawRating(doc, safeStr(r['Visual Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y); // <-- LEGEND
+                    y = drawLegend(doc, marginL, y);
                     y = drawChecklist(doc, [
                         'No leaks (oil, coolant, fuel)',
                         'Belt tension & wear',
@@ -1316,7 +1308,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const protArg = protIds.length > 0 ? protIds : (safeStr(r['Protection Checks']) || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
                     y = drawRating(doc, safeStr(r['Protection Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y); // <-- LEGEND
+                    y = drawLegend(doc, marginL, y);
                     y = drawChecklist(doc, [
                         'Low oil pressure shutdown',
                         'High coolant temperature shutdown',
@@ -1332,7 +1324,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const atsArg = atsIds.length > 0 ? atsIds : (safeStr(r['ATS Checks']) || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
                     y = drawRating(doc, safeStr(r['ATS Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y); // <-- LEGEND
+                    y = drawLegend(doc, marginL, y);
                     y = drawChecklist(doc, [
                         'ATS panel indicators (normal / emergency)',
                         'Automatic transfer test (simulate outage)',
@@ -1466,9 +1458,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return y + h + 2;
             }
 
-            // ============================================================
-            // 📊 ANALYSIS PDF
-            // ============================================================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1736,7 +1725,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.setTextColor(91, 123, 150);
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
 
-                // ---- Fuel consumption analysis page ----
                 doc.addPage();
                 let y3 = 20;
                 doc.setFillColor(30, 74, 109);
@@ -1922,9 +1910,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
-            // ============================================================
-            // 🛠️ PREDICTIVE SERVICING (250 h interval)
-            // ============================================================
             const SERVICE_INTERVAL_HOURS = 250;
             const SERVICE_REF_KEY = 'chub_service_refs';
 
@@ -2066,9 +2051,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             loadServiceRefForGenerator(generatorSelect.value);
             updatePrediction();
 
-            // ============================================================
-            // 🔐 PIN AUTHENTICATION
-            // ============================================================
             const loginModal = document.getElementById('loginModal');
             const loginTechSelect = document.getElementById('loginTechSelect');
             const loginPinInput = document.getElementById('loginPinInput');
