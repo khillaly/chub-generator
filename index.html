@@ -834,7 +834,7 @@
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
-            <p>Choose a date range. The PDF will include KPIs, histogram, fuel consumption per generator, and tables.</p>
+            <p>Choose a date range. The PDF will include KPIs, histogram, and tables.</p>
             <div class="filter-selector" id="analysisQuickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -885,158 +885,6 @@
                 if (val === null || val === undefined) return '';
                 if (Array.isArray(val)) return val.join(' ').trim();
                 return String(val);
-            }
-
-            // ============================================================
-            // ⛽ FUEL TANK CAPACITIES (litres) — used for consumption calc
-            //    Ritewat G1 = 800 L · Ritewat G2 = 800 L
-            //    Perkins 400KVA = 250 L · Perkins 300KVA = 800 L
-            //    Cummins 70KVA = 60 L · DAF 80KVA = 130 L
-            // ============================================================
-            const TANK_CAPACITY_BY_KEY = {
-                'ritewat500kvag1': 800,
-                'ritewat500kvag2': 800,
-                '400kvaperkins':   250,
-                'perkins400kva':   250,
-                'cummins70kva':     60,
-                'commins70kva':     60,
-                'commins70kva':     60,
-                '70kvacummins':     60,
-                '300kvaperkins':   800,
-                'perkins300kva':   800,
-                'daf80kva':        130
-            };
-
-            function normalizeGenKey(name) {
-                return safeStr(name).toLowerCase().replace(/[^a-z0-9]/g, '');
-            }
-
-            function getTankCapacity(name) {
-                const k = normalizeGenKey(name);
-                if (!k) return null;
-                if (TANK_CAPACITY_BY_KEY[k] !== undefined) return TANK_CAPACITY_BY_KEY[k];
-
-                // Fuzzy fallbacks (handles spelling variations / extra words)
-                if (k.indexOf('ritewat') !== -1) {
-                    if (k.indexOf('g1') !== -1) return 800;
-                    if (k.indexOf('g2') !== -1) return 800;
-                    return 800;
-                }
-                if (k.indexOf('cummins') !== -1 || k.indexOf('commins') !== -1 || k.indexOf('cumins') !== -1) return 60;
-                if (k.indexOf('daf') !== -1) return 130;
-                if (k.indexOf('perkins') !== -1) {
-                    if (k.indexOf('300') !== -1) return 800;
-                    if (k.indexOf('400') !== -1) return 250;
-                    return 250;
-                }
-                return null;
-            }
-
-            function parseFuelPercent(rec) {
-                let v = validNum(rec['Fuel %']);
-                if (v === null) return null;
-                if (v >= 0 && v <= 1) v = v * 100;   // stored as fraction
-                if (v < 0 || v > 100) return null;
-                return v;
-            }
-
-            function recordTime(rec) {
-                const raw = rec['Timestamp'] || rec['timestamp'] || rec['Work Date'];
-                const t = new Date(raw).getTime();
-                return isNaN(t) ? 0 : t;
-            }
-
-            /**
-             * Builds a Map keyed by record object:
-             *   { capacity, hours, consumed, lph, fuelStart, fuelEnd, refill }
-             * Consumption between two inspections of the SAME generator:
-             *   fuelUsed = dieselRefilled + (fuel%_prev - fuel%_curr) * tankCapacity / 100
-             *   L/h      = fuelUsed / (hourMeter_curr - hourMeter_prev)
-             */
-            function buildConsumptionIndex(records) {
-                const index = new Map();
-                if (!Array.isArray(records) || records.length === 0) return index;
-
-                const groups = {};
-                records.forEach(r => {
-                    const g = safeStr(r['Generator']) || 'Unknown';
-                    if (!groups[g]) groups[g] = [];
-                    groups[g].push(r);
-                });
-
-                Object.keys(groups).forEach(g => {
-                    const capacity = getTankCapacity(g);
-                    const list = groups[g].slice().sort((a, b) => recordTime(a) - recordTime(b));
-
-                    for (let k = 1; k < list.length; k++) {
-                        const prev = list[k - 1];
-                        const curr = list[k];
-
-                        const hPrev = validNum(prev['Run Hours']);
-                        const hCurr = validNum(curr['Run Hours']);
-                        if (hPrev === null || hCurr === null) continue;
-
-                        const dH = hCurr - hPrev;
-                        if (!(dH > 0) || dH > 2000) continue;   // sanity window
-
-                        if (capacity === null) continue;
-
-                        const fPrev = parseFuelPercent(prev);
-                        const fCurr = parseFuelPercent(curr);
-                        if (fPrev === null || fCurr === null) continue;
-
-                        const refill = validNum(curr['Diesel Refilled (L)']) || 0;
-                        const consumed = refill + ((fPrev - fCurr) / 100) * capacity;
-                        if (!(consumed > 0)) continue;
-
-                        const lph = consumed / dH;
-                        if (!isFinite(lph) || lph <= 0 || lph > 200) continue;  // sanity
-
-                        index.set(curr, {
-                            capacity: capacity,
-                            hours: dH,
-                            consumed: consumed,
-                            lph: lph,
-                            fuelStart: fPrev,
-                            fuelEnd: fCurr,
-                            refill: refill
-                        });
-                    }
-                });
-
-                return index;
-            }
-
-            /**
-             * Aggregates consumption per generator for a set of records.
-             */
-            function aggregateConsumption(records, index) {
-                const agg = {};
-                records.forEach(r => {
-                    const g = safeStr(r['Generator']) || 'Unknown';
-                    if (!agg[g]) {
-                        agg[g] = {
-                            generator: g,
-                            capacity: getTankCapacity(g),
-                            records: 0,
-                            intervals: 0,
-                            hours: 0,
-                            consumed: 0,
-                            lph: null
-                        };
-                    }
-                    agg[g].records++;
-                    const c = index ? index.get(r) : null;
-                    if (c) {
-                        agg[g].intervals++;
-                        agg[g].hours += c.hours;
-                        agg[g].consumed += c.consumed;
-                    }
-                });
-                Object.keys(agg).forEach(k => {
-                    agg[k].lph = agg[k].hours > 0 ? (agg[k].consumed / agg[k].hours) : null;
-                });
-                return agg;
             }
 
             const generatorSelect = document.getElementById('generatorSelect');
@@ -1463,20 +1311,10 @@
                 const initials = data.technician.split(' ').map(p => p[0]).join('') + '.';
                 const sigHTML = '<div class="signature">' + initials + '</div>';
 
-                // ---- Fuel tank info for this generator ----
-                const tankCap = getTankCapacity(data.generator);
-                const fuelPctRaw = parseFloat(String(data.fuelLevel || '').replace(/[^\d.]/g, ''));
-                const fuelPct = isNaN(fuelPctRaw) ? null : fuelPctRaw;
-                const fuelInTank = (tankCap !== null && fuelPct !== null)
-                    ? (tankCap * fuelPct / 100).toFixed(1) + ' L  (' + fuelPct + '% of ' + tankCap + ' L tank)'
-                    : '—';
-
-                // ✅ FIXED: was referencing undefined `tickedIds` / `i`
-                const checkList = (tickedIds, allItems) => {
-                    const ids = Array.isArray(tickedIds) ? tickedIds.map(String) : [];
+                const checkList = (ids, allItems) => {
                     return allItems.map((item, idx) => {
-                        const isChecked = ids.indexOf(String(idx + 1)) !== -1;
-                        const mark = isChecked ? '✓' : '✗';
+                     const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
+                    const mark = isChecked ? 'v' : 'x';
                         const color = isChecked ? '#1b6b3f' : '#b33a3a';
                         return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:700;color:' + color + ';">' + mark + '</span>' + item + '</li>';
                     }).join('');
@@ -1533,10 +1371,6 @@ ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
   <div class="info-box"><div class="label">Oil Level</div><div class="value">${data.oilLevel}</div></div>
   <div class="info-box"><div class="label">Diesel Refilled</div><div class="value">${data.refilledDiesel}</div></div>
   <div class="info-box"><div class="label">Run Hours</div><div class="value">${data.totalRunHours}</div></div>
-</div>
-<div class="info-grid" style="grid-template-columns: repeat(2, 1fr);">
-  <div class="info-box"><div class="label">Tank Capacity</div><div class="value">${tankCap !== null ? tankCap + ' L' : '—'}</div></div>
-  <div class="info-box"><div class="label">Fuel In Tank (estimated)</div><div class="value">${fuelInTank}</div></div>
 </div>
 <div class="section-title">🛠️ Predictive Servicing (250 h interval)</div>
 <div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
@@ -1635,10 +1469,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         return;
                     }
                     modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
-                    // Build the fuel-consumption index from the FULL history so that
-                    // the first record in the range can still use its predecessor.
-                    const consIndex = buildConsumptionIndex(json.records);
-                    await generateMultiRecordPDF(filtered, consIndex);
+                    await generateMultiRecordPDF(filtered);
                     showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
                     pdfModal.classList.remove('show');
                 } catch (err) {
@@ -1671,7 +1502,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
-            async function generateMultiRecordPDF(records, consumptionIndex) {
+            async function generateMultiRecordPDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageW = 210;
@@ -1796,33 +1627,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setTextColor(58, 101, 131);
                     doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'),
                         marginL + 3, y + 10);
-                    y += 18;
-
-                    // ---- Fuel consumption (since previous inspection) ----
-                    const tankCap = getTankCapacity(safeStr(r['Generator']));
-                    const cons = consumptionIndex ? consumptionIndex.get(r) : null;
-                    y = drawSection(doc, 'FUEL CONSUMPTION (SINCE PREVIOUS INSPECTION)', marginL, y, contentW);
-                    const fuelBoxW = (contentW - 6) / 4;
-                    const fuelBoxes = [
-                        { label: 'Tank Capacity', value: tankCap !== null ? tankCap + ' L' : '—' },
-                        { label: 'Run Hours (period)', value: cons ? cons.hours.toFixed(1) + ' h' : '—' },
-                        { label: 'Fuel Used (calc.)', value: cons ? cons.consumed.toFixed(1) + ' L' : '—' },
-                        { label: 'Avg Consumption', value: cons ? cons.lph.toFixed(2) + ' L/h' : '—' }
-                    ];
-                    fuelBoxes.forEach((b, idx) => {
-                        const bx = marginL + idx * (fuelBoxW + 2);
-                        doc.setFillColor(249, 252, 255);
-                        doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, fuelBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(5.5);
-                        doc.setTextColor(91, 123, 150);
-                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(9);
-                        doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
                     y += 18;
 
                     // ✅ FIXED: use safeSplit() instead of raw .split('|')
@@ -2058,9 +1862,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         return;
                     }
                     analysisModalGo.innerHTML = '📊 Generating...';
-                    // Index built from the FULL history (better interval coverage)
-                    const consIndex = buildConsumptionIndex(json.records);
-                    await generateAnalysisPDF(filtered, consIndex);
+                    await generateAnalysisPDF(filtered);
                     showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true);
                     analysisModal.classList.remove('show');
                 } catch (err) {
@@ -2101,9 +1903,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return n;
             }
 
-            async function generateAnalysisPDF(records, consIndex) {
-                if (!consIndex) consIndex = buildConsumptionIndex(records);
-
+            async function generateAnalysisPDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageW = 210;
@@ -2141,7 +1941,12 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
                 const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
 
-                const fuelValues = records.map(r => parseFuelPercent(r)).filter(v => v !== null);
+                const fuelValues = records.map(r => {
+                    let v = validNum(r['Fuel %']);
+                    if (v === null) return null;
+                    if (v >= 0 && v <= 1) v = v * 100;
+                    return v;
+                }).filter(v => v !== null);
                 const avgFuel = fuelValues.length
                     ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length
                     : 0;
@@ -2336,121 +2141,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.setFontSize(8);
                 doc.setTextColor(91, 123, 150);
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
-
-                // ============================================================
-                // ⛽ NEW PAGE — FUEL CONSUMPTION ANALYSIS (L/h) PER GENERATOR
-                // ============================================================
-                doc.addPage();
-                let y3 = 20;
-                doc.setFillColor(30, 74, 109);
-                doc.rect(0, 0, pageW, 4, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Fuel Consumption Analysis', mL, y3);
-                y3 += 5;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                doc.setTextColor(91, 123, 150);
-                doc.text('Site: CHUB · Range: ' + rangeLabel + ' · Records: ' + records.length, mL, y3);
-                y3 += 4;
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.5);
-                doc.line(mL, y3, pageW - mR, y3);
-                y3 += 8;
-
-                const consAgg = aggregateConsumption(records, consIndex);
-                const consList = Object.keys(consAgg).map(k => consAgg[k]);
-                consList.sort((a, b) => {
-                    const av = a.lph === null ? -1 : a.lph;
-                    const bv = b.lph === null ? -1 : b.lph;
-                    return bv - av;
-                });
-
-                const totalFuelUsed = consList.reduce((s, a) => s + a.consumed, 0);
-                const totalPeriodHours = consList.reduce((s, a) => s + a.hours, 0);
-                const fleetAvgLph = totalPeriodHours > 0 ? (totalFuelUsed / totalPeriodHours) : 0;
-                const gensWithData = consList.filter(a => a.lph !== null).length;
-
-                const fkpis = [
-                    { label: 'Generators Analysed', value: gensWithData + ' / ' + consList.length },
-                    { label: 'Total Period Run Hours', value: roundClient(totalPeriodHours, 1) + ' h' },
-                    { label: 'Total Fuel Used', value: roundClient(totalFuelUsed, 1) + ' L' },
-                    { label: 'Fleet Avg Consumption', value: roundClient(fleetAvgLph, 2) + ' L/h' }
-                ];
-                const fBoxW = (cW - 6) / 4;
-                fkpis.forEach((b, i) => {
-                    const bx = mL + i * (fBoxW + 2);
-                    doc.setFillColor(249, 252, 255);
-                    doc.setDrawColor(212, 227, 239);
-                    doc.roundedRect(bx, y3, fBoxW, 20, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(6);
-                    doc.setTextColor(91, 123, 150);
-                    doc.text(b.label.toUpperCase(), bx + 3, y3 + 5);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text(String(b.value), bx + 3, y3 + 14);
-                });
-                y3 += 27;
-
-                y3 = drawAnalysisSection(doc, 'Average Fuel Consumption per Generator', mL, y3, cW);
-                const fuelTableRows = consList.map(a => [
-                    a.generator,
-                    a.capacity !== null ? a.capacity : '—',
-                    roundClient(a.hours, 1),
-                    roundClient(a.consumed, 1),
-                    a.lph !== null ? roundClient(a.lph, 2) : 'n/a'
-                ]);
-                y3 = drawSimpleTable(
-                    doc,
-                    ['Generator', 'Tank (L)', 'Run Hours', 'Fuel Used (L)', 'Avg (L/h)'],
-                    fuelTableRows, mL, y3, cW
-                );
-
-                // --- Bar chart of L/h per generator ---
-                y3 = drawAnalysisSection(doc, 'Consumption Rate Comparison (L/h)', mL, y3, cW);
-                const maxLph = Math.max(0.01, ...consList.map(a => a.lph || 0));
-                const barLabelW = 44;
-                const barMaxW2 = cW - barLabelW - 24;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                consList.forEach((a, i) => {
-                    const rowY = y3 + i * 6;
-                    doc.setTextColor(31, 60, 84);
-                    const nm = a.generator.length > 24 ? a.generator.substring(0, 23) + '…' : a.generator;
-                    doc.text(nm, mL, rowY + 4);
-
-                    const val = a.lph || 0;
-                    const barW = (val / maxLph) * barMaxW2;
-                    doc.setFillColor(42, 107, 150);
-                    doc.rect(mL + barLabelW, rowY, Math.max(barW, 0.6), 4, 'F');
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(18, 64, 94);
-                    doc.text(a.lph !== null ? a.lph.toFixed(2) + ' L/h' : 'n/a',
-                        mL + barLabelW + barW + 2, rowY + 4);
-                    doc.setFont('helvetica', 'normal');
-                });
-                y3 += consList.length * 6 + 6;
-
-                // --- Methodology ---
-                y3 = drawAnalysisSection(doc, 'How this is calculated', mL, y3, cW);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.5);
-                doc.setTextColor(58, 101, 131);
-                const methodLines = [
-                    'Fuel used between two inspections of the same generator = Diesel refilled (L) + (Fuel % at previous inspection - Fuel % at current inspection) x Tank capacity (L).',
-                    'Average consumption (L/h) = Fuel used (L) / Run hours between the two inspections (difference of the hour-meter readings).',
-                    'Tank capacities: Ritewat 500KVA G1 = 800 L · Ritewat 500KVA G2 = 800 L · Perkins 400KVA = 250 L · Perkins 300KVA = 800 L · Cummins 70KVA = 60 L · DAF 80KVA = 130 L.',
-                    'A generator shows "n/a" when there is only one inspection in the range, or when the hour-meter reading / fuel level is missing.'
-                ];
-                methodLines.forEach(line => {
-                    const wrapped = doc.splitTextToSize('• ' + line, cW - 4);
-                    doc.text(wrapped, mL + 2, y3);
-                    y3 += wrapped.length * 3.6 + 1.2;
-                });
 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
