@@ -457,7 +457,7 @@
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
-            <p>Choose a date range. The PDF will include KPIs, histogram, and tables.</p>
+            <p>Choose a date range. The PDF will include KPIs, histogram, fuel consumption per generator, and tables.</p>
             <div class="filter-selector" id="analysisQuickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -504,19 +504,16 @@
                 return String(val);
             }
 
-            // ✅ NEW: Date-only formatter (removes time from Last Service date)
             function formatDateOnly(val) {
                 if (val === null || val === undefined) return '—';
                 const s = String(val).trim();
                 if (!s || s === '—' || s === '-') return '—';
-                // YYYY-MM-DD (from <input type="date">)
                 if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
                     const d = new Date(s + 'T00:00:00');
                     if (!isNaN(d.getTime())) {
                         return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                     }
                 }
-                // ISO string with time (from Google Sheets) — e.g. 2026-02-28T22:00:00.000Z
                 const d = new Date(s);
                 if (!isNaN(d.getTime())) {
                     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -524,9 +521,6 @@
                 return s;
             }
 
-            // ============================================================
-            // ⛽ FUEL TANK CAPACITIES (litres)
-            // ============================================================
             const TANK_CAPACITY_BY_KEY = {
                 'ritewat500kvag1': 800,
                 'ritewat500kvag2': 800,
@@ -933,10 +927,8 @@
                     ? (tankCap * fuelPct / 100).toFixed(1) + ' L  (' + fuelPct + '% of ' + tankCap + ' L tank)'
                     : '—';
 
-                // ✅ NEW: Format last service date to remove time
                 const lastServiceFmt = formatDateOnly(data.lastServiceDate);
 
-                // ✅ FIXED + NEW: green V / red X, and uses correct idx instead of undefined i
                 const checkList = (tickedIds, allItems) => {
                     const ids = Array.isArray(tickedIds) ? tickedIds.map(String) : [];
                     return allItems.map((item, idx) => {
@@ -966,6 +958,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e45; background: w
 .info-box .label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 3px; }
 .info-box .value { font-size: 0.92rem; font-weight: 700; color: #12405e; }
 .rating-tag { display: inline-block; background: #e7f0f8; color: #12405e; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
+.check-legend { font-size: 0.8rem; color: #3a6583; margin: 4px 0 6px 0; }
+.check-legend .v { color: #1b6b3f; font-weight: 700; }
+.check-legend .x { color: #b33a3a; font-weight: 700; }
 ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1px 20px; margin-bottom: 4px; }
 ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
 .remark-box { background: #fbfdff; border-left: 3px solid #9cb9d0; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; color: #3a6583; margin-bottom: 6px; font-style: italic; }
@@ -1017,6 +1012,7 @@ ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
 </div>
 <div class="section-title">🔧 Visual & Mechanical (${data.visualChecks}/${data.visualTotal})</div>
 <div class="rating-tag">Condition: ${data.visualRating}</div>
+<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
 <ul class="check-list">
 ${checkList(data.visualItems, ['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'])}
 </ul>
@@ -1024,6 +1020,7 @@ ${data.visualRemark !== '—' ? '<div class="remark-box">📝 ' + data.visualRem
 
 <div class="section-title">🛡️ Protection Systems (${data.protChecks}/${data.protTotal})</div>
 <div class="rating-tag">Status: ${data.protRating}</div>
+<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
 <ul class="check-list">
 ${checkList(data.protItems, ['Low oil pressure shutdown','High coolant temperature shutdown','Overcrank / overspeed trip','Low coolant level alarm','Emergency stop function','Battery charger & voltage (24V)'])}
 </ul>
@@ -1031,6 +1028,7 @@ ${data.protRemark !== '—' ? '<div class="remark-box">📝 ' + data.protRemark 
 
 <div class="section-title">🔄 ATS / Transfer (${data.atsChecks}/${data.atsTotal})</div>
 <div class="rating-tag">Performance: ${data.atsRating}</div>
+<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
 <ul class="check-list">
 ${checkList(data.atsItems, ['ATS panel indicators (normal / emergency)','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','No excessive arching / contact wear','Manual transfer test (if applicable)'])}
 </ul>
@@ -1128,6 +1126,25 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
+            // Helper to draw the legend in the multi-record PDF
+            function drawLegend(doc, x, y) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.5);
+                doc.setTextColor(27, 107, 63);
+                doc.setFont('helvetica', 'bold');
+                doc.text('V', x, y);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(91, 123, 150);
+                doc.text(' = Checked / OK', x + 3, y);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(179, 58, 58);
+                doc.text('X', x + 32, y);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(91, 123, 150);
+                doc.text(' = Not checked / Needs attention', x + 35, y);
+                return y + 5;
+            }
+
             async function generateMultiRecordPDF(records, consumptionIndex) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -1213,7 +1230,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     y = drawSection(doc, 'PREDICTIVE SERVICING (250 h INTERVAL)', marginL, y, contentW);
                     const predBoxW = (contentW - 6) / 4;
                     const predBoxes = [
-                        // ✅ NEW: formatDateOnly strips the time from the Last Service date
                         { label: 'Last Service', value: formatDateOnly(r['Last Service Date']) },
                         { label: 'Hours @ Service', value: safeStr(r['Last Service Hours']) || '—' },
                         { label: 'Hours Since', value: (safeStr(r['Hours Since Service']) || '—') + ' h' },
@@ -1251,7 +1267,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'), marginL + 3, y + 10);
                     y += 18;
 
-                    // Fuel consumption block
                     const tankCap = getTankCapacity(safeStr(r['Generator']));
                     const cons = consumptionIndex ? consumptionIndex.get(r) : null;
                     y = drawSection(doc, 'FUEL CONSUMPTION (SINCE PREVIOUS INSPECTION)', marginL, y, contentW);
@@ -1282,6 +1297,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const visualArg = visualIds.length > 0 ? visualIds : (safeStr(r['Visual Checks']) || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
                     y = drawRating(doc, safeStr(r['Visual Rating']), marginL, y);
+                    y = drawLegend(doc, marginL, y); // <-- LEGEND
                     y = drawChecklist(doc, [
                         'No leaks (oil, coolant, fuel)',
                         'Belt tension & wear',
@@ -1297,6 +1313,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const protArg = protIds.length > 0 ? protIds : (safeStr(r['Protection Checks']) || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
                     y = drawRating(doc, safeStr(r['Protection Rating']), marginL, y);
+                    y = drawLegend(doc, marginL, y); // <-- LEGEND
                     y = drawChecklist(doc, [
                         'Low oil pressure shutdown',
                         'High coolant temperature shutdown',
@@ -1312,6 +1329,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const atsArg = atsIds.length > 0 ? atsIds : (safeStr(r['ATS Checks']) || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
                     y = drawRating(doc, safeStr(r['ATS Rating']), marginL, y);
+                    y = drawLegend(doc, marginL, y); // <-- LEGEND
                     y = drawChecklist(doc, [
                         'ATS panel indicators (normal / emergency)',
                         'Automatic transfer test (simulate outage)',
@@ -1414,7 +1432,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const by = y + row * rowH;
 
                     const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
-                    // ✅ NEW: Plain "V" (green) and "X" (red) instead of ✔/✘
                     const mark = isChecked ? 'V' : 'X';
                     doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
                     doc.setFont('helvetica', 'bold');
