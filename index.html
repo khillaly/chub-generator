@@ -11,463 +11,107 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #eef4fa 0%, #f5f7fa 100%);
-            padding: 24px 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        body::before {
-            content: 'CHUB MAINTENANCE';
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: clamp(24px, 4vw, 72px);
-            font-weight: 900;
-            color: rgba(30, 74, 109, 0.12);
-            letter-spacing: 6px;
-            pointer-events: none;
-            user-select: none;
-            white-space: nowrap;
-            z-index: 50;
-            font-family: 'Inter', sans-serif;
-            text-align: center;
-            width: 100%;
-        }
-
-        .app-container {
-            max-width: 1300px;
-            width: 100%;
-            background: white;
-            border-radius: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            padding: 32px 28px;
-            margin-bottom: 30px;
-        }
-
-        .title-hero {
-            text-align: center;
-            padding: 22px 20px 30px 20px;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, #0b3b5c 0%, #1e4a6d 50%, #2a6b96 100%);
-            border-radius: 24px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 14px 30px -10px rgba(15, 56, 82, 0.5);
-        }
-        .title-hero::before {
-            content: '';
-            position: absolute; top: -60%; right: -10%;
-            width: 320px; height: 320px;
-            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .title-hero::after {
-            content: '';
-            position: absolute; bottom: -70%; left: -5%;
-            width: 260px; height: 260px;
-            background: radial-gradient(circle, rgba(120,200,255,0.18) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .title-hero h1 {
-            font-size: 2.4rem; font-weight: 800; letter-spacing: -0.5px;
-            color: #fff; display: inline-flex; align-items: center;
-            justify-content: center; gap: 14px; flex-wrap: wrap;
-            position: relative; z-index: 2;
-            text-shadow: 0 3px 12px rgba(0,0,0,0.25);
-        }
-        .title-hero h1 .title-accent {
-            background: linear-gradient(90deg, #7fc8ff, #b3e0ff);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text; font-weight: 900;
-        }
-        .title-hero .title-sub {
-            margin-top: 12px; font-size: 1rem; color: #cbe4f7;
-            letter-spacing: 2px; text-transform: uppercase; font-weight: 500;
-            position: relative; z-index: 2;
-            display: flex; align-items: center; justify-content: center;
-            gap: 10px; flex-wrap: wrap;
-        }
-        .title-hero .title-sub .dot-sep {
-            width: 5px; height: 5px; border-radius: 50%;
-            background: #7fc8ff; display: inline-block;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: linear-gradient(135deg, #eef4fa 0%, #f5f7fa 100%); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body::before { content: 'CHUB MAINTENANCE'; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: clamp(24px, 4vw, 72px); font-weight: 900; color: rgba(30, 74, 109, 0.12); letter-spacing: 6px; pointer-events: none; user-select: none; white-space: nowrap; z-index: 50; text-align: center; width: 100%; }
+        .app-container { max-width: 1300px; width: 100%; background: white; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); padding: 32px 28px; margin-bottom: 30px; }
+        .title-hero { text-align: center; padding: 22px 20px 30px 20px; margin-bottom: 24px; background: linear-gradient(135deg, #0b3b5c 0%, #1e4a6d 50%, #2a6b96 100%); border-radius: 24px; position: relative; overflow: hidden; box-shadow: 0 14px 30px -10px rgba(15, 56, 82, 0.5); }
+        .title-hero::before { content: ''; position: absolute; top: -60%; right: -10%; width: 320px; height: 320px; background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%); border-radius: 50%; }
+        .title-hero::after { content: ''; position: absolute; bottom: -70%; left: -5%; width: 260px; height: 260px; background: radial-gradient(circle, rgba(120,200,255,0.18) 0%, transparent 70%); border-radius: 50%; }
+        .title-hero h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.5px; color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2; text-shadow: 0 3px 12px rgba(0,0,0,0.25); }
+        .title-hero h1 .title-accent { background: linear-gradient(90deg, #7fc8ff, #b3e0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900; }
+        .title-hero .title-sub { margin-top: 12px; font-size: 1rem; color: #cbe4f7; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .title-hero .title-sub .dot-sep { width: 5px; height: 5px; border-radius: 50%; background: #7fc8ff; display: inline-block; }
         .title-ornament { font-size: 2rem; filter: drop-shadow(0 0 8px rgba(127,200,255,0.7)); }
-
-        .subhead {
-            display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; background: #eef6fc;
-            padding: 16px 24px; border-radius: 24px; margin-bottom: 24px;
-            border: 1px solid #d8e8f4; gap: 14px;
-        }
-        .tech-info {
-            display: flex; align-items: center; gap: 14px;
-            font-size: 1.05rem; color: #0b3b5c; font-weight: 500;
-        }
-        .workdate-tag {
-            background: #fff3cd; color: #7a5300;
-            padding: 8px 22px; border-radius: 40px;
-            font-weight: 600; font-size: 1rem;
-            display: flex; align-items: center; gap: 8px;
-            border: 1px solid #f4d97a;
-        }
-        .sync-status {
-            background: #e2f0e6; color: #1b6b3f;
-            padding: 6px 16px; border-radius: 40px;
-            font-size: 0.85rem; font-weight: 600;
-            display: flex; align-items: center; gap: 6px;
-            border: 1px solid #b8dfc3;
-        }
+        .subhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; background: #eef6fc; padding: 16px 24px; border-radius: 24px; margin-bottom: 24px; border: 1px solid #d8e8f4; gap: 14px; }
+        .tech-info { display: flex; align-items: center; gap: 14px; font-size: 1.05rem; color: #0b3b5c; font-weight: 500; }
+        .workdate-tag { background: #fff3cd; color: #7a5300; padding: 8px 22px; border-radius: 40px; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 8px; border: 1px solid #f4d97a; }
+        .sync-status { background: #e2f0e6; color: #1b6b3f; padding: 6px 16px; border-radius: 40px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; border: 1px solid #b8dfc3; }
         .sync-status.offline { background: #fff3cd; color: #7a5300; border-color: #f4d97a; }
         .sync-status.error { background: #ffe6e6; color: #b33a3a; border-color: #f0b8b8; }
-
-        .generator-selector {
-            display: flex; flex-wrap: wrap; align-items: center; gap: 20px;
-            background: #f9fcff; padding: 18px 24px;
-            border-radius: 24px; border: 1.5px solid #cfdfeb; margin-bottom: 20px;
-        }
-            .chub-logo {
-            flex: 1 1 180px;
-            max-width: 320px;
-            height: auto;
-            margin-left: 15px;
-            margin-right: 15px;
-            vertical-align: middle;
-            object-fit: contain;
-        }
-        .generator-selector label {
-            font-weight: 600; color: #1e4a6d;
-            font-size: 1.05rem; white-space: nowrap;
-        }
-        select, input[type="date"] {
-            padding: 14px 24px; border-radius: 40px;
-            border: 1.5px solid #bdd3e6; background: white;
-            font-size: 1rem; font-weight: 600; color: #0a2a3f;
-            min-width: 200px; cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-family: inherit;
-        }
+        .generator-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; background: #f9fcff; padding: 18px 24px; border-radius: 24px; border: 1.5px solid #cfdfeb; margin-bottom: 20px; }
+        .chub-logo { flex: 1 1 180px; max-width: 320px; height: auto; margin-left: 15px; margin-right: 15px; vertical-align: middle; object-fit: contain; }
+        .generator-selector label { font-weight: 600; color: #1e4a6d; font-size: 1.05rem; white-space: nowrap; }
+        select, input[type="date"] { padding: 14px 24px; border-radius: 40px; border: 1.5px solid #bdd3e6; background: white; font-size: 1rem; font-weight: 600; color: #0a2a3f; min-width: 200px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.02); font-family: inherit; }
         select:hover { border-color: #1e4a6d; background: #f4faff; }
-
-        .generator-banner {
-            background: linear-gradient(90deg, #1e4a6d 0%, #2a6b96 100%);
-            color: white; padding: 18px 28px; border-radius: 20px;
-            margin-bottom: 30px; display: flex; align-items: center;
-            gap: 16px; flex-wrap: wrap;
-            box-shadow: 0 8px 20px -8px rgba(30,74,109,0.5);
-            position: relative; overflow: hidden;
-        }
-        .generator-banner::before {
-            content: ''; position: absolute; right: -30px; top: -30px;
-            width: 140px; height: 140px;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .generator-banner .gen-icon {
-            font-size: 1.8rem; background: rgba(255,255,255,0.15);
-            width: 52px; height: 52px; border-radius: 16px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; position: relative; z-index: 2;
-        }
-        .generator-banner .gen-text {
-            position: relative; z-index: 2; flex: 1; min-width: 200px;
-        }
-        .generator-banner .gen-title {
-            font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2;
-        }
-        .generator-banner .gen-sub {
-            font-size: 0.92rem; color: #cbe4f7; margin-top: 4px;
-            letter-spacing: 0.3px; font-weight: 500;
-        }
-        .generator-banner .gen-badge {
-            background: rgba(255,255,255,0.2); color: white;
-            padding: 6px 16px; border-radius: 40px;
-            font-size: 0.78rem; font-weight: 700;
-            letter-spacing: 1px; text-transform: uppercase;
-            position: relative; z-index: 2;
-        }
-
-        .grid-3 {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px; margin-bottom: 32px;
-        }
-        .grid-3-wide {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 24px; margin-bottom: 32px;
-        }
-
-        .card {
-            background: #fff; border-radius: 24px;
-            border: 1px solid #e2eaf1;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.02); overflow: hidden;
-        }
-        .card-header {
-            background: #f0f6fc; padding: 16px 22px;
-            font-weight: 600; font-size: 1.15rem; color: #12405e;
-            border-bottom: 1px solid #d4e3ef;
-            display: flex; align-items: center; gap: 10px;
-        }
+        .generator-banner { background: linear-gradient(90deg, #1e4a6d 0%, #2a6b96 100%); color: white; padding: 18px 28px; border-radius: 20px; margin-bottom: 30px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 8px 20px -8px rgba(30,74,109,0.5); position: relative; overflow: hidden; }
+        .generator-banner::before { content: ''; position: absolute; right: -30px; top: -30px; width: 140px; height: 140px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; }
+        .generator-banner .gen-icon { font-size: 1.8rem; background: rgba(255,255,255,0.15); width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; z-index: 2; }
+        .generator-banner .gen-text { position: relative; z-index: 2; flex: 1; min-width: 200px; }
+        .generator-banner .gen-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; }
+        .generator-banner .gen-sub { font-size: 0.92rem; color: #cbe4f7; margin-top: 4px; letter-spacing: 0.3px; font-weight: 500; }
+        .generator-banner .gen-badge { background: rgba(255,255,255,0.2); color: white; padding: 6px 16px; border-radius: 40px; font-size: 0.78rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; position: relative; z-index: 2; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .grid-3-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .card { background: #fff; border-radius: 24px; border: 1px solid #e2eaf1; box-shadow: 0 6px 14px rgba(0,0,0,0.02); overflow: hidden; }
+        .card-header { background: #f0f6fc; padding: 16px 22px; font-weight: 600; font-size: 1.15rem; color: #12405e; border-bottom: 1px solid #d4e3ef; display: flex; align-items: center; gap: 10px; }
         .card-body { padding: 20px 22px; }
-
-        .check-item {
-            display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px;
-        }
+        .check-item { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
         .check-item:last-child { margin-bottom: 0; }
-        .check-item input[type="checkbox"] {
-            width: 22px; height: 22px; margin-top: 2px;
-            accent-color: #1e4a6d; cursor: pointer; flex-shrink: 0;
-        }
-        .check-item label {
-            font-weight: 500; color: #1f3c54;
-            font-size: 0.98rem; line-height: 1.4; cursor: pointer;
-        }
-
-        .remark-input {
-            margin-top: 8px; width: 100%; padding: 10px 14px;
-            border-radius: 16px; border: 1px solid #cfdfeb;
-            font-size: 0.9rem; background: #fbfdff; transition: 0.2s;
-        }
-        .remark-input:focus {
-            outline: none; border-color: #1e4a6d; background: white;
-            box-shadow: 0 0 0 3px rgba(30,74,109,0.1);
-        }
-
-        .rating-block {
-            display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 8px;
-        }
+        .check-item input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; accent-color: #1e4a6d; cursor: pointer; flex-shrink: 0; }
+        .check-item label { font-weight: 500; color: #1f3c54; font-size: 0.98rem; line-height: 1.4; cursor: pointer; }
+        .remark-input { margin-top: 8px; width: 100%; padding: 10px 14px; border-radius: 16px; border: 1px solid #cfdfeb; font-size: 0.9rem; background: #fbfdff; transition: 0.2s; }
+        .remark-input:focus { outline: none; border-color: #1e4a6d; background: white; box-shadow: 0 0 0 3px rgba(30,74,109,0.1); }
+        .rating-block { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 8px; }
         .rating-option { display: flex; align-items: center; gap: 6px; }
-        .rating-option input[type="radio"] {
-            accent-color: #1e4a6d; width: 18px; height: 18px;
-        }
-
-        .field-group {
-            display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px;
-        }
+        .rating-option input[type="radio"] { accent-color: #1e4a6d; width: 18px; height: 18px; }
+        .field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
         .field-group:last-child { margin-bottom: 0; }
-        .field-group label {
-            font-weight: 600; color: #1f3c54; font-size: 0.95rem;
-        }
-        .field-group input[type="number"],
-        .field-group input[type="text"],
-        .field-group input[type="date"],
-        .field-group input[type="password"],
-        .field-group select {
-            padding: 12px 16px; border-radius: 16px;
-            border: 1.5px solid #cfdfeb; background: #fbfdff;
-            font-size: 0.95rem; color: #0a2a3f; transition: 0.2s;
-            width: 100%; font-family: inherit;
-        }
-        .field-group input:focus, .field-group select:focus {
-            outline: none; border-color: #1e4a6d; background: white;
-            box-shadow: 0 0 0 3px rgba(30,74,109,0.1);
-        }
-
+        .field-group label { font-weight: 600; color: #1f3c54; font-size: 0.95rem; }
+        .field-group input[type="number"], .field-group input[type="text"], .field-group input[type="date"], .field-group input[type="password"], .field-group select { padding: 12px 16px; border-radius: 16px; border: 1.5px solid #cfdfeb; background: #fbfdff; font-size: 0.95rem; color: #0a2a3f; transition: 0.2s; width: 100%; font-family: inherit; }
+        .field-group input:focus, .field-group select:focus { outline: none; border-color: #1e4a6d; background: white; box-shadow: 0 0 0 3px rgba(30,74,109,0.1); }
         .level-selector { display: flex; gap: 12px; margin-top: 4px; }
-        .level-option {
-            flex: 1; text-align: center; padding: 12px 8px;
-            border-radius: 16px; border: 1.5px solid #cfdfeb;
-            background: #fbfdff; cursor: pointer;
-            font-weight: 600; font-size: 0.9rem; color: #5b7b96;
-            transition: 0.2s; user-select: none;
-        }
+        .level-option { flex: 1; text-align: center; padding: 12px 8px; border-radius: 16px; border: 1.5px solid #cfdfeb; background: #fbfdff; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: #5b7b96; transition: 0.2s; user-select: none; }
         .level-option:hover { border-color: #1e4a6d; background: #f0f7fd; }
-        .level-option.active {
-            background: #1e4a6d; color: white; border-color: #1e4a6d;
-            box-shadow: 0 4px 10px rgba(30,74,109,0.25);
-        }
+        .level-option.active { background: #1e4a6d; color: white; border-color: #1e4a6d; box-shadow: 0 4px 10px rgba(30,74,109,0.25); }
         .level-option input { display: none; }
-
-        .signoff-section {
-            background: #f0f6fc; border-radius: 24px;
-            padding: 26px 28px; margin-top: 12px;
-            display: flex; flex-wrap: wrap;
-            justify-content: space-between; align-items: center;
-            border: 1px solid #cfe0ee; gap: 20px;
-        }
+        .signoff-section { background: #f0f6fc; border-radius: 24px; padding: 26px 28px; margin-top: 12px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border: 1px solid #cfe0ee; gap: 20px; }
         .signoff-left { display: flex; flex-direction: column; gap: 6px; }
-        .signoff-left .label {
-            font-weight: 600; color: #12405e;
-            font-size: 1rem; letter-spacing: 0.3px;
-        }
-        .signoff-left .tech {
-            font-size: 1.6rem; font-weight: 700;
-            color: #0a2a3f; line-height: 1.2;
-        }
-        .signoff-right {
-            display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-        }
-        .signature-pad {
-            background: white; border-radius: 40px;
-            padding: 8px 22px; border: 2px dashed #9cb9d0;
-            display: flex; align-items: center; justify-content: center;
-            min-width: 160px; min-height: 55px;
-            font-family: 'Segoe UI', cursive; font-size: 1.3rem;
-            color: #1e4a6d; font-weight: 500;
-            letter-spacing: 1px; white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: #1e4a6d; color: white; border: none;
-            padding: 16px 36px; border-radius: 40px;
-            font-weight: 600; font-size: 1.1rem; cursor: pointer;
-            transition: 0.15s; display: inline-flex;
-            align-items: center; gap: 12px;
-            box-shadow: 0 10px 18px -8px rgba(20,60,100,0.3);
-            letter-spacing: 0.3px;
-        }
+        .signoff-left .label { font-weight: 600; color: #12405e; font-size: 1rem; letter-spacing: 0.3px; }
+        .signoff-left .tech { font-size: 1.6rem; font-weight: 700; color: #0a2a3f; line-height: 1.2; }
+        .signoff-right { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+        .signature-pad { background: white; border-radius: 40px; padding: 8px 22px; border: 2px dashed #9cb9d0; display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 55px; font-family: 'Segoe UI', cursive; font-size: 1.3rem; color: #1e4a6d; font-weight: 500; letter-spacing: 1px; white-space: nowrap; }
+        .btn-primary { background: #1e4a6d; color: white; border: none; padding: 16px 36px; border-radius: 40px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 18px -8px rgba(20,60,100,0.3); letter-spacing: 0.3px; }
         .btn-primary:hover { background: #0f3852; transform: scale(1.01); }
         .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
-
-        .btn-pdf {
-            background: #b33a3a; color: white; border: none;
-            padding: 16px 36px; border-radius: 40px;
-            font-weight: 600; font-size: 1.1rem; cursor: pointer;
-            transition: 0.15s; display: inline-flex;
-            align-items: center; gap: 12px;
-            box-shadow: 0 10px 18px -8px rgba(150,40,40,0.3);
-            letter-spacing: 0.3px;
-        }
+        .btn-pdf { background: #b33a3a; color: white; border: none; padding: 16px 36px; border-radius: 40px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 18px -8px rgba(150,40,40,0.3); letter-spacing: 0.3px; }
         .btn-pdf:hover { background: #8f2929; transform: scale(1.01); }
         .btn-pdf:disabled { opacity: 0.6; cursor: wait; }
-
-        .btn-pdf-all {
-            background: #7a4c9c; color: white; border: none;
-            padding: 16px 36px; border-radius: 40px;
-            font-weight: 600; font-size: 1.1rem; cursor: pointer;
-            transition: 0.15s; display: inline-flex;
-            align-items: center; gap: 12px;
-            box-shadow: 0 10px 18px -8px rgba(90,40,140,0.3);
-            letter-spacing: 0.3px;
-        }
+        .btn-pdf-all { background: #7a4c9c; color: white; border: none; padding: 16px 36px; border-radius: 40px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 18px -8px rgba(90,40,140,0.3); letter-spacing: 0.3px; }
         .btn-pdf-all:hover { background: #5d3578; transform: scale(1.01); }
         .btn-pdf-all:disabled { opacity: 0.6; cursor: wait; }
-
-        .btn-analysis {
-            background: #1b6b3f; color: white; border: none;
-            padding: 16px 36px; border-radius: 40px;
-            font-weight: 600; font-size: 1.1rem; cursor: pointer;
-            transition: 0.15s; display: inline-flex;
-            align-items: center; gap: 12px;
-            box-shadow: 0 10px 18px -8px rgba(20,90,50,0.35);
-            letter-spacing: 0.3px;
-        }
+        .btn-analysis { background: #1b6b3f; color: white; border: none; padding: 16px 36px; border-radius: 40px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 18px -8px rgba(20,90,50,0.35); letter-spacing: 0.3px; }
         .btn-analysis:hover { background: #155231; transform: scale(1.01); }
         .btn-analysis:disabled { opacity: 0.6; cursor: wait; }
-
-        .btn-secondary {
-            background: white; border: 1.5px solid #b8cfdf;
-            color: #1e4a6d; padding: 12px 26px;
-            border-radius: 40px; font-weight: 500;
-            cursor: pointer; transition: 0.15s;
-        }
+        .btn-secondary { background: white; border: 1.5px solid #b8cfdf; color: #1e4a6d; padding: 12px 26px; border-radius: 40px; font-weight: 500; cursor: pointer; transition: 0.15s; }
         .btn-secondary:hover { background: #e7f0f8; }
-
-        .btn-sync {
-            background: #2a6b96; color: white; border: none;
-            padding: 12px 26px; border-radius: 40px;
-            font-weight: 600; cursor: pointer;
-            transition: 0.15s; display: inline-flex;
-            align-items: center; gap: 8px;
-        }
+        .btn-sync { background: #2a6b96; color: white; border: none; padding: 12px 26px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-sync:hover { background: #1e4a6d; }
-
-        .status-message {
-            margin-top: 20px; padding: 14px 24px;
-            border-radius: 40px; background: #e2f0e6;
-            color: #1b6b3f; font-weight: 500;
-            display: none; align-items: center; gap: 10px;
-        }
+        .status-message { margin-top: 20px; padding: 14px 24px; border-radius: 40px; background: #e2f0e6; color: #1b6b3f; font-weight: 500; display: none; align-items: center; gap: 10px; }
         .status-message.show { display: flex; }
-
-        .footer-note {
-            font-size: 0.85rem; color: #5b7b96;
-            text-align: center; margin-top: 12px;
-        }
-
-        .flex-row {
-            display: flex; flex-wrap: wrap;
-            gap: 18px; align-items: center;
-            justify-content: space-between; margin-top: 10px;
-        }
-        .action-buttons {
-            display: flex; gap: 16px; flex-wrap: wrap;
-            align-items: center; margin-top: 24px; justify-content: center;
-        }
-
-        .section-divider {
-            border: none; border-top: 2px dashed #d4e3ef; margin: 28px 0;
-        }
-        .section-title {
-            font-size: 1.3rem; font-weight: 600; color: #12405e;
-            margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
-        }
-
-        .modal-overlay {
-            display: none; position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10, 30, 50, 0.55);
-            z-index: 1000; align-items: center; justify-content: center;
-            padding: 20px;
-        }
+        .footer-note { font-size: 0.85rem; color: #5b7b96; text-align: center; margin-top: 12px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; margin-top: 10px; }
+        .action-buttons { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 24px; justify-content: center; }
+        .section-divider { border: none; border-top: 2px dashed #d4e3ef; margin: 28px 0; }
+        .section-title { font-size: 1.3rem; font-weight: 600; color: #12405e; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 30, 50, 0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.show { display: flex; }
-        .modal-box {
-            background: white; border-radius: 24px;
-            padding: 32px 28px; max-width: 480px; width: 100%;
-            box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4);
-        }
-        .modal-box h2 {
-            font-size: 1.35rem; color: #12405e; margin-bottom: 8px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .modal-box p {
-            font-size: 0.9rem; color: #5b7b96; margin-bottom: 22px;
-        }
+        .modal-box { background: white; border-radius: 24px; padding: 32px 28px; max-width: 480px; width: 100%; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4); }
+        .modal-box h2 { font-size: 1.35rem; color: #12405e; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .modal-box p { font-size: 0.9rem; color: #5b7b96; margin-bottom: 22px; }
         .modal-box .field-group { margin-bottom: 16px; }
-        .modal-box .modal-actions {
-            display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;
-        }
-        .modal-box .modal-actions button {
-            padding: 12px 24px; border-radius: 40px; font-weight: 600;
-            font-size: 0.95rem; cursor: pointer; border: none; transition: 0.15s;
-        }
+        .modal-box .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .modal-box .modal-actions button { padding: 12px 24px; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; border: none; transition: 0.15s; }
         .modal-box .btn-cancel { background: #e7f0f8; color: #1e4a6d; }
         .modal-box .btn-cancel:hover { background: #d4e3ef; }
         .modal-box .btn-go { background: #1e4a6d; color: white; }
         .modal-box .btn-go:hover { background: #0f3852; }
         .modal-box .btn-go:disabled { opacity: 0.6; cursor: wait; }
-
-        .filter-selector {
-            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;
-        }
-        .filter-chip {
-            padding: 10px 18px; border-radius: 40px;
-            border: 1.5px solid #cfdfeb; background: #fbfdff;
-            font-size: 0.85rem; font-weight: 600; color: #5b7b96;
-            cursor: pointer; transition: 0.15s; user-select: none;
-        }
+        .filter-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+        .filter-chip { padding: 10px 18px; border-radius: 40px; border: 1.5px solid #cfdfeb; background: #fbfdff; font-size: 0.85rem; font-weight: 600; color: #5b7b96; cursor: pointer; transition: 0.15s; user-select: none; }
         .filter-chip:hover { border-color: #1e4a6d; color: #1e4a6d; }
-        .filter-chip.active {
-            background: #1e4a6d; color: white; border-color: #1e4a6d;
-        }
-
-        @media (max-width: 700px) {
-            .grid-3-wide { grid-template-columns: 1fr; }
-            .title-hero h1 { font-size: 1.5rem; }
-            .app-container { padding: 20px 16px; }
-            select, input[type="date"] { min-width: 100%; }
-            .generator-banner .gen-title { font-size: 1.1rem; }
-            .chub-logo { flex: 1 1 100px; max-width: 160px; margin-left: 8px; margin-right: 8px; }
-        }
+        .filter-chip.active { background: #1e4a6d; color: white; border-color: #1e4a6d; }
+        @media (max-width: 700px) { .grid-3-wide { grid-template-columns: 1fr; } .title-hero h1 { font-size: 1.5rem; } .app-container { padding: 20px 16px; } select, input[type="date"] { min-width: 100%; } .generator-banner .gen-title { font-size: 1.1rem; } .chub-logo { flex: 1 1 100px; max-width: 160px; margin-left: 8px; margin-right: 8px; } }
     </style>
 </head>
 <body>
@@ -576,18 +220,17 @@
                         <label for="refilledDiesel">Weekly capacity of refilled diesel (Liters)</label>
                         <input type="number" id="refilledDiesel" min="0" step="0.1" placeholder="e.g. 120.5">
                     </div>
-                                <div class="field-group">
-    <label for="totalRunHours">Current total run hours on meter (Hours)</label>
-    <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 12450.5 (reading from generator)">
-    <span style="font-size: 0.78rem; color: #5b7b96; margin-top: 4px;">
-        ℹ️ Enter the number shown on the generator's hour meter. Weekly hours are computed automatically.
-    </span>
-</div>
+                    <div class="field-group">
+                        <label for="totalRunHours">Current total run hours on meter (Hours)</label>
+                        <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 12450.5 (reading from generator)">
+                        <span style="font-size: 0.78rem; color: #5b7b96; margin-top: 4px;">
+                            ℹ️ Enter the number shown on the generator's hour meter. Weekly hours are computed automatically.
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ======================== PREDICTIVE SERVICING ======================== -->
         <div class="section-title" style="margin-top: 28px;"><span>🛠️</span> Predictive Servicing (250 h interval)</div>
         <div class="grid-3-wide" style="margin-bottom: 32px;">
             <div class="card">
@@ -622,21 +265,14 @@
             <div class="card" id="predictionCard">
                 <div class="card-header"><span>🔮</span> Next Service Prediction</div>
                 <div class="card-body">
-                    <div id="predictionStatus" style="
-                        padding: 14px 18px; border-radius: 16px;
-                        background: #e2f0e6; color: #1b6b3f;
-                        font-weight: 700; font-size: 1.05rem;
-                        display: flex; align-items: center; gap: 10px;
-                        margin-bottom: 18px; border: 1.5px solid #b8dfc3;">
+                    <div id="predictionStatus" style="padding: 14px 18px; border-radius: 16px; background: #e2f0e6; color: #1b6b3f; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; margin-bottom: 18px; border: 1.5px solid #b8dfc3;">
                         <span style="font-size:1.4rem;">✅</span>
                         <span id="predictionStatusText">Enter service reference to see prediction</span>
                     </div>
-
                     <div class="field-group">
                         <label>Current hour meter reading</label>
                         <div style="font-size: 1.4rem; font-weight: 800; color:#0a2a3f;" id="predCurrentHours">—</div>
                     </div>
-
                     <div class="field-group">
                         <label>Hours run since last service</label>
                         <div style="font-size: 1.4rem; font-weight: 800; color:#1e4a6d;" id="predHoursSince">—</div>
@@ -645,22 +281,18 @@
                         </div>
                         <div style="font-size:0.78rem; color:#5b7b96; margin-top:4px;" id="predProgressLabel">0 / 250 h</div>
                     </div>
-
                     <div class="field-group">
                         <label>Hours remaining until service</label>
                         <div style="font-size: 1.4rem; font-weight: 800; color:#1b6b3f;" id="predHoursRemaining">—</div>
                     </div>
-
                     <div class="field-group">
                         <label>Average running rate</label>
                         <div style="font-size: 1.05rem; font-weight: 700; color:#1e4a6d;" id="predAvgRate">—</div>
                     </div>
-
                     <div class="field-group">
                         <label>🗓️ Predicted next service date</label>
                         <div style="font-size: 1.3rem; font-weight: 800; color:#7a4c9c;" id="predNextDate">—</div>
                     </div>
-
                     <div class="field-group">
                         <label>📅 Recommended service window</label>
                         <div style="font-size: 0.95rem; font-weight: 600; color:#3a6583;" id="predWindow">—</div>
@@ -775,13 +407,11 @@
         </div>
     </div>
 
-    <!-- LOGIN MODAL -->
     <div class="modal-overlay show" id="loginModal">
         <div class="modal-box" style="max-width: 420px; text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔐</div>
             <h2 style="justify-content: center;">Technician Login</h2>
             <p style="margin-bottom: 22px;">Select your name and enter your PIN to continue.</p>
-
             <div class="field-group" style="text-align: left;">
                 <label for="loginTechSelect">Your name</label>
                 <select id="loginTechSelect" style="width: 100%;">
@@ -793,19 +423,12 @@
                     <option value="GATANGANWA Raissa">GATANGANWA Raissa</option>
                 </select>
             </div>
-
             <div class="field-group" style="text-align: left;">
                 <label for="loginPinInput">Your PIN</label>
-                <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8"
-                       placeholder="••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;"
-                       onkeypress="if(event.key==='Enter'){document.getElementById('loginBtn').click();}">
+                <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;" onkeypress="if(event.key==='Enter'){document.getElementById('loginBtn').click();}">
             </div>
-
             <div id="loginError" style="color: #b33a3a; font-size: 0.9rem; margin-top: 6px; min-height: 20px;"></div>
-
-            <button class="btn-primary" id="loginBtn" style="width: 100%; justify-content: center; margin-top: 14px;">
-                🔓 Unlock &amp; Continue
-            </button>
+            <button class="btn-primary" id="loginBtn" style="width: 100%; justify-content: center; margin-top: 14px;">🔓 Unlock &amp; Continue</button>
         </div>
     </div>
 
@@ -857,9 +480,6 @@
         (function() {
             const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxP3k23cM-EYB8Rv31xNYZvmXLYPKb5_ca_f-ITKsDSFeWRVGEuH23O44KOAxW_YvyZhQ/exec';
 
-            // ============================================================
-            // 🔐 TECHNICIAN PINs
-            // ============================================================
             const TECHNICIAN_PINS = {
                 'Hillaly KUBWIMANA':      '0806',
                 'YANDEREYE Felecien':     '1723',
@@ -868,9 +488,6 @@
                 'GATANGANWA Raissa':      '0401'
             };
 
-            // ============================================================
-            // 🛡️ ROBUST HELPERS — fix "split is not a function" crash
-            // ============================================================
             function safeSplit(val, sep) {
                 if (val === null || val === undefined) return [];
                 if (Array.isArray(val)) {
@@ -885,6 +502,125 @@
                 if (val === null || val === undefined) return '';
                 if (Array.isArray(val)) return val.join(' ').trim();
                 return String(val);
+            }
+
+            // ✅ NEW: Date-only formatter (removes time from Last Service date)
+            function formatDateOnly(val) {
+                if (val === null || val === undefined) return '—';
+                const s = String(val).trim();
+                if (!s || s === '—' || s === '-') return '—';
+                // YYYY-MM-DD (from <input type="date">)
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                    const d = new Date(s + 'T00:00:00');
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    }
+                }
+                // ISO string with time (from Google Sheets) — e.g. 2026-02-28T22:00:00.000Z
+                const d = new Date(s);
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                return s;
+            }
+
+            // ============================================================
+            // ⛽ FUEL TANK CAPACITIES (litres)
+            // ============================================================
+            const TANK_CAPACITY_BY_KEY = {
+                'ritewat500kvag1': 800,
+                'ritewat500kvag2': 800,
+                '400kvaperkins':   250,
+                'perkins400kva':   250,
+                'cummins70kva':     60,
+                'commins70kva':     60,
+                '70kvacummins':     60,
+                '300kvaperkins':   800,
+                'perkins300kva':   800,
+                'daf80kva':        130
+            };
+
+            function normalizeGenKey(name) {
+                return safeStr(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+            }
+
+            function getTankCapacity(name) {
+                const k = normalizeGenKey(name);
+                if (!k) return null;
+                if (TANK_CAPACITY_BY_KEY[k] !== undefined) return TANK_CAPACITY_BY_KEY[k];
+                if (k.indexOf('ritewat') !== -1) return 800;
+                if (k.indexOf('cummins') !== -1 || k.indexOf('commins') !== -1 || k.indexOf('cumins') !== -1) return 60;
+                if (k.indexOf('daf') !== -1) return 130;
+                if (k.indexOf('perkins') !== -1) {
+                    if (k.indexOf('300') !== -1) return 800;
+                    if (k.indexOf('400') !== -1) return 250;
+                    return 250;
+                }
+                return null;
+            }
+
+            function parseFuelPercent(rec) {
+                let v = validNum(rec['Fuel %']);
+                if (v === null) return null;
+                if (v >= 0 && v <= 1) v = v * 100;
+                if (v < 0 || v > 100) return null;
+                return v;
+            }
+
+            function recordTime(rec) {
+                const raw = rec['Timestamp'] || rec['timestamp'] || rec['Work Date'];
+                const t = new Date(raw).getTime();
+                return isNaN(t) ? 0 : t;
+            }
+
+            function buildConsumptionIndex(records) {
+                const index = new Map();
+                if (!Array.isArray(records) || records.length === 0) return index;
+                const groups = {};
+                records.forEach(r => {
+                    const g = safeStr(r['Generator']) || 'Unknown';
+                    if (!groups[g]) groups[g] = [];
+                    groups[g].push(r);
+                });
+                Object.keys(groups).forEach(g => {
+                    const capacity = getTankCapacity(g);
+                    const list = groups[g].slice().sort((a, b) => recordTime(a) - recordTime(b));
+                    for (let k = 1; k < list.length; k++) {
+                        const prev = list[k - 1];
+                        const curr = list[k];
+                        const hPrev = validNum(prev['Run Hours']);
+                        const hCurr = validNum(curr['Run Hours']);
+                        if (hPrev === null || hCurr === null) continue;
+                        const dH = hCurr - hPrev;
+                        if (!(dH > 0) || dH > 2000) continue;
+                        if (capacity === null) continue;
+                        const fPrev = parseFuelPercent(prev);
+                        const fCurr = parseFuelPercent(curr);
+                        if (fPrev === null || fCurr === null) continue;
+                        const refill = validNum(curr['Diesel Refilled (L)']) || 0;
+                        const consumed = refill + ((fPrev - fCurr) / 100) * capacity;
+                        if (!(consumed > 0)) continue;
+                        const lph = consumed / dH;
+                        if (!isFinite(lph) || lph <= 0 || lph > 200) continue;
+                        index.set(curr, { capacity, hours: dH, consumed, lph, fuelStart: fPrev, fuelEnd: fCurr, refill });
+                    }
+                });
+                return index;
+            }
+
+            function aggregateConsumption(records, index) {
+                const agg = {};
+                records.forEach(r => {
+                    const g = safeStr(r['Generator']) || 'Unknown';
+                    if (!agg[g]) agg[g] = { generator: g, capacity: getTankCapacity(g), records: 0, intervals: 0, hours: 0, consumed: 0, lph: null };
+                    agg[g].records++;
+                    const c = index ? index.get(r) : null;
+                    if (c) { agg[g].intervals++; agg[g].hours += c.hours; agg[g].consumed += c.consumed; }
+                });
+                Object.keys(agg).forEach(k => {
+                    agg[k].lph = agg[k].hours > 0 ? (agg[k].consumed / agg[k].hours) : null;
+                });
+                return agg;
             }
 
             const generatorSelect = document.getElementById('generatorSelect');
@@ -938,96 +674,59 @@
 
             let selectedRange = '7';
             let analysisSelectedRange = '7';
-
             let lastSubmittedSnapshot = null;
 
-            // ============================================================
-            // 💾 LOCAL QUEUE
-            // ============================================================
             const QUEUE_KEY = 'chub_generator_queue';
 
             function getQueue() {
                 try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
                 catch(e) { return []; }
             }
-            function saveQueue(q) {
-                localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-                updatePendingCount();
-            }
-            function updatePendingCount() {
-                pendingCount.textContent = getQueue().length;
-            }
+            function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); updatePendingCount(); }
+            function updatePendingCount() { pendingCount.textContent = getQueue().length; }
             function setSyncStatus(state, text) {
                 syncStatus.className = 'sync-status' + (state ? ' ' + state : '');
                 syncStatusText.textContent = text;
             }
 
-            // ============================================================
-            // 📤 SEND TO GOOGLE SHEETS
-            // ============================================================
             async function sendToSheet(data) {
                 try {
-                    await fetch(GOOGLE_SHEET_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(data)
-                    });
+                    await fetch(GOOGLE_SHEET_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
                     return true;
-                } catch (err) {
-                    console.warn('Send failed:', err);
-                    return false;
-                }
+                } catch (err) { console.warn('Send failed:', err); return false; }
             }
 
             async function flushQueue() {
                 const q = getQueue();
                 if (q.length === 0) { setSyncStatus('', 'All synced'); return; }
                 setSyncStatus('', 'Syncing...');
-                const remaining = [];
-                let sent = 0;
+                const remaining = []; let sent = 0;
                 for (const item of q) {
                     const ok = await sendToSheet(item);
                     if (ok) sent++; else remaining.push(item);
                 }
                 saveQueue(remaining);
-                if (remaining.length === 0) {
-                    setSyncStatus('', 'All synced ✓');
-                    showStatus('✅ ' + sent + ' record(s) synced.', true);
-                } else {
-                    setSyncStatus('error', remaining.length + ' pending');
-                    showStatus('⚠️ ' + sent + ' synced, ' + remaining.length + ' pending.', false);
-                }
+                if (remaining.length === 0) { setSyncStatus('', 'All synced ✓'); showStatus('✅ ' + sent + ' record(s) synced.', true); }
+                else { setSyncStatus('error', remaining.length + ' pending'); showStatus('⚠️ ' + sent + ' synced, ' + remaining.length + ' pending.', false); }
             }
 
             async function queueAndSend(data) {
                 setSyncStatus('', 'Sending...');
                 const ok = await sendToSheet(data);
-                if (ok) {
-                    setSyncStatus('', 'Saved ✓');
-                    showStatus('✅ Signed off & saved to Google Sheet.', true);
-                    return true;
-                } else {
-                    const q = getQueue();
-                    q.push(data);
-                    saveQueue(q);
+                if (ok) { setSyncStatus('', 'Saved ✓'); showStatus('✅ Signed off & saved to Google Sheet.', true); return true; }
+                else {
+                    const q = getQueue(); q.push(data); saveQueue(q);
                     setSyncStatus('offline', 'Offline — queued');
                     showStatus('📥 Saved locally — will sync when online.', false);
                     return false;
                 }
             }
 
-            // ============================================================
-            // 📅 WORK DATE
-            // ============================================================
             function setAutoWorkDate() {
                 const today = new Date();
                 const day = today.getDay();
                 let target = new Date(today);
-                if (day !== 5) {
-                    const diff = (day + 7 - 5) % 7;
-                    target.setDate(today.getDate() - diff);
-                }
+                if (day !== 5) { const diff = (day + 7 - 5) % 7; target.setDate(today.getDate() - diff); }
                 const yyyy = target.getFullYear();
                 const mm = String(target.getMonth() + 1).padStart(2, '0');
                 const dd = String(target.getDate()).padStart(2, '0');
@@ -1036,15 +735,9 @@
             }
 
             function updateWorkDateDisplay() {
-                if (!workDateInput.value) {
-                    workDateDisplay.textContent = '—';
-                    signoffWorkDate.textContent = '—';
-                    return;
-                }
+                if (!workDateInput.value) { workDateDisplay.textContent = '—'; signoffWorkDate.textContent = '—'; return; }
                 const d = new Date(workDateInput.value + 'T00:00:00');
-                const formatted = d.toLocaleDateString('en-GB', {
-                    weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
-                });
+                const formatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
                 workDateDisplay.textContent = formatted;
                 signoffWorkDate.textContent = formatted;
             }
@@ -1052,23 +745,15 @@
             function formatWorkDate() {
                 if (!workDateInput.value) return '—';
                 const d = new Date(workDateInput.value + 'T00:00:00');
-                return d.toLocaleDateString('en-GB', {
-                    weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
-                });
+                return d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
             }
 
-            // ============================================================
-            // 🏷️ GENERATOR BANNER
-            // ============================================================
             function updateGeneratorBanner() {
                 const opt = generatorSelect.options[generatorSelect.selectedIndex];
                 genTitle.textContent = opt.value;
                 genSub.textContent = opt.getAttribute('data-sub') || (opt.value + ' · 400V / 50Hz · field checklist');
             }
 
-            // ============================================================
-            // 👨‍🔧 TECHNICIAN DISPLAY
-            // ============================================================
             function updateTechnicianDisplay() {
                 const name = technicianSelect.value;
                 signoffTechName.textContent = name;
@@ -1076,9 +761,6 @@
                 document.getElementById('signaturePad').textContent = initials;
             }
 
-            // ============================================================
-            // 🌡️ COOLANT + 🛢️ OIL level selectors
-            // ============================================================
             const levelOptions = document.querySelectorAll('#coolantLevelGroup .level-option');
             levelOptions.forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -1099,9 +781,6 @@
                 });
             });
 
-            // ============================================================
-            // 🛠️ HELPERS
-            // ============================================================
             function showStatus(msg, isSuccess = true) {
                 statusText.textContent = msg;
                 statusMessage.style.background = isSuccess ? '#e2f0e6' : '#ffe6e6';
@@ -1112,41 +791,25 @@
 
             function getChecklistSummary() {
                 return {
-                    visual: document.querySelectorAll('.check-visual:checked').length,
-                    visualTotal: 6,
-                    prot: document.querySelectorAll('.check-prot:checked').length,
-                    protTotal: 6,
-                    ats: document.querySelectorAll('.check-ats:checked').length,
-                    atsTotal: 6
+                    visual: document.querySelectorAll('.check-visual:checked').length, visualTotal: 6,
+                    prot: document.querySelectorAll('.check-prot:checked').length, protTotal: 6,
+                    ats: document.querySelectorAll('.check-ats:checked').length, atsTotal: 6
                 };
             }
 
-            function getCoolantLevel() {
-                const checked = document.querySelector('input[name="coolantLevel"]:checked');
-                return checked ? checked.value : '—';
-            }
-
-            function getOilLevel() {
-                const checked = document.querySelector('input[name="oilLevel"]:checked');
-                return checked ? checked.value : '—';
-            }
+            function getCoolantLevel() { const c = document.querySelector('input[name="coolantLevel"]:checked'); return c ? c.value : '—'; }
+            function getOilLevel() { const c = document.querySelector('input[name="oilLevel"]:checked'); return c ? c.value : '—'; }
 
             function getTickedItems(prefix) {
                 const items = [];
-                for (let i = 1; i <= 6; i++) {
-                    const cb = document.getElementById(prefix + i);
-                    if (cb && cb.checked) items.push(String(i));
-                }
+                for (let i = 1; i <= 6; i++) { const cb = document.getElementById(prefix + i); if (cb && cb.checked) items.push(String(i)); }
                 return items;
             }
 
             function collectFormData() {
                 const s = getChecklistSummary();
                 const now = new Date();
-                const timestamp = now.toLocaleString('en-GB', {
-                    hour12: false, day: '2-digit', month: 'short', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                });
+                const timestamp = now.toLocaleString('en-GB', { hour12: false, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const opt = generatorSelect.options[generatorSelect.selectedIndex];
                 return {
                     generator: generatorSelect.value,
@@ -1162,12 +825,9 @@
                     refilledDiesel: refilledDiesel.value ? refilledDiesel.value + ' L' : '—',
                     currentRunHours: totalRunHours.value ? totalRunHours.value : '',
                     totalRunHours: totalRunHours.value ? totalRunHours.value + ' h' : '—',
-                    visualChecks: s.visual,
-                    visualTotal: s.visualTotal,
-                    protChecks: s.prot,
-                    protTotal: s.protTotal,
-                    atsChecks: s.ats,
-                    atsTotal: s.atsTotal,
+                    visualChecks: s.visual, visualTotal: s.visualTotal,
+                    protChecks: s.prot, protTotal: s.protTotal,
+                    atsChecks: s.ats, atsTotal: s.atsTotal,
                     visualRemark: visualRemark.value.trim() || '—',
                     protRemark: protRemark.value.trim() || '—',
                     atsRemark: atsRemark.value.trim() || '—',
@@ -1176,28 +836,24 @@
                     atsItems: getTickedItems('ats'),
                     visualRating: document.querySelector('input[name="visualRating"]:checked')?.value || '—',
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
-                                      atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
+                    atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
                     lastServiceDate: lastServiceDateInput.value || '—',
                     lastServiceHours: lastServiceHoursInput.value || '—',
                     lastServiceType: lastServiceTypeInput.value || '—',
                     currentHourMeter: totalRunHours.value || '—',
                     hoursSinceService: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value);
-                        const ch = parseFloat(totalRunHours.value);
+                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value);
                         if (isNaN(lh) || isNaN(ch)) return '—';
                         return Math.max(0, ch - lh).toFixed(1);
                     })(),
                     hoursUntilService: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value);
-                        const ch = parseFloat(totalRunHours.value);
+                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value);
                         if (isNaN(lh) || isNaN(ch)) return '—';
                         return Math.max(0, SERVICE_INTERVAL_HOURS - (ch - lh)).toFixed(1);
                     })(),
                     predictedNextServiceDate: document.getElementById('predNextDate').textContent || '—',
                     avgDailyRunRate: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value);
-                        const ch = parseFloat(totalRunHours.value);
-                        const ld = lastServiceDateInput.value;
+                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value); const ld = lastServiceDateInput.value;
                         if (isNaN(lh) || isNaN(ch) || !ld) return '—';
                         const days = Math.max(1, Math.round((new Date() - new Date(ld + 'T00:00:00')) / 86400000));
                         return ((ch - lh) / days).toFixed(2);
@@ -1206,19 +862,11 @@
                 };
             }
 
-            // ============================================================
-            // 🔄 RESET
-            // ============================================================
             function resetForm(showMsg) {
                 allCheckboxes.forEach(cb => cb.checked = false);
-                visualRemark.value = '';
-                protRemark.value = '';
-                atsRemark.value = '';
-               fuelLevel.value = '';
-                refilledDiesel.value = '';
-                totalRunHours.value = '';
-                lastServiceDateInput.value = '';
-                lastServiceHoursInput.value = '';
+                visualRemark.value = ''; protRemark.value = ''; atsRemark.value = '';
+                fuelLevel.value = ''; refilledDiesel.value = ''; totalRunHours.value = '';
+                lastServiceDateInput.value = ''; lastServiceHoursInput.value = '';
                 lastServiceTypeInput.value = 'Oil + Filters';
                 updatePrediction();
                 coolantLevelRadios.forEach(r => r.checked = false);
@@ -1232,77 +880,44 @@
                 updateGeneratorBanner();
                 updateTechnicianDisplay();
                 setAutoWorkDate();
-                if (showMsg) {
-                    statusMessage.classList.remove('show');
-                    showStatus('Form has been reset.', true);
-                }
+                if (showMsg) { statusMessage.classList.remove('show'); showStatus('Form has been reset.', true); }
             }
 
-            // ============================================================
-            // ✍️ SIGN-OFF
-            // ============================================================
             signOffBtn.addEventListener('click', async function() {
                 signOffBtn.disabled = true;
                 const orig = signOffBtn.innerHTML;
                 signOffBtn.innerHTML = '<span>⏳</span> Sending...';
                 const data = collectFormData();
-
                 lastSubmittedSnapshot = JSON.parse(JSON.stringify(data));
-
                 const success = await queueAndSend(data);
                 signOffBtn.disabled = false;
                 signOffBtn.innerHTML = orig;
                 console.log('SIGN-OFF RECORD:', data);
-                if (success) {
-                    setTimeout(() => resetForm(false), 1500);
-                }
+                if (success) { setTimeout(() => resetForm(false), 1500); }
             });
 
-            // ============================================================
-            // 🔄 SYNC
-            // ============================================================
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
             // ============================================================
-            // 📄 EXPORT CURRENT AS PDF (single record)
+            // 📄 EXPORT CURRENT AS PDF
             // ============================================================
             pdfBtn.addEventListener('click', function() { exportCurrentPDF(); });
 
             function exportCurrentPDF() {
                 const current = collectFormData();
-                const isEmpty = (
-                    current.visualItems.length === 0 &&
-                    current.protItems.length === 0 &&
-                    current.atsItems.length === 0 &&
-                    current.fuelLevel === '—' &&
-                    current.refilledDiesel === '—' &&
-                    current.totalRunHours === '—'
-                );
-
+                const isEmpty = (current.visualItems.length === 0 && current.protItems.length === 0 && current.atsItems.length === 0 && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
                 const data = (isEmpty && lastSubmittedSnapshot) ? lastSubmittedSnapshot : current;
-
                 pdfBtn.disabled = true;
                 const orig = pdfBtn.innerHTML;
                 pdfBtn.innerHTML = '<span>⏳</span> Preparing PDF...';
-
                 const reportHTML = buildReportHTML(data);
                 const iframe = document.createElement('iframe');
                 iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;';
                 document.body.appendChild(iframe);
-
                 iframe.onload = function() {
-                    try {
-                        iframe.contentWindow.focus();
-                        iframe.contentWindow.print();
-                        showStatus('📄 PDF dialog opened — choose "Save as PDF".', true);
-                    } catch(e) {
-                        showStatus('⚠️ Could not open print dialog.', false);
-                    }
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                        pdfBtn.disabled = false;
-                        pdfBtn.innerHTML = orig;
-                    }, 1500);
+                    try { iframe.contentWindow.focus(); iframe.contentWindow.print(); showStatus('📄 PDF dialog opened — choose "Save as PDF".', true); }
+                    catch(e) { showStatus('⚠️ Could not open print dialog.', false); }
+                    setTimeout(() => { document.body.removeChild(iframe); pdfBtn.disabled = false; pdfBtn.innerHTML = orig; }, 1500);
                 };
                 iframe.srcdoc = reportHTML;
             }
@@ -1311,12 +926,24 @@
                 const initials = data.technician.split(' ').map(p => p[0]).join('') + '.';
                 const sigHTML = '<div class="signature">' + initials + '</div>';
 
-                const checkList = (ids, allItems) => {
+                const tankCap = getTankCapacity(data.generator);
+                const fuelPctRaw = parseFloat(String(data.fuelLevel || '').replace(/[^\d.]/g, ''));
+                const fuelPct = isNaN(fuelPctRaw) ? null : fuelPctRaw;
+                const fuelInTank = (tankCap !== null && fuelPct !== null)
+                    ? (tankCap * fuelPct / 100).toFixed(1) + ' L  (' + fuelPct + '% of ' + tankCap + ' L tank)'
+                    : '—';
+
+                // ✅ NEW: Format last service date to remove time
+                const lastServiceFmt = formatDateOnly(data.lastServiceDate);
+
+                // ✅ FIXED + NEW: green V / red X, and uses correct idx instead of undefined i
+                const checkList = (tickedIds, allItems) => {
+                    const ids = Array.isArray(tickedIds) ? tickedIds.map(String) : [];
                     return allItems.map((item, idx) => {
-                     const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
-                    const mark = isChecked ? 'v' : 'x';
+                        const isChecked = ids.indexOf(String(idx + 1)) !== -1;
+                        const mark = isChecked ? 'V' : 'X';
                         const color = isChecked ? '#1b6b3f' : '#b33a3a';
-                        return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:700;color:' + color + ';">' + mark + '</span>' + item + '</li>';
+                        return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:800;color:' + color + ';">' + mark + '</span>' + item + '</li>';
                     }).join('');
                 };
 
@@ -1372,9 +999,13 @@ ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
   <div class="info-box"><div class="label">Diesel Refilled</div><div class="value">${data.refilledDiesel}</div></div>
   <div class="info-box"><div class="label">Run Hours</div><div class="value">${data.totalRunHours}</div></div>
 </div>
+<div class="info-grid" style="grid-template-columns: repeat(2, 1fr);">
+  <div class="info-box"><div class="label">Tank Capacity</div><div class="value">${tankCap !== null ? tankCap + ' L' : '—'}</div></div>
+  <div class="info-box"><div class="label">Fuel In Tank (estimated)</div><div class="value">${fuelInTank}</div></div>
+</div>
 <div class="section-title">🛠️ Predictive Servicing (250 h interval)</div>
 <div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
-  <div class="info-box"><div class="label">Last Service</div><div class="value">${data.lastServiceDate || '—'}</div></div>
+  <div class="info-box"><div class="label">Last Service</div><div class="value">${lastServiceFmt}</div></div>
   <div class="info-box"><div class="label">Hours @ Service</div><div class="value">${data.lastServiceHours || '—'}</div></div>
   <div class="info-box"><div class="label">Hours Since</div><div class="value">${data.hoursSinceService || '—'} h</div></div>
   <div class="info-box"><div class="label">Hours Remaining</div><div class="value">${data.hoursUntilService || '—'} h</div></div>
@@ -1444,9 +1075,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             });
 
-            modalCancel.addEventListener('click', function() {
-                pdfModal.classList.remove('show');
-            });
+            modalCancel.addEventListener('click', function() { pdfModal.classList.remove('show'); });
 
             modalGo.addEventListener('click', async function() {
                 modalGo.disabled = true;
@@ -1457,19 +1086,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const json = await res.json();
                     if (!json.records || json.records.length === 0) {
                         showStatus('📭 No records found in the sheet yet.', false);
-                        modalGo.disabled = false;
-                        modalGo.innerHTML = orig;
-                        return;
+                        modalGo.disabled = false; modalGo.innerHTML = orig; return;
                     }
                     const filtered = filterRecords(json.records);
                     if (filtered.length === 0) {
                         showStatus('📭 No records match the selected date range.', false);
-                        modalGo.disabled = false;
-                        modalGo.innerHTML = orig;
-                        return;
+                        modalGo.disabled = false; modalGo.innerHTML = orig; return;
                     }
                     modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
-                    await generateMultiRecordPDF(filtered);
+                    const consIndex = buildConsumptionIndex(json.records);
+                    await generateMultiRecordPDF(filtered, consIndex);
                     showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
                     pdfModal.classList.remove('show');
                 } catch (err) {
@@ -1502,13 +1128,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
-            async function generateMultiRecordPDF(records) {
+            async function generateMultiRecordPDF(records, consumptionIndex) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageW = 210;
-                const pageH = 297;
-                const marginL = 14;
-                const marginR = 14;
+                const pageW = 210, pageH = 297, marginL = 14, marginR = 14;
                 const contentW = pageW - marginL - marginR;
 
                 for (let i = 0; i < records.length; i++) {
@@ -1585,13 +1208,13 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
-                                       y += 20;
+                    y += 20;
 
-                    // ---- Predictive servicing block ----
                     y = drawSection(doc, 'PREDICTIVE SERVICING (250 h INTERVAL)', marginL, y, contentW);
                     const predBoxW = (contentW - 6) / 4;
                     const predBoxes = [
-                        { label: 'Last Service', value: safeStr(r['Last Service Date']) || '—' },
+                        // ✅ NEW: formatDateOnly strips the time from the Last Service date
+                        { label: 'Last Service', value: formatDateOnly(r['Last Service Date']) },
                         { label: 'Hours @ Service', value: safeStr(r['Last Service Hours']) || '—' },
                         { label: 'Hours Since', value: (safeStr(r['Hours Since Service']) || '—') + ' h' },
                         { label: 'Hours Remaining', value: (safeStr(r['Hours Until Service']) || '—') + ' h' }
@@ -1625,11 +1248,36 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7);
                     doc.setTextColor(58, 101, 131);
-                    doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'),
-                        marginL + 3, y + 10);
+                    doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'), marginL + 3, y + 10);
                     y += 18;
 
-                    // ✅ FIXED: use safeSplit() instead of raw .split('|')
+                    // Fuel consumption block
+                    const tankCap = getTankCapacity(safeStr(r['Generator']));
+                    const cons = consumptionIndex ? consumptionIndex.get(r) : null;
+                    y = drawSection(doc, 'FUEL CONSUMPTION (SINCE PREVIOUS INSPECTION)', marginL, y, contentW);
+                    const fuelBoxW = (contentW - 6) / 4;
+                    const fuelBoxes = [
+                        { label: 'Tank Capacity', value: tankCap !== null ? tankCap + ' L' : '—' },
+                        { label: 'Run Hours (period)', value: cons ? cons.hours.toFixed(1) + ' h' : '—' },
+                        { label: 'Fuel Used (calc.)', value: cons ? cons.consumed.toFixed(1) + ' L' : '—' },
+                        { label: 'Avg Consumption', value: cons ? cons.lph.toFixed(2) + ' L/h' : '—' }
+                    ];
+                    fuelBoxes.forEach((b, idx) => {
+                        const bx = marginL + idx * (fuelBoxW + 2);
+                        doc.setFillColor(249, 252, 255);
+                        doc.setDrawColor(212, 227, 239);
+                        doc.roundedRect(bx, y, fuelBoxW, 14, 1.5, 1.5, 'FD');
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(5.5);
+                        doc.setTextColor(91, 123, 150);
+                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(9);
+                        doc.setTextColor(18, 64, 94);
+                        doc.text(String(b.value), bx + 2, y + 10.5);
+                    });
+                    y += 18;
+
                     const visualIds = safeSplit(r['Visual Items'], '|');
                     const visualArg = visualIds.length > 0 ? visualIds : (safeStr(r['Visual Checks']) || '0/6');
                     y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
@@ -1643,11 +1291,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Mounting bolts & vibration isolators'
                     ], visualArg, marginL, y, contentW);
                     const visualRemarkVal = safeStr(r['Visual Remarks']);
-                    if (visualRemarkVal && visualRemarkVal !== '—') {
-                        y = drawRemark(doc, visualRemarkVal, marginL, y, contentW);
-                    }
+                    if (visualRemarkVal && visualRemarkVal !== '—') { y = drawRemark(doc, visualRemarkVal, marginL, y, contentW); }
 
-                    // ✅ FIXED
                     const protIds = safeSplit(r['Protection Items'], '|');
                     const protArg = protIds.length > 0 ? protIds : (safeStr(r['Protection Checks']) || '0/6');
                     y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
@@ -1661,11 +1306,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Battery charger & voltage (24V)'
                     ], protArg, marginL, y, contentW);
                     const protRemarkVal = safeStr(r['Protection Remarks']);
-                    if (protRemarkVal && protRemarkVal !== '—') {
-                        y = drawRemark(doc, protRemarkVal, marginL, y, contentW);
-                    }
+                    if (protRemarkVal && protRemarkVal !== '—') { y = drawRemark(doc, protRemarkVal, marginL, y, contentW); }
 
-                    // ✅ FIXED
                     const atsIds = safeSplit(r['ATS Items'], '|');
                     const atsArg = atsIds.length > 0 ? atsIds : (safeStr(r['ATS Checks']) || '0/6');
                     y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
@@ -1679,9 +1321,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         'Manual transfer test (if applicable)'
                     ], atsArg, marginL, y, contentW);
                     const atsRemarkVal = safeStr(r['ATS Remarks']);
-                    if (atsRemarkVal && atsRemarkVal !== '—') {
-                        y = drawRemark(doc, atsRemarkVal, marginL, y, contentW);
-                    }
+                    if (atsRemarkVal && atsRemarkVal !== '—') { y = drawRemark(doc, atsRemarkVal, marginL, y, contentW); }
 
                     const signoffY = pageH - 30;
                     doc.setFillColor(240, 246, 252);
@@ -1708,25 +1348,18 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(6.5);
                     doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from Generator Fleet — Testing and Monitoring Procedures',
-                        pageW / 2, pageH - 6, { align: 'center' });
-                    doc.text('Page ' + (i + 1) + ' of ' + records.length + ' · ' + genAt,
-                        pageW / 2, pageH - 2, { align: 'center' });
+                    doc.text('Generated automatically from Generator Fleet — Testing and Monitoring Procedures', pageW / 2, pageH - 6, { align: 'center' });
+                    doc.text('Page ' + (i + 1) + ' of ' + records.length + ' · ' + genAt, pageW / 2, pageH - 2, { align: 'center' });
                 }
 
-                const filename = 'CHUB_Generator_Reports_' +
-                    new Date().toISOString().slice(0,10) + '_' +
-                    records.length + 'records.pdf';
+                const filename = 'CHUB_Generator_Reports_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf';
                 doc.save(filename);
             }
 
             function formatDateForPDF(val) {
                 if (!val) return '—';
                 if (typeof val === 'string' && val.includes('T')) {
-                    return new Date(val).toLocaleString('en-GB', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    });
+                    return new Date(val).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 }
                 return String(val);
             }
@@ -1763,7 +1396,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 if (Array.isArray(checksOrIds)) {
                     tickedIds = checksOrIds.map(String);
                 } else {
-                    // ✅ FIXED: wrap in safeStr first so .split('/') can't crash
                     const rawStr = safeStr(checksOrIds || '0/6');
                     const done = parseInt(rawStr.split('/')[0], 10) || 0;
                     tickedIds = [];
@@ -1782,7 +1414,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const by = y + row * rowH;
 
                     const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
-                    const mark = isChecked ? '✔' : '✘';
+                    // ✅ NEW: Plain "V" (green) and "X" (red) instead of ✔/✘
+                    const mark = isChecked ? 'V' : 'X';
                     doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
                     doc.setFont('helvetica', 'bold');
                     doc.text(mark, bx, by + 3.5);
@@ -1837,9 +1470,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             });
 
-            analysisModalCancel.addEventListener('click', function() {
-                analysisModal.classList.remove('show');
-            });
+            analysisModalCancel.addEventListener('click', function() { analysisModal.classList.remove('show'); });
 
             analysisModalGo.addEventListener('click', async function() {
                 analysisModalGo.disabled = true;
@@ -1850,19 +1481,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const json = await res.json();
                     if (!json.records || json.records.length === 0) {
                         showStatus('📭 No records found.', false);
-                        analysisModalGo.disabled = false;
-                        analysisModalGo.innerHTML = orig;
-                        return;
+                        analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return;
                     }
                     const filtered = filterAnalysisRecords(json.records);
                     if (filtered.length === 0) {
                         showStatus('📭 No records match the selected date range.', false);
-                        analysisModalGo.disabled = false;
-                        analysisModalGo.innerHTML = orig;
-                        return;
+                        analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return;
                     }
                     analysisModalGo.innerHTML = '📊 Generating...';
-                    await generateAnalysisPDF(filtered);
+                    const consIndex = buildConsumptionIndex(json.records);
+                    await generateAnalysisPDF(filtered, consIndex);
                     showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true);
                     analysisModal.classList.remove('show');
                 } catch (err) {
@@ -1903,13 +1531,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 return n;
             }
 
-            async function generateAnalysisPDF(records) {
+            async function generateAnalysisPDF(records, consIndex) {
+                if (!consIndex) consIndex = buildConsumptionIndex(records);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageW = 210;
-                const pageH = 297;
-                const mL = 14;
-                const mR = 14;
+                const pageW = 210, pageH = 297, mL = 14, mR = 14;
                 const cW = pageW - mL - mR;
 
                 doc.setFillColor(30, 74, 109);
@@ -1924,9 +1550,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
                 doc.setFontSize(8);
                 doc.setTextColor(91, 123, 150);
-                const genAt = new Date().toLocaleString('en-GB', {
-                    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
+                const genAt = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const rangeLabel = analysisSelectedRange === 'all' ? 'All time' :
                                    analysisSelectedRange === 'custom' ? (analysisFromDate.value + ' → ' + analysisToDate.value) :
                                    'Last ' + analysisSelectedRange + ' days';
@@ -1940,21 +1564,10 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalRecords = records.length;
                 const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
                 const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
-
-                const fuelValues = records.map(r => {
-                    let v = validNum(r['Fuel %']);
-                    if (v === null) return null;
-                    if (v >= 0 && v <= 1) v = v * 100;
-                    return v;
-                }).filter(v => v !== null);
-                const avgFuel = fuelValues.length
-                    ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length
-                    : 0;
-
+                const fuelValues = records.map(r => parseFuelPercent(r)).filter(v => v !== null);
+                const avgFuel = fuelValues.length ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length : 0;
                 const validHoursRecords = records.filter(r => validNum(r['Run Hours']) !== null);
-                const avgRunHours = validHoursRecords.length
-                    ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length
-                    : 0;
+                const avgRunHours = validHoursRecords.length ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length : 0;
 
                 let y = 44;
                 doc.setFont('helvetica', 'bold');
@@ -1990,29 +1603,16 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, by + 16);
                 });
-                               y += 2 * (kpiBoxH + kpiGap) + 4;
+                y += 2 * (kpiBoxH + kpiGap) + 4;
 
-                // ---- Servicing KPIs ----
-                const overdueCount = records.filter(r => {
-                    const rem = parseNumClient(r['Hours Until Service']);
-                    return rem <= 0 && safeStr(r['Hours Until Service']) !== '';
-                }).length;
-                const dueSoonCount = records.filter(r => {
-                    const rem = parseNumClient(r['Hours Until Service']);
-                    return rem > 0 && rem <= 25;
-                }).length;
-                const okCount = records.filter(r => {
-                    const rem = parseNumClient(r['Hours Until Service']);
-                    return rem > 25;
-                }).length;
+                const overdueCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem <= 0 && safeStr(r['Hours Until Service']) !== ''; }).length;
+                const dueSoonCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 0 && rem <= 25; }).length;
+                const okCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 25; }).length;
 
                 y = drawAnalysisSection(doc, 'Servicing Status Overview', mL, y, cW);
-                                const servRows = [
+                const servRows = [
                     ['[OK]      > 50 h remaining', okCount],
-                    ['[SOON]    <= 50 h remaining', records.filter(r => {
-                        const rem = parseNumClient(r['Hours Until Service']);
-                        return rem > 25 && rem <= 50;
-                    }).length],
+                    ['[SOON]    <= 50 h remaining', records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 25 && rem <= 50; }).length],
                     ['[DUE]     <= 25 h remaining', dueSoonCount],
                     ['[OVERDUE] Service required', overdueCount]
                 ];
@@ -2020,21 +1620,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
                 y = drawAnalysisSection(doc, 'Weekly Run Hours Distribution (Histogram)', mL, y, cW);
                 const bins = [
-                    { label: '0 – 5 h', min: 0, max: 5 },
-                    { label: '5 – 10 h', min: 5, max: 10 },
-                    { label: '10 – 20 h', min: 10, max: 20 },
-                    { label: '20 – 30 h', min: 20, max: 30 },
-                    { label: '30 – 40 h', min: 30, max: 40 },
-                    { label: '40 – 50 h', min: 40, max: 50 },
+                    { label: '0 – 5 h', min: 0, max: 5 }, { label: '5 – 10 h', min: 5, max: 10 },
+                    { label: '10 – 20 h', min: 10, max: 20 }, { label: '20 – 30 h', min: 20, max: 30 },
+                    { label: '30 – 40 h', min: 30, max: 40 }, { label: '40 – 50 h', min: 40, max: 50 },
                     { label: '50+ h', min: 50, max: Infinity }
                 ];
                 const histogramData = bins.map(b => ({
                     label: b.label,
-                    count: records.filter(r => {
-                        const h = validNum(r['Run Hours']);
-                        if (h === null) return false;
-                        return h >= b.min && h < b.max;
-                    }).length
+                    count: records.filter(r => { const h = validNum(r['Run Hours']); if (h === null) return false; return h >= b.min && h < b.max; }).length
                 }));
                 const histMax = Math.max(1, ...histogramData.map(h => h.count));
                 const chartRowH = 5;
@@ -2071,12 +1664,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     byGen[g].diesel += validNum(r['Diesel Refilled (L)']) || 0;
                     byGen[g].hours += validNum(r['Run Hours']) || 0;
                 });
-                const genRows = Object.keys(byGen).map(g => [
-                    g,
-                    byGen[g].count,
-                    roundClient(byGen[g].diesel, 1),
-                    roundClient(byGen[g].hours, 1)
-                ]);
+                const genRows = Object.keys(byGen).map(g => [g, byGen[g].count, roundClient(byGen[g].diesel, 1), roundClient(byGen[g].hours, 1)]);
                 y = drawSimpleTable(doc, ['Generator', 'Inspections', 'Diesel (L)', 'Run Hours'], genRows, mL, y, cW);
 
                 doc.addPage();
@@ -2091,10 +1679,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
                 y2 = drawAnalysisSection(doc, 'Breakdown by Technician', mL, y2, cW);
                 const byTech = {};
-                records.forEach(r => {
-                    const t = safeStr(r['Technician']) || 'Unknown';
-                    byTech[t] = (byTech[t] || 0) + 1;
-                });
+                records.forEach(r => { const t = safeStr(r['Technician']) || 'Unknown'; byTech[t] = (byTech[t] || 0) + 1; });
                 const techRows = Object.keys(byTech).map(t => [t, byTech[t]]);
                 y2 = drawSimpleTable(doc, ['Technician', 'Inspections'], techRows, mL, y2, cW);
 
@@ -2109,21 +1694,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0;
                     byWeek[wk].hours += validNum(r['Run Hours']) || 0;
                 });
-                const weekRows = Object.keys(byWeek).sort().map(w => [
-                    w,
-                    byWeek[w].count,
-                    roundClient(byWeek[w].diesel, 1),
-                    roundClient(byWeek[w].hours, 1)
-                ]);
+                const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), roundClient(byWeek[w].hours, 1)]);
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
 
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
-                const fuelBuckets = {
-                    'Low (0–25%)': 0,
-                    'Medium (26–50%)': 0,
-                    'Good (51–75%)': 0,
-                    'Full (76–100%)': 0
-                };
+                const fuelBuckets = { 'Low (0–25%)': 0, 'Medium (26–50%)': 0, 'Good (51–75%)': 0, 'Full (76–100%)': 0 };
                 let fuelSkipped = 0;
                 records.forEach(r => {
                     let f = validNum(r['Fuel %']);
@@ -2136,11 +1711,110 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
                 const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
                 y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
-
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(8);
                 doc.setTextColor(91, 123, 150);
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
+
+                // ---- Fuel consumption analysis page ----
+                doc.addPage();
+                let y3 = 20;
+                doc.setFillColor(30, 74, 109);
+                doc.rect(0, 0, pageW, 4, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(18, 64, 94);
+                doc.text('Generator Fleet — Fuel Consumption Analysis', mL, y3);
+                y3 += 5;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(91, 123, 150);
+                doc.text('Site: CHUB · Range: ' + rangeLabel + ' · Records: ' + records.length, mL, y3);
+                y3 += 4;
+                doc.setDrawColor(212, 227, 239);
+                doc.setLineWidth(0.5);
+                doc.line(mL, y3, pageW - mR, y3);
+                y3 += 8;
+
+                const consAgg = aggregateConsumption(records, consIndex);
+                const consList = Object.keys(consAgg).map(k => consAgg[k]);
+                consList.sort((a, b) => ((a.lph === null ? -1 : a.lph) > (b.lph === null ? -1 : b.lph)) ? -1 : 1);
+
+                const totalFuelUsed = consList.reduce((s, a) => s + a.consumed, 0);
+                const totalPeriodHours = consList.reduce((s, a) => s + a.hours, 0);
+                const fleetAvgLph = totalPeriodHours > 0 ? (totalFuelUsed / totalPeriodHours) : 0;
+                const gensWithData = consList.filter(a => a.lph !== null).length;
+
+                const fkpis = [
+                    { label: 'Generators Analysed', value: gensWithData + ' / ' + consList.length },
+                    { label: 'Total Period Run Hours', value: roundClient(totalPeriodHours, 1) + ' h' },
+                    { label: 'Total Fuel Used', value: roundClient(totalFuelUsed, 1) + ' L' },
+                    { label: 'Fleet Avg Consumption', value: roundClient(fleetAvgLph, 2) + ' L/h' }
+                ];
+                const fBoxW = (cW - 6) / 4;
+                fkpis.forEach((b, i) => {
+                    const bx = mL + i * (fBoxW + 2);
+                    doc.setFillColor(249, 252, 255);
+                    doc.setDrawColor(212, 227, 239);
+                    doc.roundedRect(bx, y3, fBoxW, 20, 2, 2, 'FD');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(6);
+                    doc.setTextColor(91, 123, 150);
+                    doc.text(b.label.toUpperCase(), bx + 3, y3 + 5);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(18, 64, 94);
+                    doc.text(String(b.value), bx + 3, y3 + 14);
+                });
+                y3 += 27;
+
+                y3 = drawAnalysisSection(doc, 'Average Fuel Consumption per Generator', mL, y3, cW);
+                const fuelTableRows = consList.map(a => [
+                    a.generator,
+                    a.capacity !== null ? a.capacity : '—',
+                    roundClient(a.hours, 1),
+                    roundClient(a.consumed, 1),
+                    a.lph !== null ? roundClient(a.lph, 2) : 'n/a'
+                ]);
+                y3 = drawSimpleTable(doc, ['Generator', 'Tank (L)', 'Run Hours', 'Fuel Used (L)', 'Avg (L/h)'], fuelTableRows, mL, y3, cW);
+
+                y3 = drawAnalysisSection(doc, 'Consumption Rate Comparison (L/h)', mL, y3, cW);
+                const maxLph = Math.max(0.01, ...consList.map(a => a.lph || 0));
+                const barLabelW = 44;
+                const barMaxW2 = cW - barLabelW - 24;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                consList.forEach((a, i) => {
+                    const rowY = y3 + i * 6;
+                    doc.setTextColor(31, 60, 84);
+                    const nm = a.generator.length > 24 ? a.generator.substring(0, 23) + '…' : a.generator;
+                    doc.text(nm, mL, rowY + 4);
+                    const val = a.lph || 0;
+                    const barW = (val / maxLph) * barMaxW2;
+                    doc.setFillColor(42, 107, 150);
+                    doc.rect(mL + barLabelW, rowY, Math.max(barW, 0.6), 4, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(18, 64, 94);
+                    doc.text(a.lph !== null ? a.lph.toFixed(2) + ' L/h' : 'n/a', mL + barLabelW + barW + 2, rowY + 4);
+                    doc.setFont('helvetica', 'normal');
+                });
+                y3 += consList.length * 6 + 6;
+
+                y3 = drawAnalysisSection(doc, 'How this is calculated', mL, y3, cW);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.5);
+                doc.setTextColor(58, 101, 131);
+                const methodLines = [
+                    'Fuel used between two inspections of the same generator = Diesel refilled (L) + (Fuel % at previous inspection - Fuel % at current inspection) x Tank capacity (L).',
+                    'Average consumption (L/h) = Fuel used (L) / Run hours between the two inspections (difference of the hour-meter readings).',
+                    'Tank capacities: Ritewat 500KVA G1 = 800 L · Ritewat 500KVA G2 = 800 L · Perkins 400KVA = 250 L · Perkins 300KVA = 800 L · Cummins 70KVA = 60 L · DAF 80KVA = 130 L.',
+                    'A generator shows "n/a" when there is only one inspection in the range, or when the hour-meter reading / fuel level is missing.'
+                ];
+                methodLines.forEach(line => {
+                    const wrapped = doc.splitTextToSize('• ' + line, cW - 4);
+                    doc.text(wrapped, mL + 2, y3);
+                    y3 += wrapped.length * 3.6 + 1.2;
+                });
 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
@@ -2148,14 +1822,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7);
                     doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from CHUB Generator Monitoring System',
-                        pageW / 2, pageH - 6, { align: 'center' });
-                    doc.text('Page ' + p + ' of ' + totalPages,
-                        pageW / 2, pageH - 2, { align: 'center' });
+                    doc.text('Generated automatically from CHUB Generator Monitoring System', pageW / 2, pageH - 6, { align: 'center' });
+                    doc.text('Page ' + p + ' of ' + totalPages, pageW / 2, pageH - 2, { align: 'center' });
                 }
 
-                const filename = 'CHUB_Generator_Analysis_' +
-                    new Date().toISOString().slice(0,10) + '.pdf';
+                const filename = 'CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf';
                 doc.save(filename);
             }
 
@@ -2185,9 +1856,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(8);
                 doc.setTextColor(18, 64, 94);
-                headers.forEach((h, i) => {
-                    doc.text(h, x + i * colW + 2, y + 4);
-                });
+                headers.forEach((h, i) => { doc.text(h, x + i * colW + 2, y + 4); });
                 y += rowH;
                 doc.setFont('helvetica', 'normal');
                 rows.forEach((row, rIdx) => {
@@ -2232,6 +1901,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
+
             // ============================================================
             // 🛠️ PREDICTIVE SERVICING (250 h interval)
             // ============================================================
@@ -2250,9 +1920,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 catch(e) { return {}; }
             }
 
-            function saveServiceRefs(refs) {
-                localStorage.setItem(SERVICE_REF_KEY, JSON.stringify(refs));
-            }
+            function saveServiceRefs(refs) { localStorage.setItem(SERVICE_REF_KEY, JSON.stringify(refs)); }
 
             function loadServiceRefForGenerator(gen) {
                 const refs = getServiceRefs();
@@ -2271,12 +1939,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             saveServiceRefBtn.addEventListener('click', function() {
                 const gen = generatorSelect.value;
                 const refs = getServiceRefs();
-                refs[gen] = {
-                    lastServiceDate: lastServiceDateInput.value,
-                    lastServiceHours: lastServiceHoursInput.value,
-                    lastServiceType: lastServiceTypeInput.value,
-                    savedAt: new Date().toISOString()
-                };
+                refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
                 saveServiceRefs(refs);
                 showStatus('💾 Service reference saved for ' + gen, true);
                 updatePrediction();
@@ -2287,12 +1950,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const gen = generatorSelect.value;
                     if (!gen) return;
                     const refs = getServiceRefs();
-                    refs[gen] = {
-                        lastServiceDate: lastServiceDateInput.value,
-                        lastServiceHours: lastServiceHoursInput.value,
-                        lastServiceType: lastServiceTypeInput.value,
-                        savedAt: new Date().toISOString()
-                    };
+                    refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
                     saveServiceRefs(refs);
                 });
             });
@@ -2327,10 +1985,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const lastD = new Date(lastDate + 'T00:00:00');
                 let daysElapsed = Math.max(1, Math.round((now - lastD) / 86400000));
                 let avgDailyHours = hoursSince / daysElapsed;
-
-                if (!isFinite(avgDailyHours) || avgDailyHours <= 0) {
-                    avgDailyHours = 0;
-                }
+                if (!isFinite(avgDailyHours) || avgDailyHours <= 0) avgDailyHours = 0;
                 if (avgDailyHours > 24) avgDailyHours = 24;
 
                 let daysToService = null;
@@ -2348,52 +2003,30 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 document.getElementById('predHoursSince').textContent = hoursSince.toFixed(1) + ' h';
                 document.getElementById('predHoursRemaining').textContent = hoursRemaining.toFixed(1) + ' h';
                 document.getElementById('predProgressBar').style.width = percent + '%';
-                document.getElementById('predProgressLabel').textContent =
-                    hoursSince.toFixed(1) + ' / ' + SERVICE_INTERVAL_HOURS + ' h (' + percent.toFixed(1) + '%)';
+                document.getElementById('predProgressLabel').textContent = hoursSince.toFixed(1) + ' / ' + SERVICE_INTERVAL_HOURS + ' h (' + percent.toFixed(1) + '%)';
 
                 if (avgDailyHours > 0) {
-                    document.getElementById('predAvgRate').textContent =
-                        avgDailyHours.toFixed(2) + ' h/day (' +
-                        (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
+                    document.getElementById('predAvgRate').textContent = avgDailyHours.toFixed(2) + ' h/day (' + (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
                 } else {
-                    document.getElementById('predAvgRate').textContent =
-                        'Insufficient data (no hours run since last service)';
+                    document.getElementById('predAvgRate').textContent = 'Insufficient data (no hours run since last service)';
                 }
 
                 if (nextDate) {
-                    const dateStr = nextDate.toLocaleDateString('en-GB', {
-                        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
-                    });
+                    const dateStr = nextDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
                     document.getElementById('predNextDate').textContent = dateStr;
-
                     const winStart = new Date(nextDate); winStart.setDate(winStart.getDate() - 3);
                     const winEnd = new Date(nextDate); winEnd.setDate(winEnd.getDate() + 3);
-                    document.getElementById('predWindow').textContent =
-                        winStart.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + '  →  ' +
-                        winEnd.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                    document.getElementById('predWindow').textContent = winStart.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + '  →  ' + winEnd.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
                 } else {
                     document.getElementById('predNextDate').textContent = '—';
                     document.getElementById('predWindow').textContent = '—';
                 }
 
                 let bg, color, border, icon, msg;
-                if (hoursRemaining <= 0) {
-                    bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8';
-                    icon = '🚨';
-                    msg = 'SERVICE OVERDUE — ' + Math.abs(hoursRemaining).toFixed(1) + ' h past interval';
-                } else if (hoursRemaining <= 25) {
-                    bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8';
-                    icon = '⚠️';
-                    msg = 'SERVICE DUE SOON — only ' + hoursRemaining.toFixed(1) + ' h left';
-                } else if (hoursRemaining <= 50) {
-                    bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a';
-                    icon = '🔔';
-                    msg = 'Plan service — ' + hoursRemaining.toFixed(1) + ' h remaining';
-                } else {
-                    bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3';
-                    icon = '✅';
-                    msg = 'OK — ' + hoursRemaining.toFixed(1) + ' h until next service';
-                }
+                if (hoursRemaining <= 0) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '🚨'; msg = 'SERVICE OVERDUE — ' + Math.abs(hoursRemaining).toFixed(1) + ' h past interval'; }
+                else if (hoursRemaining <= 25) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '⚠️'; msg = 'SERVICE DUE SOON — only ' + hoursRemaining.toFixed(1) + ' h left'; }
+                else if (hoursRemaining <= 50) { bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a'; icon = '🔔'; msg = 'Plan service — ' + hoursRemaining.toFixed(1) + ' h remaining'; }
+                else { bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3'; icon = '✅'; msg = 'OK — ' + hoursRemaining.toFixed(1) + ' h until next service'; }
                 predictionStatus.style.background = bg;
                 predictionStatus.style.color = color;
                 predictionStatus.style.borderColor = border;
@@ -2424,34 +2057,19 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             const logoutBtn = document.getElementById('logoutBtn');
             const loggedInUserName = document.getElementById('loggedInUserName');
             const lockedTechName = document.getElementById('lockedTechName');
-
             const SESSION_KEY = 'chub_generator_session';
 
-            function saveSession(name) {
-                try {
-                    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                        name: name,
-                        time: Date.now()
-                    }));
-                } catch(e) {}
-            }
-
+            function saveSession(name) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ name, time: Date.now() })); } catch(e) {} }
             function loadSession() {
                 try {
                     const raw = sessionStorage.getItem(SESSION_KEY);
                     if (!raw) return null;
                     const s = JSON.parse(raw);
-                    if (Date.now() - s.time > 12 * 60 * 60 * 1000) {
-                        sessionStorage.removeItem(SESSION_KEY);
-                        return null;
-                    }
+                    if (Date.now() - s.time > 12 * 60 * 60 * 1000) { sessionStorage.removeItem(SESSION_KEY); return null; }
                     return s.name;
                 } catch(e) { return null; }
             }
-
-            function clearSession() {
-                try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
-            }
+            function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {} }
 
             function unlockApp(name) {
                 technicianSelect.value = name;
@@ -2473,50 +2091,24 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             loginBtn.addEventListener('click', function() {
                 const name = loginTechSelect.value;
                 const pin = loginPinInput.value.trim();
-
                 loginError.textContent = '';
-
-                if (!name) {
-                    loginError.textContent = '⚠️ Please select your name.';
-                    return;
-                }
-                if (!pin) {
-                    loginError.textContent = '⚠️ Please enter your PIN.';
-                    return;
-                }
-                if (TECHNICIAN_PINS[name] !== pin) {
-                    loginError.textContent = '❌ Wrong PIN for ' + name;
-                    loginPinInput.value = '';
-                    loginPinInput.focus();
-                    return;
-                }
-
+                if (!name) { loginError.textContent = '⚠️ Please select your name.'; return; }
+                if (!pin) { loginError.textContent = '⚠️ Please enter your PIN.'; return; }
+                if (TECHNICIAN_PINS[name] !== pin) { loginError.textContent = '❌ Wrong PIN for ' + name; loginPinInput.value = ''; loginPinInput.focus(); return; }
                 saveSession(name);
                 unlockApp(name);
                 showStatus('✅ Welcome, ' + name + '!', true);
             });
 
             logoutBtn.addEventListener('click', function() {
-                if (confirm('Log out and lock the app?')) {
-                    lockApp();
-                    showStatus('🔒 Logged out.', true);
-                }
+                if (confirm('Log out and lock the app?')) { lockApp(); showStatus('🔒 Logged out.', true); }
             });
 
             const existingSession = loadSession();
-            if (existingSession && TECHNICIAN_PINS[existingSession]) {
-                unlockApp(existingSession);
-            } else {
-                lockApp();
-            }
+            if (existingSession && TECHNICIAN_PINS[existingSession]) { unlockApp(existingSession); }
+            else { lockApp(); }
 
-            // ============================================================
-            // 🔄 RESET BUTTON — clears snapshot too
-            // ============================================================
-            resetBtn.addEventListener('click', function() {
-                lastSubmittedSnapshot = null;
-                resetForm(true);
-            });
+            resetBtn.addEventListener('click', function() { lastSubmittedSnapshot = null; resetForm(true); });
 
             setAutoWorkDate();
             updateGeneratorBanner();
@@ -2526,11 +2118,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             workDateInput.addEventListener('change', updateWorkDateDisplay);
 
             setTimeout(() => { if (getQueue().length > 0) flushQueue(); }, 1200);
-
         })();
     </script>
     <script>
-        // Register service worker with cache-busting query (bump ?v= when you update the app)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js?v=3')
