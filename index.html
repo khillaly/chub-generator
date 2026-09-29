@@ -703,17 +703,22 @@
                 return Math.round(n * f) / f;
             }
 
-            // ---------- Date helpers (AC-Fleet-style short formats) ----------
-            function formatDateOnly(val) {
-                if (val === null || val === undefined) return '—';
-                let s = String(val).trim();
-                if (!s || s === '—' || s === '-') return '—';
-                if (s.includes('T')) s = s.split('T')[0];
-                let d;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) d = new Date(s + 'T00:00:00');
-                else d = new Date(s);
-                if (isNaN(d.getTime())) return s;
-                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          function formatDateOnly(val) {
+    if (val === null || val === undefined) return '—';
+    let s = String(val).trim();
+    if (!s || s === '—' || s === '-') return '—';
+
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        // Plain date → interpret as local to avoid off-by-one
+        d = new Date(s + 'T00:00:00');
+    } else {
+        // ISO / other → let JS convert to the user's local timezone
+        d = new Date(s);
+    }
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
             }
             function formatDateTimeForPDF(val) {
                 if (!val) return '—';
