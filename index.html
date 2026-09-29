@@ -1896,12 +1896,32 @@
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
-            async function generateAnalysisPDF(records, consIndex) {
+                        async function generateAnalysisPDF(records, consIndex) {
                 if (!consIndex) consIndex = buildConsumptionIndex(records);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageW = 210, pageH = 297, mL = 14, mR = 14;
                 const cW = pageW - mL - mR;
+
+                // ---- Preload signatures ----
+                const allSignatures = loadSignatures();
+                const sigDimensions = {};
+                for (const [techName, dataUrl] of Object.entries(allSignatures)) {
+                    if (dataUrl) {
+                        const dims = await loadImageDimensions(dataUrl);
+                        if (dims) sigDimensions[techName] = dims;
+                    }
+                }
+                let inchargeSigData = getInchargeSignatureCached() || currentInchargeSignature;
+                if (!inchargeSigData) {
+                    inchargeSigData = await fetchInchargeSignatureFromCloud();
+                }
+                let inchargeSigDims = null;
+                if (inchargeSigData) inchargeSigDims = await loadImageDimensions(inchargeSigData);
+
+                const currentTech = technicianSelect.value || '—';
+                const currentTechSig = allSignatures[currentTech] || '';
+                const currentTechDims = sigDimensions[currentTech];
 
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 6, 'F');
@@ -1909,13 +1929,13 @@
                 doc.text('Generator Fleet — Analysis Report', mL, 20);
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(58, 101, 131);
                 doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
-                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
                 doc.setFontSize(7); doc.setTextColor(150, 170, 190);
                 doc.text('Data recording started on ' + RECORDING_START, mL, 30);
                 const genAt = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const rangeLabel = analysisSelectedRange === 'all' ? 'All time' :
                                    analysisSelectedRange === 'custom' ? (analysisFromDate.value + ' → ' + analysisToDate.value) :
                                    'Last ' + analysisSelectedRange + ' days';
+                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
                 doc.text('Generated: ' + genAt, pageW - mR, 20, { align: 'right' });
                 doc.text('Range: ' + rangeLabel, pageW - mR, 25, { align: 'right' });
                 doc.text('Records: ' + records.length, pageW - mR, 30, { align: 'right' });
@@ -2064,6 +2084,164 @@
                 doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(150, 170, 190);
                 doc.text('Data recording started on ' + RECORDING_START + ' — analysis covers this period onwards.', mL, y2);
 
+                // ============================================================
+                // ⭐ NEW: SIGN-OFF PAGE (Technician + In-Charge signatures)
+                // ============================================================
+                doc.addPage();
+                let ys = 20;
+                doc.setFillColor(30, 74, 109);
+                doc.rect(0, 0, pageW, 6, 'F');
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(18, 64, 94);
+                doc.text('Generator Fleet — Analysis Report', mL, ys + 2);
+                ys += 6;
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(58, 101, 131);
+                doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, ys);
+                doc.setFontSize(7); doc.setTextColor(150, 170, 190);
+                doc.text('Data recording started on ' + RECORDING_START, mL, ys + 4);
+                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
+                doc.text('Generated: ' + genAt, pageW - mR, ys, { align: 'right' });
+                doc.text('Range: ' + rangeLabel, pageW - mR, ys + 4, { align: 'right' });
+                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
+                doc.line(mL, ys + 8, pageW - mR, ys + 8);
+                ys += 16;
+
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
+                doc.text('SIGN-OFF & APPROVAL', mL, ys); ys += 6;
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(58, 101, 131);
+                const introLines = doc.splitTextToSize(
+                    'This analysis report covers the generator fleet monitoring period shown above. ' +
+                    'It was prepared by the technician named below and reviewed & approved by the in-charge. ' +
+                    'Both signatures are required for the report to be considered final.',
+                    cW - 4
+                );
+                doc.text(introLines, mL, ys);
+                ys += introLines.length * 3.6 + 8;
+
+                const boxHeight = 56;
+                const gap = 6;
+                const halfWidth = (cW - gap) / 2;
+                const leftBoxX = mL;
+                const rightBoxX = mL + halfWidth + gap;
+                const today = new Date();
+                const todayStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                // ---------- LEFT: PREPARED BY (TECHNICIAN) ----------
+                doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
+                doc.roundedRect(leftBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
+                doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
+                doc.text('PREPARED BY (TECHNICIAN)', leftBoxX + 3, ys + 5);
+
+                doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 42, 63);
+                doc.text(sanitizeForPDF(currentTech), leftBoxX + 3, ys + 12);
+                doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
+                doc.text('Date: ' + todayStr, leftBoxX + 3, ys + 17);
+                doc.text('Site: CHUB · 400V / 50Hz', leftBoxX + 3, ys + 21);
+
+                // Technician signature image area (right half of the box)
+                const tsAreaX = leftBoxX + (halfWidth / 2) + 2;
+                const tsAreaW = (halfWidth / 2) - 5;
+                const tsAreaY = ys + 8;
+                const tsAreaH = 22;
+                doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
+                doc.roundedRect(tsAreaX, tsAreaY, tsAreaW, tsAreaH, 1, 1, 'S');
+                let techDrawn = false;
+                if (currentTechSig) {
+                    try {
+                        let sigW, sigH;
+                        if (currentTechDims && currentTechDims.width > 0 && currentTechDims.height > 0) {
+                            const aspect = currentTechDims.width / currentTechDims.height;
+                            sigW = tsAreaW - 4; sigH = sigW / aspect;
+                            if (sigH > tsAreaH - 3) { sigH = tsAreaH - 3; sigW = sigH * aspect; }
+                        } else { sigW = tsAreaW - 6; sigH = tsAreaH - 6; }
+                        const sx = tsAreaX + (tsAreaW - sigW) / 2;
+                        const sy = tsAreaY + (tsAreaH - sigH) / 2;
+                        doc.addImage(currentTechSig, 'PNG', sx, sy, sigW, sigH);
+                        techDrawn = true;
+                    } catch (e) { console.warn('Could not render technician signature:', e); }
+                }
+                if (!techDrawn) {
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic');
+                    doc.setTextColor(156, 185, 208);
+                    doc.text('(no signature uploaded)', tsAreaX + tsAreaW / 2, tsAreaY + tsAreaH / 2 + 1, { align: 'center' });
+                }
+
+                doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.3);
+                doc.line(leftBoxX + 3, ys + 33, leftBoxX + halfWidth - 3, ys + 33);
+                doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
+                doc.text('Signature', leftBoxX + 3, ys + 37);
+
+                // Small "digital seal" hint if cert loaded
+                if (isCertLoaded() && CERT_STATE.subject) {
+                    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
+                    doc.text('🔐 PKCS#7 digital seal active', leftBoxX + 3, ys + 43);
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(58, 101, 131);
+                    doc.text(sanitizeForPDF(CERT_STATE.subject).substring(0, 46), leftBoxX + 3, ys + 47);
+                } else {
+                    doc.setFontSize(6); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
+                    doc.text('Visual signature only — no PKCS#7 seal loaded', leftBoxX + 3, ys + 44);
+                }
+
+                // ---------- RIGHT: APPROVED BY (IN-CHARGE) ----------
+                doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
+                doc.roundedRect(rightBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
+                doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
+                doc.text('APPROVED BY (IN-CHARGE)', rightBoxX + 3, ys + 5);
+
+                doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 42, 63);
+                doc.text(sanitizeForPDF(INCHARGE_NAME), rightBoxX + 3, ys + 12);
+                doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
+                doc.text('Date: ' + todayStr, rightBoxX + 3, ys + 17);
+                doc.text('Site: CHUB — Engineering', rightBoxX + 3, ys + 21);
+
+                // In-charge signature image area
+                const isAreaX = rightBoxX + (halfWidth / 2) + 2;
+                const isAreaW = (halfWidth / 2) - 5;
+                const isAreaY = ys + 8;
+                const isAreaH = 22;
+                doc.setDrawColor(200, 180, 120); doc.setLineWidth(0.2);
+                doc.roundedRect(isAreaX, isAreaY, isAreaW, isAreaH, 1, 1, 'S');
+                let inchargeDrawn = false;
+                if (inchargeSigData) {
+                    try {
+                        let sigW, sigH;
+                        if (inchargeSigDims && inchargeSigDims.width > 0 && inchargeSigDims.height > 0) {
+                            const aspect = inchargeSigDims.width / inchargeSigDims.height;
+                            sigW = isAreaW - 4; sigH = sigW / aspect;
+                            if (sigH > isAreaH - 3) { sigH = isAreaH - 3; sigW = sigH * aspect; }
+                        } else { sigW = isAreaW - 6; sigH = isAreaH - 6; }
+                        const sx = isAreaX + (isAreaW - sigW) / 2;
+                        const sy = isAreaY + (isAreaH - sigH) / 2;
+                        doc.addImage(inchargeSigData, 'PNG', sx, sy, sigW, sigH);
+                        inchargeDrawn = true;
+                    } catch (e) { console.warn('Could not render in-charge signature:', e); }
+                }
+                if (!inchargeDrawn) {
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic');
+                    doc.setTextColor(180, 160, 100);
+                    doc.text('(no signature uploaded)', isAreaX + isAreaW / 2, isAreaY + isAreaH / 2 + 1, { align: 'center' });
+                }
+
+                doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
+                doc.line(rightBoxX + 3, ys + 33, rightBoxX + halfWidth - 3, ys + 33);
+                doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(122, 83, 0);
+                doc.text('Signature', rightBoxX + 3, ys + 37);
+
+                doc.setFontSize(6); doc.setFont('helvetica', 'italic'); doc.setTextColor(122, 83, 0);
+                doc.text('This analysis report is only valid once signed by both parties.', rightBoxX + 3, ys + 44);
+
+                ys += boxHeight + 10;
+
+                // Notice banner
+                doc.setFillColor(255, 243, 205); doc.setDrawColor(244, 217, 122);
+                doc.roundedRect(mL, ys, cW, 12, 2, 2, 'FD');
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(122, 83, 0);
+                doc.text('📅 Recording started: ' + RECORDING_START + ' — reports & analysis cover this period onwards.', mL + 3, ys + 5);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+                doc.text('Generated automatically from the CHUB Generator Fleet System · ' + genAt, mL + 3, ys + 9.5);
+
+                // ============================================================
+                // PAGE NUMBERS / FOOTER
+                // ============================================================
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
                     doc.setPage(p);
