@@ -461,13 +461,22 @@
             <h2>🖊️ Signature &amp; Digital Certificate</h2>
             <p>Load both for full authenticity — the visual signature for readers, the .pfx certificate for cryptographic proof. The private key stays only in this browser tab.</p>
 
-            <h3 class="sig-h3">✍️ Visual Signature (handwritten PNG)</h3>
+            <h3 class="sig-h3">✍️ Technician Visual Signature (handwritten PNG)</h3>
             <div class="sig-preview" id="sigPreview">
                 <span class="placeholder">No visual signature uploaded</span>
             </div>
             <div class="field-group">
                 <label for="sigFileInput">Choose signature image (PNG with transparent background recommended)</label>
                 <input type="file" id="sigFileInput" accept="image/png, image/jpeg">
+            </div>
+
+            <h3 class="sig-h3">👤 In-Charge / Supervisor Signature (PNG)</h3>
+            <div class="sig-preview" id="inchargeSigPreview">
+                <span class="placeholder">No in-charge signature uploaded</span>
+            </div>
+            <div class="field-group">
+                <label for="inchargeSigInput">In-charge signature image (shown in the "Reviewed by" box on the report)</label>
+                <input type="file" id="inchargeSigInput" accept="image/png, image/jpeg">
             </div>
 
             <h3 class="sig-h3">🔐 Digital Certificate (.pfx / .p12)</h3>
@@ -520,7 +529,7 @@
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
-            <p>Choose a date range. The PDF will include KPIs, histograms, fuel consumption per generator and tables.</p>
+            <p>Choose a date range. The PDF will include KPIs, histograms and breakdown tables.</p>
             <div class="filter-selector" id="analysisQuickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -552,12 +561,11 @@
             };
 
             // ============================================================
-            // ⭐ VISUAL SIGNATURE STORAGE (PNG) — per technician, persisted
+            // ⭐ SIGNATURE STORAGE
             // ============================================================
-            const DEFAULT_TECHNICIAN_SIGNATURES = {
-                // 'Hillaly KUBWIMANA': 'data:image/png;base64,PASTE_YOUR_BASE64_HERE',
-            };
+            const DEFAULT_TECHNICIAN_SIGNATURES = {};
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
+            const INCHARGE_SIG_KEY = 'chub_generator_incharge_signature_v1';
 
             function loadSignatures() {
                 let stored = {};
@@ -571,6 +579,10 @@
                 try { const raw = localStorage.getItem(SIG_STORAGE_KEY); if (raw) stored = JSON.parse(raw); } catch(e) { stored = {}; }
                 if (dataUrl) stored[techName] = dataUrl; else delete stored[techName];
                 try { localStorage.setItem(SIG_STORAGE_KEY, JSON.stringify(stored)); } catch(e) { alert('Could not save signature — browser storage may be full.'); }
+            }
+            function getInchargeSignature() { try { return localStorage.getItem(INCHARGE_SIG_KEY) || ''; } catch(e) { return ''; } }
+            function saveInchargeSignature(dataUrl) {
+                try { if (dataUrl) localStorage.setItem(INCHARGE_SIG_KEY, dataUrl); else localStorage.removeItem(INCHARGE_SIG_KEY); } catch(e) {}
             }
 
             function sanitizeForPDF(str) {
@@ -628,10 +640,7 @@
                 ].join('|');
             }
 
-            // ---- FIX #3: Safe SHA-256 with fallback for non-HTTPS pages ----
             async function computeSHA256(text) {
-                // crypto.subtle only exists in secure contexts (HTTPS / localhost).
-                // Fallback to a deterministic 64-hex-char hash so the app never hangs.
                 if (typeof crypto === 'undefined' || !crypto.subtle || !crypto.subtle.digest) {
                     let h1 = 0xdeadbeef ^ text.length;
                     let h2 = 0x41c6ce57 ^ text.length;
@@ -703,23 +712,21 @@
                 return Math.round(n * f) / f;
             }
 
-          function formatDateOnly(val) {
-    if (val === null || val === undefined) return '—';
-    let s = String(val).trim();
-    if (!s || s === '—' || s === '-') return '—';
-
-    let d;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        // Plain date → interpret as local to avoid off-by-one
-        d = new Date(s + 'T00:00:00');
-    } else {
-        // ISO / other → let JS convert to the user's local timezone
-        d = new Date(s);
-    }
-    if (isNaN(d.getTime())) return s;
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+            // ---------- Date helpers ----------
+            function formatDateOnly(val) {
+                if (val === null || val === undefined) return '—';
+                const s = String(val).trim();
+                if (!s || s === '—' || s === '-') return '—';
+                let d;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                    d = new Date(s + 'T00:00:00');
+                } else {
+                    d = new Date(s);
+                }
+                if (isNaN(d.getTime())) return s;
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             }
+
             function formatDateTimeForPDF(val) {
                 if (!val) return '—';
                 if (Array.isArray(val)) val = val[0];
@@ -728,6 +735,7 @@
                 }
                 return String(val);
             }
+
             function normalizeDateForCompare(dateVal) {
                 if (!dateVal) return '';
                 if (Array.isArray(dateVal)) dateVal = dateVal[0];
@@ -807,18 +815,6 @@
                     }
                 });
                 return index;
-            }
-            function aggregateConsumption(records, index) {
-                const agg = {};
-                records.forEach(r => {
-                    const g = safeStr(r['Generator']) || 'Unknown';
-                    if (!agg[g]) agg[g] = { generator: g, capacity: getTankCapacity(g), records: 0, intervals: 0, hours: 0, consumed: 0, lph: null };
-                    agg[g].records++;
-                    const c = index ? index.get(r) : null;
-                    if (c) { agg[g].intervals++; agg[g].hours += c.hours; agg[g].consumed += c.consumed; }
-                });
-                Object.keys(agg).forEach(k => { agg[k].lph = agg[k].hours > 0 ? (agg[k].consumed / agg[k].hours) : null; });
-                return agg;
             }
 
             // ==================== DOM refs ====================
@@ -1070,7 +1066,6 @@
                 if (showMsg) { statusMessage.classList.remove('show'); showStatus('Form has been reset.', true); }
             }
 
-            // ==================== DUPLICATE CHECK ====================
             function buildGeneratorIdentity(obj) {
                 return normalizeGenKey(obj.generator || obj['Generator'] || '');
             }
@@ -1093,7 +1088,6 @@
                 } catch (e) { return { checked: false, error: e.message }; }
             }
 
-            // ==================== SIGN-OFF ====================
             signOffBtn.addEventListener('click', async function() {
                 const data = collectFormData();
                 await ensureReportHash(data);
@@ -1137,7 +1131,6 @@
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
-            // ==================== EXPORT CURRENT PDF ====================
             pdfBtn.addEventListener('click', async function() {
                 const current = collectFormData();
                 const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
@@ -1151,7 +1144,6 @@
                 pdfBtn.disabled = false; pdfBtn.innerHTML = orig;
             });
 
-            // ==================== DOWNLOAD ALL RECORDS ====================
             pdfAllBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1174,13 +1166,11 @@
             });
             modalCancel.addEventListener('click', function() { pdfModal.classList.remove('show'); });
 
-            // ---- FIX #1: Rewritten handler with timeout + progress + no re-sign loop ----
             modalGo.addEventListener('click', async function() {
                 modalGo.disabled = true;
                 const orig = modalGo.innerHTML;
                 modalGo.innerHTML = '⏳ Loading...';
 
-                // 1. Fetch with 45 s hard timeout
                 let json;
                 try {
                     modalGo.innerHTML = '⏳ Contacting Google Sheet...';
@@ -1208,14 +1198,12 @@
                     modalGo.disabled = false; modalGo.innerHTML = orig; return;
                 }
 
-                // 2. Filter by date range
                 const filtered = filterRecords(json.records);
                 if (filtered.length === 0) {
                     showStatus('📭 No records match the selected date range.', false);
                     modalGo.disabled = false; modalGo.innerHTML = orig; return;
                 }
 
-                // 3. Build PDF (NO re-signing loop)
                 try {
                     modalGo.innerHTML = '📄 Generating (' + filtered.length + ' record' + (filtered.length > 1 ? 's' : '') + ')...';
                     await new Promise(r => setTimeout(r, 30));
@@ -1252,9 +1240,6 @@
                 });
             }
 
-            // ============================================================
-            //  UNIFIED PROFESSIONAL PDF BUILDER
-            // ============================================================
             const VISUAL_TEXTS = [
                 'No leaks (oil, coolant, fuel)',
                 'Belt tension & wear',
@@ -1295,6 +1280,12 @@
                         const dims = await loadImageDimensions(dataUrl);
                         if (dims) sigDimensions[techName] = dims;
                     }
+                }
+                // Preload in-charge signature
+                const inchargeSigData = getInchargeSignature();
+                let inchargeSigDims = null;
+                if (inchargeSigData) {
+                    inchargeSigDims = await loadImageDimensions(inchargeSigData);
                 }
 
                 function addHeader(data) {
@@ -1351,7 +1342,6 @@
                     const data = records[i];
                     if (i > 0) { addFooter(); doc.addPage(); }
 
-                    // ---- FIX #2: Yield to browser every 5 pages ----
                     if (i > 0 && i % 5 === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
@@ -1472,14 +1462,14 @@
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
                     y += 17;
-doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
-doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
-doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
-doc.text('Predicted next service:', margin + 3, y + 5);
-doc.setTextColor(122, 76, 156); doc.setFontSize(9);
-// NEW: format the date instead of printing the raw ISO string
-const predNextRaw = data['Predicted Next Service Date'] || data.predictedNextServiceDate;
-doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
+
+                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
+                    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
+                    doc.text('Predicted next service:', margin + 3, y + 5);
+                    doc.setTextColor(122, 76, 156); doc.setFontSize(9);
+                    const predNextRaw = data['Predicted Next Service Date'] || data.predictedNextServiceDate;
+                    doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(58, 101, 131);
                     doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
                     y += 18;
@@ -1525,6 +1515,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                     const leftBoxX = margin;
                     const rightBoxX = margin + halfWidth + gap;
 
+                    // ---- LEFT: TECHNICIAN ----
                     doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                     doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
                     doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
@@ -1585,19 +1576,45 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                     doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
                     doc.text((data.signatureSubject || data['Signature Subject']) ? 'Signature + PKCS#7 digital seal' : 'Signature', leftBoxX + 3, y + 42);
 
+                    // ---- RIGHT: IN-CHARGE ----
                     doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
                     doc.roundedRect(rightBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
                     doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
                     doc.text('REVIEWED BY (SUPERVISOR / DEPT. IN-CHARGE)', rightBoxX + 3, y + 4.5);
                     doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
-                    doc.text('Site: CHUB — Engineering', rightBoxX + 3, y + 11);
-                    doc.setFontSize(7.5); doc.setTextColor(122, 83, 0);
-                    doc.text('Name: ____________________________', rightBoxX + 3, y + 18);
-                    doc.text('Signature: _________________________', rightBoxX + 3, y + 25);
+                    doc.text('Site: CHUB — Engineering', rightBoxX + 3, y + 10);
+
+                    // In-charge signature image area
+                    const inchargeSigAreaX = rightBoxX + 3;
+                    const inchargeSigAreaY = y + 12;
+                    const inchargeSigAreaW = halfWidth - 6;
+                    const inchargeSigAreaH = 16;
+                    doc.setDrawColor(200, 180, 120); doc.setLineWidth(0.2);
+                    doc.roundedRect(inchargeSigAreaX, inchargeSigAreaY, inchargeSigAreaW, inchargeSigAreaH, 1, 1, 'S');
+                    let inchargeDrawn = false;
+                    if (inchargeSigData) {
+                        try {
+                            let sigW, sigH;
+                            if (inchargeSigDims && inchargeSigDims.width > 0 && inchargeSigDims.height > 0) {
+                                const aspect = inchargeSigDims.width / inchargeSigDims.height;
+                                sigW = inchargeSigAreaW - 4; sigH = sigW / aspect;
+                                if (sigH > inchargeSigAreaH - 3) { sigH = inchargeSigAreaH - 3; sigW = sigH * aspect; }
+                            } else { sigW = inchargeSigAreaW - 6; sigH = inchargeSigAreaH - 6; }
+                            const sigX = inchargeSigAreaX + (inchargeSigAreaW - sigW) / 2;
+                            const sigY = inchargeSigAreaY + (inchargeSigAreaH - sigH) / 2;
+                            doc.addImage(inchargeSigData, 'PNG', sigX, sigY, sigW, sigH);
+                            inchargeDrawn = true;
+                        } catch (e) { console.warn('Could not render in-charge signature:', e); }
+                    }
+                    if (!inchargeDrawn) {
+                        doc.setFontSize(6); doc.setFont('helvetica', 'italic');
+                        doc.setTextColor(180, 160, 100);
+                        doc.text('(in-charge signature)', inchargeSigAreaX + inchargeSigAreaW / 2, inchargeSigAreaY + inchargeSigAreaH / 2 + 1, { align: 'center' });
+                    }
                     doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
-                    doc.line(rightBoxX + 3, y + 33, rightBoxX + halfWidth - 3, y + 33);
+                    doc.line(rightBoxX + 3, y + 34, rightBoxX + halfWidth - 3, y + 34);
                     doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(122, 83, 0);
-                    doc.text('Signature & Date', rightBoxX + 3, y + 36.5);
+                    doc.text('Name & Signature', rightBoxX + 3, y + 38);
 
                     y += boxHeight + 4;
                     doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150);
@@ -1609,7 +1626,6 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 doc.save(fname);
             }
 
-            // ==================== ANALYSIS REPORT ====================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1692,6 +1708,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
+            // NOTE: Fuel Consumption Analysis page has been REMOVED per user request.
             async function generateAnalysisPDF(records, consIndex) {
                 if (!consIndex) consIndex = buildConsumptionIndex(records);
                 const { jsPDF } = window.jspdf;
@@ -1855,86 +1872,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(91, 123, 150);
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
 
-                doc.addPage();
-                let y3 = 20;
-                doc.setFillColor(30, 74, 109);
-                doc.rect(0, 0, pageW, 4, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Fuel Consumption Analysis', mL, y3); y3 += 5;
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(91, 123, 150);
-                doc.text('Site: CHUB · Range: ' + rangeLabel + ' · Records: ' + records.length, mL, y3); y3 += 4;
-                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
-                doc.line(mL, y3, pageW - mR, y3); y3 += 8;
-
-                const consAgg = aggregateConsumption(records, consIndex);
-                const consList = Object.keys(consAgg).map(k => consAgg[k]);
-                consList.sort((a, b) => ((a.lph === null ? -1 : a.lph) > (b.lph === null ? -1 : b.lph)) ? -1 : 1);
-                const totalFuelUsed = consList.reduce((s, a) => s + a.consumed, 0);
-                const totalPeriodHours = consList.reduce((s, a) => s + a.hours, 0);
-                const fleetAvgLph = totalPeriodHours > 0 ? (totalFuelUsed / totalPeriodHours) : 0;
-                const gensWithData = consList.filter(a => a.lph !== null).length;
-
-                const fkpis = [
-                    { label: 'Generators Analysed', value: gensWithData + ' / ' + consList.length },
-                    { label: 'Total Period Run Hours', value: roundClient(totalPeriodHours, 1) + ' h' },
-                    { label: 'Total Fuel Used', value: roundClient(totalFuelUsed, 1) + ' L' },
-                    { label: 'Fleet Avg Consumption', value: roundClient(fleetAvgLph, 2) + ' L/h' }
-                ];
-                const fBoxW = (cW - 6) / 4;
-                fkpis.forEach((b, i) => {
-                    const bx = mL + i * (fBoxW + 2);
-                    doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                    doc.roundedRect(bx, y3, fBoxW, 20, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(91, 123, 150);
-                    doc.text(b.label.toUpperCase(), bx + 3, y3 + 5);
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
-                    doc.text(String(b.value), bx + 3, y3 + 14);
-                });
-                y3 += 27;
-
-                y3 = drawAnalysisSection(doc, 'Average Fuel Consumption per Generator', mL, y3, cW);
-                const fuelTableRows = consList.map(a => [
-                    a.generator,
-                    a.capacity !== null ? a.capacity : '—',
-                    roundClient(a.hours, 1),
-                    roundClient(a.consumed, 1),
-                    a.lph !== null ? roundClient(a.lph, 2) : 'n/a'
-                ]);
-                y3 = drawSimpleTable(doc, ['Generator', 'Tank (L)', 'Run Hours', 'Fuel Used (L)', 'Avg (L/h)'], fuelTableRows, mL, y3, cW);
-
-                y3 = drawAnalysisSection(doc, 'Consumption Rate Comparison (L/h)', mL, y3, cW);
-                const maxLph = Math.max(0.01, ...consList.map(a => a.lph || 0));
-                const barLabelW = 44;
-                const barMaxW2 = cW - barLabelW - 24;
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-                consList.forEach((a, i) => {
-                    const rowY = y3 + i * 6;
-                    doc.setTextColor(31, 60, 84);
-                    const nm = a.generator.length > 24 ? a.generator.substring(0, 23) + '…' : a.generator;
-                    doc.text(nm, mL, rowY + 4);
-                    const val = a.lph || 0;
-                    const barW = (val / maxLph) * barMaxW2;
-                    doc.setFillColor(42, 107, 150);
-                    doc.rect(mL + barLabelW, rowY, Math.max(barW, 0.6), 4, 'F');
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                    doc.text(a.lph !== null ? a.lph.toFixed(2) + ' L/h' : 'n/a', mL + barLabelW + barW + 2, rowY + 4);
-                    doc.setFont('helvetica', 'normal');
-                });
-                y3 += consList.length * 6 + 6;
-
-                y3 = drawAnalysisSection(doc, 'How this is calculated', mL, y3, cW);
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(58, 101, 131);
-                const methodLines = [
-                    'Fuel used between two inspections of the same generator = Diesel refilled (L) + (Fuel % at previous inspection - Fuel % at current inspection) x Tank capacity (L).',
-                    'Average consumption (L/h) = Fuel used (L) / Run hours between the two inspections (difference of the hour-meter readings).',
-                    'Tank capacities: Ritewat 500KVA G1 = 800 L · Ritewat 500KVA G2 = 800 L · Perkins 400KVA = 250 L · Perkins 300KVA = 800 L · Cummins 70KVA = 60 L · DAF 80KVA = 130 L.',
-                    'A generator shows "n/a" when there is only one inspection in the range, or when the hour-meter reading / fuel level is missing.'
-                ];
-                methodLines.forEach(line => {
-                    const wrapped = doc.splitTextToSize('• ' + line, cW - 4);
-                    doc.text(wrapped, mL + 2, y3);
-                    y3 += wrapped.length * 3.6 + 1.2;
-                });
+                // ---- LAST PAGE REMOVED: Fuel Consumption Analysis ----
 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
@@ -1990,6 +1928,8 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
             // ==================== SIGNATURE MODAL LOGIC ====================
             const signatureModal = document.getElementById('signatureModal');
             const sigFileInput = document.getElementById('sigFileInput');
+            const inchargeSigInput = document.getElementById('inchargeSigInput');
+            const inchargeSigPreview = document.getElementById('inchargeSigPreview');
             const pfxFileInput = document.getElementById('pfxFileInput');
             const pfxPasswordInput = document.getElementById('pfxPasswordInput');
             const sigPreview = document.getElementById('sigPreview');
@@ -1997,11 +1937,16 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
             const sigError = document.getElementById('sigError');
 
             let pendingVisualSig = null;
+            let pendingInchargeSig = null;
             let pendingCert = null;
 
             function renderVisualPreview() {
                 if (pendingVisualSig) sigPreview.innerHTML = `<img src="${pendingVisualSig}" alt="signature">`;
                 else sigPreview.innerHTML = '<span class="placeholder">No visual signature uploaded</span>';
+            }
+            function renderInchargeSigPreview() {
+                if (pendingInchargeSig) inchargeSigPreview.innerHTML = `<img src="${pendingInchargeSig}" alt="incharge signature">`;
+                else inchargeSigPreview.innerHTML = '<span class="placeholder">No in-charge signature uploaded</span>';
             }
             function renderCertPreview() {
                 if (!pendingCert) {
@@ -2025,11 +1970,14 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 if (!name) { alert('Please log in first.'); return; }
                 sigError.textContent = '';
                 sigFileInput.value = '';
+                inchargeSigInput.value = '';
                 pfxFileInput.value = '';
                 pfxPasswordInput.value = '';
                 pendingVisualSig = getSignatureFor(name) || null;
+                pendingInchargeSig = getInchargeSignature() || null;
                 pendingCert = isCertLoaded() ? { ...CERT_STATE } : null;
                 renderVisualPreview();
+                renderInchargeSigPreview();
                 renderCertPreview();
                 signatureModal.classList.add('show');
             });
@@ -2039,16 +1987,19 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 signatureModal.classList.remove('show');
             });
             document.getElementById('sigRemove').addEventListener('click', () => {
-                if (!confirm('Forget the current signature and certificate?')) return;
+                if (!confirm('Forget the current signatures and certificate?')) return;
                 const name = technicianSelect.value;
                 saveSignatureFor(name, '');
+                saveInchargeSignature('');
                 clearCert();
                 pendingVisualSig = null;
+                pendingInchargeSig = null;
                 pendingCert = null;
                 renderVisualPreview();
+                renderInchargeSigPreview();
                 renderCertPreview();
                 updateTechnicianDisplay();
-                showStatus('🗑️ Signature and certificate cleared.', true);
+                showStatus('🗑️ Signatures and certificate cleared.', true);
             });
 
             sigFileInput.addEventListener('change', function() {
@@ -2057,6 +2008,15 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; }
                 const reader = new FileReader();
                 reader.onload = (e) => { pendingVisualSig = e.target.result; renderVisualPreview(); };
+                reader.readAsDataURL(file);
+            });
+
+            inchargeSigInput.addEventListener('change', function() {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = (e) => { pendingInchargeSig = e.target.result; renderInchargeSigPreview(); };
                 reader.readAsDataURL(file);
             });
 
@@ -2115,6 +2075,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 }
 
                 if (pendingVisualSig) saveSignatureFor(name, pendingVisualSig);
+                saveInchargeSignature(pendingInchargeSig || '');
                 if (pendingCert) {
                     CERT_STATE.certificate = pendingCert.certificate;
                     CERT_STATE.privateKey  = pendingCert.privateKey;
@@ -2128,7 +2089,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                 updateTechnicianDisplay();
                 pfxPasswordInput.value = '';
                 signatureModal.classList.remove('show');
-                showStatus('✅ Signature and certificate saved.', true);
+                showStatus('✅ Signatures and certificate saved.', true);
             });
 
             // ==================== SERVICE REF / PREDICTION ====================
@@ -2332,7 +2293,7 @@ doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=6')
+                navigator.serviceWorker.register('sw.js?v=7')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
