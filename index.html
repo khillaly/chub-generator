@@ -1472,13 +1472,14 @@
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
                     y += 17;
-
-                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
-                    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
-                    doc.text('Predicted next service:', margin + 3, y + 5);
-                    doc.setTextColor(122, 76, 156); doc.setFontSize(9);
-                    doc.text(safeStr(data['Predicted Next Service Date'] || data.predictedNextServiceDate) || '—', margin + 40, y + 5);
+doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
+doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
+doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
+doc.text('Predicted next service:', margin + 3, y + 5);
+doc.setTextColor(122, 76, 156); doc.setFontSize(9);
+// NEW: format the date instead of printing the raw ISO string
+const predNextRaw = data['Predicted Next Service Date'] || data.predictedNextServiceDate;
+doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
                     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(58, 101, 131);
                     doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
                     y += 18;
