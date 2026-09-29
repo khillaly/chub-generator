@@ -9,10 +9,12 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        body { background: linear-gradient(135deg, #eef4fa 0%, #f5f7fa 100%); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { background: linear-gradient(135deg, #eef4fa 0%, #f5f7fa 100%); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
         body::before { content: 'CHUB MAINTENANCE'; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: clamp(24px, 4vw, 72px); font-weight: 900; color: rgba(30, 74, 109, 0.12); letter-spacing: 6px; pointer-events: none; user-select: none; white-space: nowrap; z-index: 50; text-align: center; width: 100%; }
         .app-container { max-width: 1300px; width: 100%; background: white; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); padding: 32px 28px; margin-bottom: 30px; }
         .title-hero { text-align: center; padding: 22px 20px 30px 20px; margin-bottom: 24px; background: linear-gradient(135deg, #0b3b5c 0%, #1e4a6d 50%, #2a6b96 100%); border-radius: 24px; position: relative; overflow: hidden; box-shadow: 0 14px 30px -10px rgba(15, 56, 82, 0.5); }
@@ -24,7 +26,7 @@
         .title-hero .title-sub .dot-sep { width: 5px; height: 5px; border-radius: 50%; background: #7fc8ff; display: inline-block; }
         .title-ornament { font-size: 2rem; filter: drop-shadow(0 0 8px rgba(127,200,255,0.7)); }
         .subhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; background: #eef6fc; padding: 16px 24px; border-radius: 24px; margin-bottom: 24px; border: 1px solid #d8e8f4; gap: 14px; }
-        .tech-info { display: flex; align-items: center; gap: 14px; font-size: 1.05rem; color: #0b3b5c; font-weight: 500; }
+        .tech-info { display: flex; align-items: center; gap: 14px; font-size: 1.05rem; color: #0b3b5c; font-weight: 500; flex-wrap: wrap; }
         .workdate-tag { background: #fff3cd; color: #7a5300; padding: 8px 22px; border-radius: 40px; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 8px; border: 1px solid #f4d97a; }
         .sync-status { background: #e2f0e6; color: #1b6b3f; padding: 6px 16px; border-radius: 40px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; border: 1px solid #b8dfc3; }
         .sync-status.offline { background: #fff3cd; color: #7a5300; border-color: #f4d97a; }
@@ -70,7 +72,8 @@
         .signoff-left .label { font-weight: 600; color: #12405e; font-size: 1rem; letter-spacing: 0.3px; }
         .signoff-left .tech { font-size: 1.6rem; font-weight: 700; color: #0a2a3f; line-height: 1.2; }
         .signoff-right { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-        .signature-pad { background: white; border-radius: 40px; padding: 8px 22px; border: 2px dashed #9cb9d0; display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 55px; font-family: 'Segoe UI', cursive; font-size: 1.3rem; color: #1e4a6d; font-weight: 500; letter-spacing: 1px; white-space: nowrap; }
+        .signature-pad { background: white; border-radius: 40px; padding: 6px 16px; border: 2px dashed #9cb9d0; display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 55px; font-size: 0.85rem; color: #1e4a6d; font-weight: 500; letter-spacing: 0.5px; white-space: nowrap; }
+        .signature-pad img { max-height: 50px; max-width: 200px; object-fit: contain; }
         .btn-primary { background: #1e4a6d; color: white; border: none; padding: 16px 36px; border-radius: 40px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 10px 18px -8px rgba(20,60,100,0.3); letter-spacing: 0.3px; }
         .btn-primary:hover { background: #0f3852; transform: scale(1.01); }
         .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
@@ -94,13 +97,13 @@
         .action-buttons { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 24px; justify-content: center; }
         .section-divider { border: none; border-top: 2px dashed #d4e3ef; margin: 28px 0; }
         .section-title { font-size: 1.3rem; font-weight: 600; color: #12405e; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 30, 50, 0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 30, 50, 0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .modal-overlay.show { display: flex; }
-        .modal-box { background: white; border-radius: 24px; padding: 32px 28px; max-width: 480px; width: 100%; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4); }
+        .modal-box { background: white; border-radius: 24px; padding: 32px 28px; max-width: 520px; width: 100%; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto; position: relative; z-index: 1001; margin: auto; }
         .modal-box h2 { font-size: 1.35rem; color: #12405e; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
         .modal-box p { font-size: 0.9rem; color: #5b7b96; margin-bottom: 22px; }
         .modal-box .field-group { margin-bottom: 16px; }
-        .modal-box .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .modal-box .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap; }
         .modal-box .modal-actions button { padding: 12px 24px; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; border: none; transition: 0.15s; }
         .modal-box .btn-cancel { background: #e7f0f8; color: #1e4a6d; }
         .modal-box .btn-cancel:hover { background: #d4e3ef; }
@@ -111,7 +114,25 @@
         .filter-chip { padding: 10px 18px; border-radius: 40px; border: 1.5px solid #cfdfeb; background: #fbfdff; font-size: 0.85rem; font-weight: 600; color: #5b7b96; cursor: pointer; transition: 0.15s; user-select: none; }
         .filter-chip:hover { border-color: #1e4a6d; color: #1e4a6d; }
         .filter-chip.active { background: #1e4a6d; color: white; border-color: #1e4a6d; }
-        @media (max-width: 700px) { .grid-3-wide { grid-template-columns: 1fr; } .title-hero h1 { font-size: 1.5rem; } .app-container { padding: 20px 16px; } select, input[type="date"] { min-width: 100%; } .generator-banner .gen-title { font-size: 1.1rem; } .chub-logo { flex: 1 1 100px; max-width: 160px; margin-left: 8px; margin-right: 8px; } }
+        .sig-preview { background: #fbfdff; border: 2px dashed #cfdfeb; border-radius: 16px; padding: 12px; text-align: center; min-height: 90px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .sig-preview img { max-height: 80px; max-width: 100%; object-fit: contain; }
+        .sig-preview .placeholder { color: #9cb9d0; font-size: 0.9rem; font-style: italic; }
+        .modal-box h3.sig-h3 { font-size: 0.95rem; color: #12405e; margin: 18px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #d4e3ef; }
+        @media (max-width: 700px) {
+            body { padding: 12px 8px; }
+            .app-container { padding: 20px 16px; border-radius: 20px; }
+            .grid-3-wide { grid-template-columns: 1fr; }
+            .title-hero h1 { font-size: 1.4rem; }
+            .title-hero h1 .title-accent { display: block; font-size: 1.05rem; }
+            select, input[type="date"] { min-width: 100%; }
+            .generator-banner .gen-title { font-size: 1.1rem; }
+            .chub-logo { flex: 1 1 100px; max-width: 160px; margin-left: 8px; margin-right: 8px; }
+            .action-buttons button { width: 100%; justify-content: center; }
+            .signoff-right { flex-direction: column; align-items: stretch; width: 100%; }
+            .signoff-right .btn-primary { width: 100%; justify-content: center; }
+            .signature-pad { min-width: 100%; }
+            input, select, textarea { font-size: 16px !important; }
+        }
     </style>
 </head>
 <body>
@@ -149,6 +170,7 @@
                 <div class="sync-status" id="loggedInUser" style="background:#1e4a6d; color:white; border-color:#1e4a6d;">
                     <span>👤</span> <span id="loggedInUserName">—</span>
                 </div>
+                <button id="signatureBtn" class="btn-secondary" style="padding: 8px 18px; font-size: 0.85rem;">🖊️ Signature &amp; Cert</button>
                 <button id="logoutBtn" class="btn-secondary" style="padding: 8px 18px; font-size: 0.85rem;">🚪 Logout</button>
                 <div class="workdate-tag">
                     <span>📅</span> Work date: <strong id="workDateDisplay">—</strong>
@@ -173,7 +195,7 @@
                 <option value="300KVA perkins" data-sub="Perkins 300 kVA · 400V / 50Hz · field checklist">300KVA perkins</option>
                 <option value="DAF 80 KVA" data-sub="DAF 80 kVA · 400V / 50Hz · field checklist">DAF 80 KVA</option>
             </select>
-            <img src="chub-logo.png" alt="CHUB Logo" class="chub-logo">
+            <img src="chub-logo.png" alt="CHUB Logo" class="chub-logo" onerror="this.style.display='none'">
             <span style="font-size: 0.9rem; color: #2a577b;">All rated 400V / 50Hz</span>
         </div>
 
@@ -407,6 +429,7 @@
         </div>
     </div>
 
+    <!-- LOGIN MODAL -->
     <div class="modal-overlay show" id="loginModal">
         <div class="modal-box" style="max-width: 420px; text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔐</div>
@@ -425,13 +448,52 @@
             </div>
             <div class="field-group" style="text-align: left;">
                 <label for="loginPinInput">Your PIN</label>
-                <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;" onkeypress="if(event.key==='Enter'){document.getElementById('loginBtn').click();}">
+                <input type="password" id="loginPinInput" inputmode="numeric" maxlength="8" placeholder="••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;">
             </div>
             <div id="loginError" style="color: #b33a3a; font-size: 0.9rem; margin-top: 6px; min-height: 20px;"></div>
             <button class="btn-primary" id="loginBtn" style="width: 100%; justify-content: center; margin-top: 14px;">🔓 Unlock &amp; Continue</button>
         </div>
     </div>
 
+    <!-- SIGNATURE + CERTIFICATE MODAL -->
+    <div class="modal-overlay" id="signatureModal">
+        <div class="modal-box">
+            <h2>🖊️ Signature &amp; Digital Certificate</h2>
+            <p>Load both for full authenticity — the visual signature for readers, the .pfx certificate for cryptographic proof. The private key stays only in this browser tab.</p>
+
+            <h3 class="sig-h3">✍️ Visual Signature (handwritten PNG)</h3>
+            <div class="sig-preview" id="sigPreview">
+                <span class="placeholder">No visual signature uploaded</span>
+            </div>
+            <div class="field-group">
+                <label for="sigFileInput">Choose signature image (PNG with transparent background recommended)</label>
+                <input type="file" id="sigFileInput" accept="image/png, image/jpeg">
+            </div>
+
+            <h3 class="sig-h3">🔐 Digital Certificate (.pfx / .p12)</h3>
+            <div class="sig-preview" id="certPreview">
+                <span class="placeholder">No certificate loaded</span>
+            </div>
+            <div class="field-group">
+                <label for="pfxFileInput">Your .pfx / .p12 file</label>
+                <input type="file" id="pfxFileInput" accept=".pfx,.p12,application/x-pkcs12">
+            </div>
+            <div class="field-group">
+                <label for="pfxPasswordInput">PFX password</label>
+                <input type="password" id="pfxPasswordInput" placeholder="Enter PFX password">
+            </div>
+
+            <div id="sigError" style="color:#b33a3a; font-size:0.85rem; min-height:18px; margin-bottom:8px;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" id="sigCancel">Close</button>
+                <button class="btn-cancel" id="sigRemove" style="background:#ffe6e6; color:#b33a3a;">🗑️ Forget All</button>
+                <button class="btn-go" id="sigSave">💾 Save &amp; Use</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF RANGE MODAL -->
     <div class="modal-overlay" id="pdfModal">
         <div class="modal-box">
             <h2>📚 Download All Records</h2>
@@ -454,10 +516,11 @@
         </div>
     </div>
 
+    <!-- ANALYSIS MODAL -->
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
-            <p>Choose a date range. The PDF will include KPIs, histogram, fuel consumption per generator, and tables.</p>
+            <p>Choose a date range. The PDF will include KPIs, histograms, fuel consumption per generator and tables.</p>
             <div class="filter-selector" id="analysisQuickFilters">
                 <div class="filter-chip active" data-range="7">Last 7 days</div>
                 <div class="filter-chip" data-range="30">Last 30 days</div>
@@ -488,6 +551,108 @@
                 'GATANGANWA Raissa':      '0401'
             };
 
+            // ============================================================
+            // ⭐ VISUAL SIGNATURE STORAGE (PNG) — per technician, persisted
+            // ============================================================
+            const DEFAULT_TECHNICIAN_SIGNATURES = {
+                // 'Hillaly KUBWIMANA': 'data:image/png;base64,PASTE_YOUR_BASE64_HERE',
+            };
+            const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
+
+            function loadSignatures() {
+                let stored = {};
+                try { const raw = localStorage.getItem(SIG_STORAGE_KEY); if (raw) stored = JSON.parse(raw); } catch(e) { stored = {}; }
+                return { ...DEFAULT_TECHNICIAN_SIGNATURES, ...stored };
+            }
+            function getSignatureFor(techName) { const sigs = loadSignatures(); return sigs[techName] || ''; }
+            function saveSignatureFor(techName, dataUrl) {
+                if (!techName) return;
+                let stored = {};
+                try { const raw = localStorage.getItem(SIG_STORAGE_KEY); if (raw) stored = JSON.parse(raw); } catch(e) { stored = {}; }
+                if (dataUrl) stored[techName] = dataUrl; else delete stored[techName];
+                try { localStorage.setItem(SIG_STORAGE_KEY, JSON.stringify(stored)); } catch(e) { alert('Could not save signature — browser storage may be full.'); }
+            }
+
+            function sanitizeForPDF(str) {
+                if (str === null || str === undefined) return '';
+                return String(str).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, ' ').trim();
+            }
+
+            function loadImageDimensions(dataUrl) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                    img.onerror = () => resolve(null);
+                    img.src = dataUrl;
+                });
+            }
+
+            // ---- CERT STATE ----
+            const CERT_STATE = {
+                certificate: null, privateKey: null,
+                subject: '', issuer: '', serial: '',
+                validFrom: null, validTo: null, fingerprint: ''
+            };
+            function isCertLoaded() { return !!(CERT_STATE.certificate && CERT_STATE.privateKey); }
+            function clearCert() {
+                CERT_STATE.certificate = null; CERT_STATE.privateKey = null;
+                CERT_STATE.subject = ''; CERT_STATE.issuer = ''; CERT_STATE.serial = '';
+                CERT_STATE.validFrom = null; CERT_STATE.validTo = null; CERT_STATE.fingerprint = '';
+            }
+
+            function signCanonical(canonicalString) {
+                if (!isCertLoaded()) return null;
+                try {
+                    const md = forge.md.sha256.create();
+                    md.update(canonicalString, 'utf8');
+                    const signature = CERT_STATE.privateKey.sign(md);
+                    return {
+                        base64: forge.util.encode64(signature),
+                        subject: CERT_STATE.subject, issuer: CERT_STATE.issuer, serial: CERT_STATE.serial,
+                        fingerprint: CERT_STATE.fingerprint,
+                        validFrom: CERT_STATE.validFrom ? CERT_STATE.validFrom.toISOString() : '',
+                        validTo:   CERT_STATE.validTo   ? CERT_STATE.validTo.toISOString()   : '',
+                        signedAt:  new Date().toISOString()
+                    };
+                } catch (e) { console.error('Signature failed:', e); return null; }
+            }
+
+            function buildCanonical(data) {
+                return [
+                    data.technician || '', data.workDate || '', data.generator || '',
+                    data.fuelLevel || '', data.coolantLevel || '', data.oilLevel || '',
+                    data.refilledDiesel || '', data.totalRunHours || '',
+                    data.visualItems || '', data.protItems || '', data.atsItems || '',
+                    data.visualRating || '', data.protRating || '', data.atsRating || '',
+                    data.generatedAt || ''
+                ].join('|');
+            }
+
+            async function computeSHA256(text) {
+                const buf = new TextEncoder().encode(text);
+                const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+                return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            async function ensureReportHash(data) {
+                if (data.reportHash && data.reportId && data.pkcs7Signature) return data;
+                const canonical = buildCanonical(data);
+                const full = await computeSHA256(canonical);
+                data.reportHash = full.toUpperCase();
+                data.reportId = `CHUB-GEN-${(data.workDate||'').replace(/-/g,'')}-${full.substring(0,8).toUpperCase()}`;
+                const sig = signCanonical(canonical);
+                if (sig) {
+                    data.pkcs7Signature   = sig.base64;
+                    data.signatureSubject = sig.subject;
+                    data.signatureIssuer  = sig.issuer;
+                    data.signatureSerial  = sig.serial;
+                    data.signatureFingerprint = sig.fingerprint;
+                    data.signatureValidTo = sig.validTo;
+                    data.signatureSignedAt = sig.signedAt;
+                }
+                return data;
+            }
+
             function safeSplit(val, sep) {
                 if (val === null || val === undefined) return [];
                 if (Array.isArray(val)) {
@@ -497,49 +662,76 @@
                 }
                 return String(val).split(sep).map(v => v.trim()).filter(Boolean);
             }
-
             function safeStr(val) {
                 if (val === null || val === undefined) return '';
                 if (Array.isArray(val)) return val.join(' ').trim();
                 return String(val);
             }
+            function parseNumClient(val) {
+                if (val === null || val === undefined || val === '') return 0;
+                if (typeof val === 'number') return val;
+                if (Array.isArray(val)) val = val[0];
+                const s = String(val).replace(/[^\d.-]/g, '');
+                const n = parseFloat(s);
+                return isNaN(n) ? 0 : n;
+            }
+            function validNum(raw) {
+                if (raw === null || raw === undefined || raw === '' || raw === '—' || raw === '-') return null;
+                if (Array.isArray(raw)) raw = raw[0];
+                const n = parseNumClient(raw);
+                if (n === 0 && String(raw).replace(/[^\d]/g, '') === '') return null;
+                return n;
+            }
+            function roundClient(n, decimals) {
+                const f = Math.pow(10, decimals);
+                return Math.round(n * f) / f;
+            }
 
+            // ---------- Date helpers (AC-Fleet-style short formats) ----------
             function formatDateOnly(val) {
                 if (val === null || val === undefined) return '—';
-                const s = String(val).trim();
+                let s = String(val).trim();
                 if (!s || s === '—' || s === '-') return '—';
-
+                if (s.includes('T')) s = s.split('T')[0];
                 let d;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-                    d = new Date(s + 'T00:00:00');
-                } else {
-                    d = new Date(s);
-                }
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) d = new Date(s + 'T00:00:00');
+                else d = new Date(s);
                 if (isNaN(d.getTime())) return s;
-
-                const dd   = String(d.getDate()).padStart(2, '0');
-                const mm   = String(d.getMonth() + 1).padStart(2, '0');
-                const yyyy = d.getFullYear();
-                return dd + '/' + mm + '/' + yyyy;
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            }
+            function formatDateTimeForPDF(val) {
+                if (!val) return '—';
+                if (Array.isArray(val)) val = val[0];
+                if (typeof val === 'string' && val.includes('T')) {
+                    return new Date(val).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+                return String(val);
+            }
+            function normalizeDateForCompare(dateVal) {
+                if (!dateVal) return '';
+                if (Array.isArray(dateVal)) dateVal = dateVal[0];
+                if (dateVal instanceof Date) {
+                    if (isNaN(dateVal.getTime())) return '';
+                    return `${dateVal.getFullYear()}-${String(dateVal.getMonth() + 1).padStart(2, '0')}-${String(dateVal.getDate()).padStart(2, '0')}`;
+                }
+                let s = String(dateVal).trim();
+                if (!s) return '';
+                if (s.includes('T')) s = s.split('T')[0];
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                const parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) {
+                    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+                }
+                return s;
             }
 
             const TANK_CAPACITY_BY_KEY = {
-                'ritewat500kvag1': 800,
-                'ritewat500kvag2': 800,
-                '400kvaperkins':   250,
-                'perkins400kva':   250,
-                'cummins70kva':     60,
-                'commins70kva':     60,
-                '70kvacummins':     60,
-                '300kvaperkins':   800,
-                'perkins300kva':   800,
-                'daf80kva':        130
+                'ritewat500kvag1': 800, 'ritewat500kvag2': 800,
+                '400kvaperkins': 250, 'perkins400kva': 250,
+                'cummins70kva': 60, 'commins70kva': 60, '70kvacummins': 60,
+                '300kvaperkins': 800, 'perkins300kva': 800, 'daf80kva': 130
             };
-
-            function normalizeGenKey(name) {
-                return safeStr(name).toLowerCase().replace(/[^a-z0-9]/g, '');
-            }
-
+            function normalizeGenKey(name) { return safeStr(name).toLowerCase().replace(/[^a-z0-9]/g, ''); }
             function getTankCapacity(name) {
                 const k = normalizeGenKey(name);
                 if (!k) return null;
@@ -549,12 +741,10 @@
                 if (k.indexOf('daf') !== -1) return 130;
                 if (k.indexOf('perkins') !== -1) {
                     if (k.indexOf('300') !== -1) return 800;
-                    if (k.indexOf('400') !== -1) return 250;
                     return 250;
                 }
                 return null;
             }
-
             function parseFuelPercent(rec) {
                 let v = validNum(rec['Fuel %']);
                 if (v === null) return null;
@@ -562,22 +752,16 @@
                 if (v < 0 || v > 100) return null;
                 return v;
             }
-
             function recordTime(rec) {
                 const raw = rec['Timestamp'] || rec['timestamp'] || rec['Work Date'];
                 const t = new Date(raw).getTime();
                 return isNaN(t) ? 0 : t;
             }
-
             function buildConsumptionIndex(records) {
                 const index = new Map();
                 if (!Array.isArray(records) || records.length === 0) return index;
                 const groups = {};
-                records.forEach(r => {
-                    const g = safeStr(r['Generator']) || 'Unknown';
-                    if (!groups[g]) groups[g] = [];
-                    groups[g].push(r);
-                });
+                records.forEach(r => { const g = safeStr(r['Generator']) || 'Unknown'; if (!groups[g]) groups[g] = []; groups[g].push(r); });
                 Object.keys(groups).forEach(g => {
                     const capacity = getTankCapacity(g);
                     const list = groups[g].slice().sort((a, b) => recordTime(a) - recordTime(b));
@@ -603,7 +787,6 @@
                 });
                 return index;
             }
-
             function aggregateConsumption(records, index) {
                 const agg = {};
                 records.forEach(r => {
@@ -613,12 +796,11 @@
                     const c = index ? index.get(r) : null;
                     if (c) { agg[g].intervals++; agg[g].hours += c.hours; agg[g].consumed += c.consumed; }
                 });
-                Object.keys(agg).forEach(k => {
-                    agg[k].lph = agg[k].hours > 0 ? (agg[k].consumed / agg[k].hours) : null;
-                });
+                Object.keys(agg).forEach(k => { agg[k].lph = agg[k].hours > 0 ? (agg[k].consumed / agg[k].hours) : null; });
                 return agg;
             }
 
+            // ==================== DOM refs ====================
             const generatorSelect = document.getElementById('generatorSelect');
             const technicianSelect = document.getElementById('technicianSelect');
             const signoffTechName = document.getElementById('signoffTechName');
@@ -633,25 +815,20 @@
             const pendingCount = document.getElementById('pendingCount');
             const syncStatus = document.getElementById('syncStatus');
             const syncStatusText = document.getElementById('syncStatusText');
-
             const genTitle = document.getElementById('genTitle');
             const genSub = document.getElementById('genSub');
-
             const workDateInput = document.getElementById('workDate');
             const workDateDisplay = document.getElementById('workDateDisplay');
             const signoffWorkDate = document.getElementById('signoffWorkDate');
-
             const fuelLevel = document.getElementById('fuelLevel');
             const coolantLevelRadios = document.querySelectorAll('input[name="coolantLevel"]');
             const oilLevelRadios = document.querySelectorAll('input[name="oilLevel"]');
             const refilledDiesel = document.getElementById('refilledDiesel');
             const totalRunHours = document.getElementById('totalRunHours');
-
             const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
             const visualRemark = document.getElementById('visualRemark');
             const protRemark = document.getElementById('protRemark');
             const atsRemark = document.getElementById('atsRemark');
-
             const pdfModal = document.getElementById('pdfModal');
             const modalCancel = document.getElementById('modalCancel');
             const modalGo = document.getElementById('modalGo');
@@ -659,7 +836,6 @@
             const customRangeFields = document.getElementById('customRangeFields');
             const fromDate = document.getElementById('fromDate');
             const toDate = document.getElementById('toDate');
-
             const analysisModal = document.getElementById('analysisModal');
             const analysisModalCancel = document.getElementById('analysisModalCancel');
             const analysisModalGo = document.getElementById('analysisModalGo');
@@ -673,11 +849,7 @@
             let lastSubmittedSnapshot = null;
 
             const QUEUE_KEY = 'chub_generator_queue';
-
-            function getQueue() {
-                try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }
-                catch(e) { return []; }
-            }
+            function getQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) { return []; } }
             function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); updatePendingCount(); }
             function updatePendingCount() { pendingCount.textContent = getQueue().length; }
             function setSyncStatus(state, text) {
@@ -691,21 +863,16 @@
                     return true;
                 } catch (err) { console.warn('Send failed:', err); return false; }
             }
-
             async function flushQueue() {
                 const q = getQueue();
                 if (q.length === 0) { setSyncStatus('', 'All synced'); return; }
                 setSyncStatus('', 'Syncing...');
                 const remaining = []; let sent = 0;
-                for (const item of q) {
-                    const ok = await sendToSheet(item);
-                    if (ok) sent++; else remaining.push(item);
-                }
+                for (const item of q) { const ok = await sendToSheet(item); if (ok) sent++; else remaining.push(item); }
                 saveQueue(remaining);
                 if (remaining.length === 0) { setSyncStatus('', 'All synced ✓'); showStatus('✅ ' + sent + ' record(s) synced.', true); }
                 else { setSyncStatus('error', remaining.length + ' pending'); showStatus('⚠️ ' + sent + ' synced, ' + remaining.length + ' pending.', false); }
             }
-
             async function queueAndSend(data) {
                 setSyncStatus('', 'Sending...');
                 const ok = await sendToSheet(data);
@@ -729,19 +896,18 @@
                 workDateInput.value = `${yyyy}-${mm}-${dd}`;
                 updateWorkDateDisplay();
             }
-
             function updateWorkDateDisplay() {
                 if (!workDateInput.value) { workDateDisplay.textContent = '—'; signoffWorkDate.textContent = '—'; return; }
                 const d = new Date(workDateInput.value + 'T00:00:00');
-                const formatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+                // AC-Fleet style short format
+                const formatted = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
                 workDateDisplay.textContent = formatted;
                 signoffWorkDate.textContent = formatted;
             }
-
             function formatWorkDate() {
                 if (!workDateInput.value) return '—';
                 const d = new Date(workDateInput.value + 'T00:00:00');
-                return d.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             }
 
             function updateGeneratorBanner() {
@@ -749,14 +915,23 @@
                 genTitle.textContent = opt.value;
                 genSub.textContent = opt.getAttribute('data-sub') || (opt.value + ' · 400V / 50Hz · field checklist');
             }
-
             function updateTechnicianDisplay() {
                 const name = technicianSelect.value;
                 signoffTechName.textContent = name;
-                const initials = name ? name.split(' ').map(p => p[0]).join('') + '.' : '—';
-                document.getElementById('signaturePad').textContent = initials;
+                const pad = document.getElementById('signaturePad');
+                const visualSig = getSignatureFor(name);
+                const parts = [];
+                if (visualSig) parts.push(`<img src="${visualSig}" alt="signature">`);
+                if (isCertLoaded()) parts.push(`<span style="color:#1b6b3f; font-size:0.8rem;">🔐 PKCS#7 ready</span>`);
+                if (parts.length) {
+                    pad.innerHTML = `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">${parts.join('')}</div>`;
+                } else {
+                    const initials = name ? name.split(' ').map(p => p[0]).join('') + '.' : '—';
+                    pad.textContent = initials;
+                }
             }
 
+            // Level option selectors
             const levelOptions = document.querySelectorAll('#coolantLevelGroup .level-option');
             levelOptions.forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -766,7 +941,6 @@
                     if (radio) radio.checked = true;
                 });
             });
-
             const oilLevelOptions = document.querySelectorAll('#oilLevelGroup .level-option');
             oilLevelOptions.forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -792,10 +966,8 @@
                     ats: document.querySelectorAll('.check-ats:checked').length, atsTotal: 6
                 };
             }
-
             function getCoolantLevel() { const c = document.querySelector('input[name="coolantLevel"]:checked'); return c ? c.value : '—'; }
             function getOilLevel() { const c = document.querySelector('input[name="oilLevel"]:checked'); return c ? c.value : '—'; }
-
             function getTickedItems(prefix) {
                 const items = [];
                 for (let i = 1; i <= 6; i++) { const cb = document.getElementById(prefix + i); if (cb && cb.checked) items.push(String(i)); }
@@ -827,9 +999,9 @@
                     visualRemark: visualRemark.value.trim() || '—',
                     protRemark: protRemark.value.trim() || '—',
                     atsRemark: atsRemark.value.trim() || '—',
-                    visualItems: getTickedItems('visual'),
-                    protItems: getTickedItems('prot'),
-                    atsItems: getTickedItems('ats'),
+                    visualItems: getTickedItems('visual').join('|'),
+                    protItems: getTickedItems('prot').join('|'),
+                    atsItems: getTickedItems('ats').join('|'),
                     visualRating: document.querySelector('input[name="visualRating"]:checked')?.value || '—',
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
                     atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
@@ -879,174 +1051,88 @@
                 if (showMsg) { statusMessage.classList.remove('show'); showStatus('Form has been reset.', true); }
             }
 
+            // ==================== DUPLICATE CHECK ====================
+            function buildGeneratorIdentity(obj) {
+                const gen = normalizeGenKey(obj.generator || obj['Generator'] || '');
+                return gen;
+            }
+            async function fetchAllLogs() {
+                const url = GOOGLE_SHEET_URL + '?type=logs&_ts=' + Date.now();
+                const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const json = await res.json();
+                return json.records || [];
+            }
+            async function checkRemoteDuplicate(genKey, workDate) {
+                try {
+                    const records = await fetchAllLogs();
+                    const targetDate = normalizeDateForCompare(workDate);
+                    const found = records.find(r => {
+                        const rKey = normalizeGenKey(r['Generator'] || '');
+                        return rKey === genKey && normalizeDateForCompare(r['Work Date'] || r['workDate']) === targetDate;
+                    });
+                    return { checked: true, duplicate: !!found, record: found || null };
+                } catch (e) { return { checked: false, error: e.message }; }
+            }
+
+            // ==================== SIGN-OFF ====================
             signOffBtn.addEventListener('click', async function() {
-                signOffBtn.disabled = true;
-                const orig = signOffBtn.innerHTML;
-                signOffBtn.innerHTML = '<span>⏳</span> Sending...';
                 const data = collectFormData();
+                await ensureReportHash(data);
+
+                const genKey = buildGeneratorIdentity(data);
+                const workDateISO = data.workDateISO;
+                const orig = signOffBtn.innerHTML;
+
+                // Local queue check
+                const queuedDup = getQueue().some(item =>
+                    buildGeneratorIdentity(item) === genKey &&
+                    normalizeDateForCompare(item.workDateISO) === normalizeDateForCompare(workDateISO)
+                );
+                if (queuedDup) {
+                    showStatus('⚠️ This generator is already pending sync for this date.', false);
+                    alert('⚠️ This generator is already in the offline queue for this date. Please sync first.');
+                    return;
+                }
+
+                signOffBtn.disabled = true;
+                signOffBtn.innerHTML = '<span>⏳</span> Checking Sheet...';
+                const remote = await checkRemoteDuplicate(genKey, workDateISO);
+                if (remote.checked && remote.duplicate) {
+                    const rec = remote.record || {};
+                    showStatus('⚠️ Already saved in Google Sheet for this date!', false);
+                    alert('⛔ DUPLICATE FOUND IN GOOGLE SHEET\n\nGenerator: ' + data.generator + '\nWork Date: ' + data.workDate + '\nSaved by: ' + (rec['Technician'] || rec.technician || 'unknown'));
+                    signOffBtn.disabled = false; signOffBtn.innerHTML = orig; return;
+                }
+                if (!remote.checked) {
+                    if (!confirm('⚠️ Could not verify with Google Sheet. Save anyway? (Local check passed.)')) {
+                        signOffBtn.disabled = false; signOffBtn.innerHTML = orig; return;
+                    }
+                }
+
+                signOffBtn.innerHTML = '<span>⏳</span> Sending...';
                 lastSubmittedSnapshot = JSON.parse(JSON.stringify(data));
                 const success = await queueAndSend(data);
                 signOffBtn.disabled = false;
                 signOffBtn.innerHTML = orig;
-                console.log('SIGN-OFF RECORD:', data);
                 if (success) { setTimeout(() => resetForm(false), 1500); }
             });
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
-            pdfBtn.addEventListener('click', function() { exportCurrentPDF(); });
-
-            function exportCurrentPDF() {
+            // ==================== PDF EXPORT (unified builder) ====================
+            pdfBtn.addEventListener('click', async function() {
                 const current = collectFormData();
-                const isEmpty = (current.visualItems.length === 0 && current.protItems.length === 0 && current.atsItems.length === 0 && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
+                const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
                 const data = (isEmpty && lastSubmittedSnapshot) ? lastSubmittedSnapshot : current;
+                await ensureReportHash(data);
                 pdfBtn.disabled = true;
                 const orig = pdfBtn.innerHTML;
-                pdfBtn.innerHTML = '<span>⏳</span> Preparing PDF...';
-                const reportHTML = buildReportHTML(data);
-                const iframe = document.createElement('iframe');
-                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;';
-                document.body.appendChild(iframe);
-                iframe.onload = function() {
-                    try { iframe.contentWindow.focus(); iframe.contentWindow.print(); showStatus('📄 PDF dialog opened — choose "Save as PDF".', true); }
-                    catch(e) { showStatus('⚠️ Could not open print dialog.', false); }
-                    setTimeout(() => { document.body.removeChild(iframe); pdfBtn.disabled = false; pdfBtn.innerHTML = orig; }, 1500);
-                };
-                iframe.srcdoc = reportHTML;
-            }
-
-            function buildReportHTML(data) {
-                const initials = data.technician.split(' ').map(p => p[0]).join('') + '.';
-                const sigHTML = '<div class="signature">' + initials + '</div>';
-
-                const tankCap = getTankCapacity(data.generator);
-                const fuelPctRaw = parseFloat(String(data.fuelLevel || '').replace(/[^\d.]/g, ''));
-                const fuelPct = isNaN(fuelPctRaw) ? null : fuelPctRaw;
-                const fuelInTank = (tankCap !== null && fuelPct !== null)
-                    ? (tankCap * fuelPct / 100).toFixed(1) + ' L  (' + fuelPct + '% of ' + tankCap + ' L tank)'
-                    : '—';
-
-                const lastServiceFmt = formatDateOnly(data.lastServiceDate);
-
-                const checkList = (tickedIds, allItems) => {
-                    const ids = Array.isArray(tickedIds) ? tickedIds.map(String) : [];
-                    return allItems.map((item, idx) => {
-                        const isChecked = ids.indexOf(String(idx + 1)) !== -1;
-                        const mark = isChecked ? 'V' : 'X';
-                        const color = isChecked ? '#1b6b3f' : '#b33a3a';
-                        return '<li style="padding:4px 0;color:#1f3c54;font-size:0.92rem;"><span style="display:inline-block;width:18px;font-weight:800;color:' + color + ';">' + mark + '</span>' + item + '</li>';
-                    }).join('');
-                };
-
-                return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>CHUB Generator Report</title>
-<style>
-@page { size: A4; margin: 10mm 10mm; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a2e45; background: white; padding: 0 4px; font-size: 10pt; line-height: 1.35; }
-.header { border-bottom: 3px solid #1e4a6d; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
-.header h1 { font-size: 1.25rem; color: #12405e; letter-spacing: -0.3px; }
-.header .sub { font-size: 0.85rem; color: #3a6583; margin-top: 3px; }
-.header .meta { font-size: 0.8rem; color: #5b7b96; text-align: right; line-height: 1.4; }
-.gen-banner { background: linear-gradient(90deg, #1e4a6d 0%, #2a6b96 100%); color: white; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; }
-.gen-banner .gen-name { font-size: 1.1rem; font-weight: 800; }
-.gen-banner .gen-sub { font-size: 0.8rem; color: #cbe4f7; margin-top: 2px; }
-.section-title { font-size: 0.98rem; font-weight: 700; color: #12405e; margin: 12px 0 6px 0; padding-bottom: 3px; border-bottom: 2px solid #d4e3ef; }
-.info-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
-.info-box { background: #f9fcff; border: 1px solid #d4e3ef; border-radius: 8px; padding: 8px 10px; }
-.info-box .label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #5b7b96; font-weight: 700; margin-bottom: 3px; }
-.info-box .value { font-size: 0.92rem; font-weight: 700; color: #12405e; }
-.rating-tag { display: inline-block; background: #e7f0f8; color: #12405e; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
-.check-legend { font-size: 0.8rem; color: #3a6583; margin: 4px 0 6px 0; }
-.check-legend .v { color: #1b6b3f; font-weight: 700; }
-.check-legend .x { color: #b33a3a; font-weight: 700; }
-ul.check-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1px 20px; margin-bottom: 4px; }
-ul.check-list li { padding: 2px 0; color: #1f3c54; font-size: 0.85rem; }
-.remark-box { background: #fbfdff; border-left: 3px solid #9cb9d0; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; color: #3a6583; margin-bottom: 6px; font-style: italic; }
-.signoff-block { margin-top: 14px; padding: 12px 16px; background: #f0f6fc; border-radius: 10px; border: 1px solid #cfe0ee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; page-break-inside: avoid; }
-.signoff-block .tech-name { font-size: 1.05rem; font-weight: 700; color: #0a2a3f; }
-.signature { font-family: 'Segoe UI', cursive; font-size: 1.1rem; color: #1e4a6d; border-bottom: 2px dashed #9cb9d0; padding: 0 16px 3px 16px; }
-.footer { margin-top: 12px; padding-top: 8px; border-top: 1px solid #d4e3ef; text-align: center; font-size: 0.7rem; color: #5b7b96; page-break-before: avoid; }
-</style></head><body>
-<div class="header">
-  <div>
-    <h1>⚡ Generator Fleet — Testing and Monitoring Report</h1>
-    <div class="sub">Site: <strong>CHUB</strong> · 400V · 50Hz · Weekly Friday Inspection</div>
-  </div>
-  <div class="meta">
-    <div><strong>Work date:</strong> ${data.workDate}</div>
-    <div><strong>Technician:</strong> ${data.technician}</div>
-    <div><strong>Generated:</strong> ${data.generatedAt}</div>
-  </div>
-</div>
-
-<div class="gen-banner">
-  <div class="gen-name">${data.generator}</div>
-  <div class="gen-sub">${data.generatorSub || '400V / 50Hz · field checklist'}</div>
-</div>
-
-<div class="section-title">⛽ Fluids & Operational Data</div>
-<div class="info-grid">
-  <div class="info-box"><div class="label">Fuel</div><div class="value">${data.fuelLevel}</div></div>
-  <div class="info-box"><div class="label">Coolant</div><div class="value">${data.coolantLevel}</div></div>
-  <div class="info-box"><div class="label">Oil Level</div><div class="value">${data.oilLevel}</div></div>
-  <div class="info-box"><div class="label">Diesel Refilled</div><div class="value">${data.refilledDiesel}</div></div>
-  <div class="info-box"><div class="label">Run Hours</div><div class="value">${data.totalRunHours}</div></div>
-</div>
-<div class="info-grid" style="grid-template-columns: repeat(2, 1fr);">
-  <div class="info-box"><div class="label">Tank Capacity</div><div class="value">${tankCap !== null ? tankCap + ' L' : '—'}</div></div>
-  <div class="info-box"><div class="label">Fuel In Tank (estimated)</div><div class="value">${fuelInTank}</div></div>
-</div>
-<div class="section-title">🛠️ Predictive Servicing (250 h interval)</div>
-<div class="info-grid" style="grid-template-columns: repeat(4, 1fr);">
-  <div class="info-box"><div class="label">Last Service</div><div class="value">${lastServiceFmt}</div></div>
-  <div class="info-box"><div class="label">Hours @ Service</div><div class="value">${data.lastServiceHours || '—'}</div></div>
-  <div class="info-box"><div class="label">Hours Since</div><div class="value">${data.hoursSinceService || '—'} h</div></div>
-  <div class="info-box"><div class="label">Hours Remaining</div><div class="value">${data.hoursUntilService || '—'} h</div></div>
-</div>
-<div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
-  <div class="info-box"><div class="label">Avg Rate</div><div class="value">${data.avgDailyRunRate || '—'} h/day</div></div>
-  <div class="info-box"><div class="label">Predicted Next Service</div><div class="value">${data.predictedNextServiceDate || '—'}</div></div>
-  <div class="info-box"><div class="label">Status</div><div class="value" style="font-size:0.78rem;">${data.predictionStatus || '—'}</div></div>
-</div>
-<div class="section-title">🔧 Visual & Mechanical (${data.visualChecks}/${data.visualTotal})</div>
-<div class="rating-tag">Condition: ${data.visualRating}</div>
-<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
-<ul class="check-list">
-${checkList(data.visualItems, ['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'])}
-</ul>
-${data.visualRemark !== '—' ? '<div class="remark-box">📝 ' + data.visualRemark + '</div>' : ''}
-
-<div class="section-title">🛡️ Protection Systems (${data.protChecks}/${data.protTotal})</div>
-<div class="rating-tag">Status: ${data.protRating}</div>
-<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
-<ul class="check-list">
-${checkList(data.protItems, ['Low oil pressure shutdown','High coolant temperature shutdown','Overcrank / overspeed trip','Low coolant level alarm','Emergency stop function','Battery charger & voltage (24V)'])}
-</ul>
-${data.protRemark !== '—' ? '<div class="remark-box">📝 ' + data.protRemark + '</div>' : ''}
-
-<div class="section-title">🔄 ATS / Transfer (${data.atsChecks}/${data.atsTotal})</div>
-<div class="rating-tag">Performance: ${data.atsRating}</div>
-<div class="check-legend"><span class="v">V</span> = Checked / OK &nbsp;&nbsp; <span class="x">X</span> = Not checked / Needs attention</div>
-<ul class="check-list">
-${checkList(data.atsItems, ['ATS panel indicators (normal / emergency)','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','No excessive arching / contact wear','Manual transfer test (if applicable)'])}
-</ul>
-${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + '</div>' : ''}
-
-<div class="signoff-block">
-  <div>
-    <div style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:#5b7b96; font-weight:700; margin-bottom:4px;">Signed off by</div>
-    <div class="tech-name">${data.technician}</div>
-    <div style="font-size:0.82rem; color:#3a6583;">CHUB Site · Work date: ${data.workDate}</div>
-  </div>
-  ${sigHTML}
-</div>
-
-<div class="footer">
-  This report was generated automatically from the Generator Fleet — Testing and Monitoring Procedures · ${data.generatedAt}
-</div>
-</body></html>`;
-            }
+                pdfBtn.innerHTML = '<span>⏳</span> Generating...';
+                try { await generatePDF([data]); showStatus('📄 PDF generated successfully.', true); }
+                catch (e) { console.error(e); showStatus('⚠️ Could not generate PDF: ' + e.message, false); }
+                pdfBtn.disabled = false; pdfBtn.innerHTML = orig;
+            });
 
             pdfAllBtn.addEventListener('click', function() {
                 const today = new Date();
@@ -1068,9 +1154,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     customRangeFields.style.display = selectedRange === 'custom' ? 'block' : 'none';
                 });
             });
-
             modalCancel.addEventListener('click', function() { pdfModal.classList.remove('show'); });
-
             modalGo.addEventListener('click', async function() {
                 modalGo.disabled = true;
                 const orig = modalGo.innerHTML;
@@ -1088,8 +1172,9 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                         modalGo.disabled = false; modalGo.innerHTML = orig; return;
                     }
                     modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
-                    const consIndex = buildConsumptionIndex(json.records);
-                    await generateMultiRecordPDF(filtered, consIndex);
+                    // Ensure each record has a report hash for signature block display
+                    for (const r of filtered) { try { await ensureReportHash(r); } catch(e) {} }
+                    await generatePDF(filtered);
                     showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
                     pdfModal.classList.remove('show');
                 } catch (err) {
@@ -1122,342 +1207,368 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
             }
 
-            function drawLegend(doc, x, y) {
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.5);
-                doc.setTextColor(27, 107, 63);
-                doc.setFont('helvetica', 'bold');
-                doc.text('V', x, y);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(91, 123, 150);
-                doc.text(' = Checked / OK', x + 3, y);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(179, 58, 58);
-                doc.text('X', x + 32, y);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(91, 123, 150);
-                doc.text(' = Not checked / Needs attention', x + 35, y);
-                return y + 5;
-            }
+            // ============================================================
+            //  UNIFIED PROFESSIONAL PDF BUILDER (AC-Fleet style)
+            // ============================================================
+            const VISUAL_TEXTS = [
+                'No leaks (oil, coolant, fuel)',
+                'Belt tension & wear',
+                'Hoses & connections condition',
+                'Radiator / cooling fins clean',
+                'Battery terminals & electrolyte level',
+                'Mounting bolts & vibration isolators'
+            ];
+            const PROT_TEXTS = [
+                'Low oil pressure shutdown',
+                'High coolant temperature shutdown',
+                'Overcrank / overspeed trip',
+                'Low coolant level alarm',
+                'Emergency stop function',
+                'Battery charger & voltage (24V)'
+            ];
+            const ATS_TEXTS = [
+                'ATS panel indicators (normal / emergency)',
+                'Automatic transfer test (simulate outage)',
+                'Voltage & frequency on transfer (400V / 50Hz)',
+                'Return to normal after delay',
+                'No excessive arching / contact wear',
+                'Manual transfer test (if applicable)'
+            ];
 
-            async function generateMultiRecordPDF(records, consumptionIndex) {
+            async function generatePDF(records) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageW = 210, pageH = 297, marginL = 14, marginR = 14;
-                const contentW = pageW - marginL - marginR;
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 18;
+                const contentWidth = pageWidth - margin * 2;
+
+                // Preload signatures & dimensions
+                const allSignatures = loadSignatures();
+                const sigDimensions = {};
+                for (const [techName, dataUrl] of Object.entries(allSignatures)) {
+                    if (dataUrl) {
+                        const dims = await loadImageDimensions(dataUrl);
+                        if (dims) sigDimensions[techName] = dims;
+                    }
+                }
+
+                function addHeader(data) {
+                    try { doc.addImage('chub-logo.png', 'PNG', margin, margin - 2, 24, 11); }
+                    catch (e) {
+                        doc.setFontSize(14); doc.setFont('helvetica', 'bolditalic');
+                        doc.setTextColor(106, 141, 176);
+                        doc.text('CHUB', margin, margin + 6);
+                    }
+                    doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(18, 64, 94);
+                    doc.text('Generator Fleet - Testing & Monitoring', margin + 30, margin + 2);
+                    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(58, 101, 131);
+                    doc.text('Site: CHUB  |  400V / 50Hz  |  Weekly Friday', margin + 30, margin + 7);
+
+                    const rightX = pageWidth - margin;
+                    const labelX = rightX - 45;
+                    doc.setFontSize(8);
+
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
+                    doc.text('Work date:', labelX, margin + 1);
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
+                    doc.text(formatDateOnly(data['Work Date'] || data.workDate || data.workDateISO), rightX, margin + 1, { align: 'right' });
+
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
+                    doc.text('Technician:', labelX, margin + 5.5);
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
+                    doc.text(sanitizeForPDF(data['Technician'] || data.technician || '—'), rightX, margin + 5.5, { align: 'right' });
+
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
+                    doc.text('Generated:', labelX, margin + 10);
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
+                    doc.text(formatDateTimeForPDF(data['Timestamp'] || data.generatedAt), rightX, margin + 10, { align: 'right' });
+
+                    doc.setDrawColor(200, 210, 220); doc.setLineWidth(0.3);
+                    doc.line(rightX - 55, margin - 3, rightX - 55, margin + 12);
+
+                    doc.setDrawColor(30, 74, 109); doc.setLineWidth(0.5);
+                    doc.line(margin, margin + 14, pageWidth - margin, margin + 14);
+
+                    return margin + 19;
+                }
+
+                function addFooter() {
+                    const footerY = pageHeight - 12;
+                    doc.setDrawColor(106, 141, 176); doc.setLineWidth(0.3);
+                    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4);
+                    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150);
+                    doc.text('P.O Box: 254 Butare  |  Email: info@chub.rw  |  Hotline: 2030', pageWidth / 2, footerY + 1, { align: 'center' });
+                }
 
                 for (let i = 0; i < records.length; i++) {
-                    if (i > 0) doc.addPage();
-                    const r = records[i];
-                    let y = 18;
+                    const data = records[i];
+                    if (i > 0) { addFooter(); doc.addPage(); }
+                    let y = addHeader(data);
 
-                    doc.setFillColor(30, 74, 109);
-                    doc.rect(0, 0, pageW, 6, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(14);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('Generator Fleet — Testing and Monitoring Report', marginL, y);
-                    y += 5;
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8.5);
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('Site: CHUB · 400V · 50Hz · Weekly Friday Inspection', marginL, y);
-                    y += 4;
-                    doc.setFontSize(8);
-                    doc.setTextColor(91, 123, 150);
-                    const workDate = formatDateForPDF(r['Work Date']);
-                    const technician = safeStr(r['Technician']) || '—';
-                    const genAt = formatDateForPDF(r['Timestamp']);
-                    doc.text('Work date: ' + workDate, pageW - marginR, 18, { align: 'right' });
-                    doc.text('Technician: ' + technician, pageW - marginR, 23, { align: 'right' });
-                    doc.text('Generated: ' + genAt, pageW - marginR, 28, { align: 'right' });
-                    y += 6;
+                    const genName = safeStr(data['Generator'] || data.generator || '—');
+                    const genSub  = safeStr(data['Generator Sub'] || data.generatorSub || '400V / 50Hz · field checklist');
+                    const technician = safeStr(data['Technician'] || data.technician || '—');
 
+                    // ---- Generator identity banner ----
                     doc.setFillColor(30, 74, 109);
-                    doc.roundedRect(marginL, y, contentW, 16, 2, 2, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
+                    doc.rect(margin, y, contentWidth, 15, 'F');
                     doc.setTextColor(255, 255, 255);
-                    doc.text(safeStr(r['Generator']) || '—', marginL + 4, y + 6);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(203, 228, 247);
-                    doc.text('400V / 50Hz · field checklist', marginL + 4, y + 11);
-                    doc.setFontSize(7);
-                    doc.setTextColor(179, 217, 242);
-                    doc.text('Weekly Friday inspection · CHUB site', marginL + 4, y + 14.5);
-                    y += 20;
+                    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+                    doc.text(sanitizeForPDF(genName), margin + 4, y + 5.5);
+                    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(203, 228, 247);
+                    doc.text(sanitizeForPDF(genSub), margin + 4, y + 12);
+                    y += 19;
 
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(10);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('FLUIDS & OPERATIONAL DATA', marginL, y);
-                    y += 2;
-                    doc.setDrawColor(212, 227, 239);
-                    doc.setLineWidth(0.4);
-                    doc.line(marginL, y, pageW - marginR, y);
-                    y += 5;
+                    // ---- V/X Legend ----
+                    doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.2);
+                    doc.roundedRect(margin, y, contentWidth, 7, 1.5, 1.5, 'FD');
+                    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
+                    doc.text('V', margin + 4, y + 5);
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
+                    doc.text('Checked & OK', margin + 9, y + 5);
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(179, 58, 58);
+                    doc.text('X', margin + 60, y + 5);
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
+                    doc.text('Not checked / Needs attention', margin + 65, y + 5);
+                    y += 12;
 
-                    const boxW = (contentW - 10) / 5;
-                    const boxes = [
-                        { label: 'Fuel', value: safeStr(r['Fuel %']) || '—' },
-                        { label: 'Coolant', value: safeStr(r['Coolant']) || '—' },
-                        { label: 'Oil Level', value: safeStr(r['Oil Level']) || '—' },
-                        { label: 'Diesel Refilled', value: safeStr(r['Diesel Refilled (L)']) || '—' },
-                        { label: 'Run Hours', value: safeStr(r['Run Hours']) || '—' }
+                    function drawSection(title, label, value, items, remark) {
+                        if (y > pageHeight - 60) { addFooter(); doc.addPage(); y = addHeader(data); }
+                        doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
+                        doc.text(title, margin, y); y += 1.5;
+                        doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
+                        doc.line(margin, y, pageWidth - margin, y); y += 4.5;
+                        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
+                        doc.text(`${label}: ${value}`, margin, y); y += 4;
+
+                        const rows = [];
+                        for (let j = 0; j < items.length; j += 2) {
+                            const left = items[j];
+                            const right = items[j + 1];
+                            const leftSym = left.checked ? 'V' : 'X';
+                            const leftColor = left.checked ? '#1b6b3f' : '#b33a3a';
+                            let rightSym = '', rightColor = '#000000', rightText = '';
+                            if (right) {
+                                rightSym = right.checked ? 'V' : 'X';
+                                rightColor = right.checked ? '#1b6b3f' : '#b33a3a';
+                                rightText = right.text;
+                            }
+                            rows.push([
+                                { content: leftSym, styles: { textColor: leftColor, fontStyle: 'bold' } },
+                                { content: left.text, styles: { textColor: '#000000' } },
+                                { content: rightSym, styles: { textColor: rightColor, fontStyle: 'bold' } },
+                                { content: rightText, styles: { textColor: '#000000' } }
+                            ]);
+                        }
+                        doc.autoTable({
+                            startY: y, margin: { left: margin, right: margin }, body: rows, theme: 'plain',
+                            styles: { fontSize: 8, cellPadding: 1.5, textColor: '#000000', lineWidth: 0, overflow: 'linebreak' },
+                            columnStyles: { 0: { cellWidth: 6 }, 1: { cellWidth: (contentWidth / 2) - 6 }, 2: { cellWidth: 6 }, 3: { cellWidth: (contentWidth / 2) - 6 } }
+                        });
+                        y = doc.lastAutoTable.finalY + 3;
+                        if (remark && remark !== '—' && remark !== '') {
+                            if (y > pageHeight - 35) { addFooter(); doc.addPage(); y = addHeader(data); }
+                            doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(58, 101, 131);
+                            const lines = doc.splitTextToSize('Note: ' + sanitizeForPDF(remark), contentWidth - 6);
+                            doc.text(lines, margin + 3, y); y += lines.length * 3.5 + 3;
+                        }
+                        y += 3;
+                    }
+
+                    // ---- Fluids & Operational Data ----
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
+                    doc.text('FLUIDS & OPERATIONAL DATA', margin, y); y += 1.5;
+                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
+                    doc.line(margin, y, pageWidth - margin, y); y += 5;
+
+                    const boxW = (contentWidth - 10) / 5;
+                    const fluids = [
+                        { label: 'FUEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
+                        { label: 'COOLANT', value: safeStr(data['Coolant'] || data.coolantLevel) || '—' },
+                        { label: 'OIL LEVEL', value: safeStr(data['Oil Level'] || data.oilLevel) || '—' },
+                        { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
+                        { label: 'RUN HOURS', value: safeStr(data['Run Hours'] || data.totalRunHours) || '—' }
                     ];
-                    boxes.forEach((b, idx) => {
-                        const bx = marginL + idx * (boxW + 2);
-                        doc.setFillColor(249, 252, 255);
-                        doc.setDrawColor(212, 227, 239);
+                    fluids.forEach((b, idx) => {
+                        const bx = margin + idx * (boxW + 2);
+                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
                         doc.roundedRect(bx, y, boxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(5.5);
-                        doc.setTextColor(91, 123, 150);
-                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(9);
-                        doc.setTextColor(18, 64, 94);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
+                        doc.text(b.label, bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
                     y += 20;
 
-                    y = drawSection(doc, 'PREDICTIVE SERVICING (250 h INTERVAL)', marginL, y, contentW);
-                    const predBoxW = (contentW - 6) / 4;
-                    const predBoxes = [
-                        { label: 'Last Service', value: formatDateOnly(r['Last Service Date']) },
-                        { label: 'Hours @ Service', value: safeStr(r['Last Service Hours']) || '—' },
-                        { label: 'Hours Since', value: (safeStr(r['Hours Since Service']) || '—') + ' h' },
-                        { label: 'Hours Remaining', value: (safeStr(r['Hours Until Service']) || '—') + ' h' }
+                    // ---- Predictive Servicing ----
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
+                    doc.text('PREDICTIVE SERVICING (250 h INTERVAL)', margin, y); y += 1.5;
+                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
+                    doc.line(margin, y, pageWidth - margin, y); y += 5;
+
+                    const pBoxW = (contentWidth - 6) / 4;
+                    const pred = [
+                        { label: 'LAST SERVICE', value: formatDateOnly(data['Last Service Date'] || data.lastServiceDate) },
+                        { label: 'HOURS @ SERVICE', value: safeStr(data['Last Service Hours'] || data.lastServiceHours) || '—' },
+                        { label: 'HOURS SINCE', value: (safeStr(data['Hours Since Service'] || data.hoursSinceService) || '—') + ' h' },
+                        { label: 'HOURS REMAINING', value: (safeStr(data['Hours Until Service'] || data.hoursUntilService) || '—') + ' h' }
                     ];
-                    predBoxes.forEach((b, idx) => {
-                        const bx = marginL + idx * (predBoxW + 2);
-                        doc.setFillColor(249, 252, 255);
-                        doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, predBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(5.5);
-                        doc.setTextColor(91, 123, 150);
-                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(9);
-                        doc.setTextColor(18, 64, 94);
+                    pred.forEach((b, idx) => {
+                        const bx = margin + idx * (pBoxW + 2);
+                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
+                        doc.roundedRect(bx, y, pBoxW, 14, 1.5, 1.5, 'FD');
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
+                        doc.text(b.label, bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
+                    y += 17;
+
+                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
+                    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
+                    doc.text('Predicted next service:', margin + 3, y + 5);
+                    doc.setTextColor(122, 76, 156); doc.setFontSize(9);
+                    doc.text(safeStr(data['Predicted Next Service Date'] || data.predictedNextServiceDate) || '—', margin + 40, y + 5);
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(58, 101, 131);
+                    doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
                     y += 18;
 
-                    doc.setFillColor(240, 246, 252);
-                    doc.setDrawColor(207, 224, 238);
-                    doc.roundedRect(marginL, y, contentW, 12, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('Predicted next service:', marginL + 3, y + 5);
-                    doc.setTextColor(122, 76, 156);
-                    doc.setFontSize(9);
-                    doc.text(safeStr(r['Predicted Next Service Date']) || '—', marginL + 40, y + 5);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(7);
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('Avg rate: ' + (safeStr(r['Avg Daily Run Rate']) || '—') + ' h/day  ·  Status: ' + (safeStr(r['Prediction Status']) || '—'), marginL + 3, y + 10);
-                    y += 18;
-
-                    const tankCap = getTankCapacity(safeStr(r['Generator']));
-                    const cons = consumptionIndex ? consumptionIndex.get(r) : null;
-                    y = drawSection(doc, 'FUEL CONSUMPTION (SINCE PREVIOUS INSPECTION)', marginL, y, contentW);
-                    const fuelBoxW = (contentW - 6) / 4;
+                    // ---- Fuel Consumption ----
+                    const tankCap = getTankCapacity(genName);
+                    const cons = null; // single-record view has no interval
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
+                    doc.text('FUEL DATA', margin, y); y += 1.5;
+                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
+                    doc.line(margin, y, pageWidth - margin, y); y += 5;
+                    const fBoxW = (contentWidth - 6) / 4;
                     const fuelBoxes = [
-                        { label: 'Tank Capacity', value: tankCap !== null ? tankCap + ' L' : '—' },
-                        { label: 'Run Hours (period)', value: cons ? cons.hours.toFixed(1) + ' h' : '—' },
-                        { label: 'Fuel Used (calc.)', value: cons ? cons.consumed.toFixed(1) + ' L' : '—' },
-                        { label: 'Avg Consumption', value: cons ? cons.lph.toFixed(2) + ' L/h' : '—' }
+                        { label: 'TANK CAPACITY', value: tankCap !== null ? tankCap + ' L' : '—' },
+                        { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
+                        { label: 'FUEL LEVEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
+                        { label: 'RUN HOURS (TOTAL)', value: safeStr(data['Run Hours'] || data.totalRunHours) || '—' }
                     ];
                     fuelBoxes.forEach((b, idx) => {
-                        const bx = marginL + idx * (fuelBoxW + 2);
-                        doc.setFillColor(249, 252, 255);
-                        doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, fuelBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(5.5);
-                        doc.setTextColor(91, 123, 150);
-                        doc.text(b.label.toUpperCase(), bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(9);
-                        doc.setTextColor(18, 64, 94);
+                        const bx = margin + idx * (fBoxW + 2);
+                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
+                        doc.roundedRect(bx, y, fBoxW, 14, 1.5, 1.5, 'FD');
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
+                        doc.text(b.label, bx + 2, y + 4);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
                         doc.text(String(b.value), bx + 2, y + 10.5);
                     });
-                    y += 18;
+                    y += 20;
 
-                    const visualIds = safeSplit(r['Visual Items'], '|');
-                    const visualArg = visualIds.length > 0 ? visualIds : (safeStr(r['Visual Checks']) || '0/6');
-                    y = drawSection(doc, 'VISUAL & MECHANICAL', marginL, y, contentW);
-                    y = drawRating(doc, safeStr(r['Visual Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y);
-                    y = drawChecklist(doc, [
-                        'No leaks (oil, coolant, fuel)',
-                        'Belt tension & wear',
-                        'Hoses & connections condition',
-                        'Radiator / cooling fins clean',
-                        'Battery terminals & electrolyte level',
-                        'Mounting bolts & vibration isolators'
-                    ], visualArg, marginL, y, contentW);
-                    const visualRemarkVal = safeStr(r['Visual Remarks']);
-                    if (visualRemarkVal && visualRemarkVal !== '—') { y = drawRemark(doc, visualRemarkVal, marginL, y, contentW); }
+                    // ---- Checklists ----
+                    const vSet = new Set(safeSplit(data['Visual Items'] || data.visualItems, '|'));
+                    const visualItems = VISUAL_TEXTS.map((t, idx) => ({ text: t, checked: vSet.has(String(idx + 1)) }));
+                    const pSet = new Set(safeSplit(data['Protection Items'] || data.protItems, '|'));
+                    const protItems = PROT_TEXTS.map((t, idx) => ({ text: t, checked: pSet.has(String(idx + 1)) }));
+                    const aSet = new Set(safeSplit(data['ATS Items'] || data.atsItems, '|'));
+                    const atsItems = ATS_TEXTS.map((t, idx) => ({ text: t, checked: aSet.has(String(idx + 1)) }));
 
-                    const protIds = safeSplit(r['Protection Items'], '|');
-                    const protArg = protIds.length > 0 ? protIds : (safeStr(r['Protection Checks']) || '0/6');
-                    y = drawSection(doc, 'PROTECTION SYSTEMS', marginL, y + 3, contentW);
-                    y = drawRating(doc, safeStr(r['Protection Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y);
-                    y = drawChecklist(doc, [
-                        'Low oil pressure shutdown',
-                        'High coolant temperature shutdown',
-                        'Overcrank / overspeed trip',
-                        'Low coolant level alarm',
-                        'Emergency stop function',
-                        'Battery charger & voltage (24V)'
-                    ], protArg, marginL, y, contentW);
-                    const protRemarkVal = safeStr(r['Protection Remarks']);
-                    if (protRemarkVal && protRemarkVal !== '—') { y = drawRemark(doc, protRemarkVal, marginL, y, contentW); }
+                    drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
+                    drawSection('PROTECTION SYSTEMS', 'Status', safeStr(data['Protection Rating'] || data.protRating || '—'), protItems, safeStr(data['Protection Remarks'] || data.protRemark));
+                    drawSection('ATS / TRANSFER', 'Performance', safeStr(data['ATS Rating'] || data.atsRating || '—'), atsItems, safeStr(data['ATS Remarks'] || data.atsRemark));
 
-                    const atsIds = safeSplit(r['ATS Items'], '|');
-                    const atsArg = atsIds.length > 0 ? atsIds : (safeStr(r['ATS Checks']) || '0/6');
-                    y = drawSection(doc, 'ATS / TRANSFER', marginL, y + 3, contentW);
-                    y = drawRating(doc, safeStr(r['ATS Rating']), marginL, y);
-                    y = drawLegend(doc, marginL, y);
-                    y = drawChecklist(doc, [
-                        'ATS panel indicators (normal / emergency)',
-                        'Automatic transfer test (simulate outage)',
-                        'Voltage & frequency on transfer (400V / 50Hz)',
-                        'Return to normal after delay',
-                        'No excessive arching / contact wear',
-                        'Manual transfer test (if applicable)'
-                    ], atsArg, marginL, y, contentW);
-                    const atsRemarkVal = safeStr(r['ATS Remarks']);
-                    if (atsRemarkVal && atsRemarkVal !== '—') { y = drawRemark(doc, atsRemarkVal, marginL, y, contentW); }
+                    // ---- SIGN-OFF BLOCKS (Technician + Supervisor) ----
+                    const boxHeight = 46;
+                    if (y > pageHeight - 70) { addFooter(); doc.addPage(); y = addHeader(data); }
+                    const gap = 4;
+                    const halfWidth = (contentWidth - gap) / 2;
+                    const leftBoxX = margin;
+                    const rightBoxX = margin + halfWidth + gap;
 
-                    const signoffY = pageH - 30;
-                    doc.setFillColor(240, 246, 252);
-                    doc.setDrawColor(207, 224, 238);
-                    doc.roundedRect(marginL, signoffY, contentW, 22, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(6.5);
-                    doc.setTextColor(91, 123, 150);
-                    doc.text('SIGNED OFF BY', marginL + 4, signoffY + 5);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(11);
-                    doc.setTextColor(10, 42, 63);
-                    doc.text(technician, marginL + 4, signoffY + 11);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('CHUB Site · Work date: ' + workDate, marginL + 4, signoffY + 16.5);
-                    const initials = (technician || 'HK').split(' ').map(p => p[0]).join('') + '.';
-                    doc.setFont('times', 'italic');
-                    doc.setFontSize(14);
-                    doc.setTextColor(30, 74, 109);
-                    doc.text(initials, pageW - marginR - 6, signoffY + 13, { align: 'right' });
+                    // LEFT: Technician
+                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
+                    doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
+                    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
+                    doc.text('PERFORMED BY (TECHNICIAN)', leftBoxX + 3, y + 4.5);
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 42, 63);
+                    doc.text(sanitizeForPDF(technician), leftBoxX + 3, y + 11);
+                    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
+                    doc.text(`Date: ${formatDateOnly(data['Work Date'] || data.workDate || data.workDateISO)}`, leftBoxX + 3, y + 15.5);
+                    doc.text(`Site: CHUB  ·  400V / 50Hz`, leftBoxX + 3, y + 19.5);
 
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(6.5);
-                    doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from Generator Fleet — Testing and Monitoring Procedures', pageW / 2, pageH - 6, { align: 'center' });
-                    doc.text('Page ' + (i + 1) + ' of ' + records.length + ' · ' + genAt, pageW / 2, pageH - 2, { align: 'center' });
+                    const sigAreaX = leftBoxX + (halfWidth / 2) + 2;
+                    const sigAreaW = (halfWidth / 2) - 5;
+                    const sigAreaY = y + 7;
+                    const sigAreaH = 16;
+                    doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
+                    doc.roundedRect(sigAreaX, sigAreaY, sigAreaW, sigAreaH, 1, 1, 'S');
+                    const techVisualSig = allSignatures[technician] || '';
+                    let drawn = false;
+                    if (techVisualSig) {
+                        try {
+                            const techDims = sigDimensions[technician];
+                            let sigW, sigH;
+                            if (techDims && techDims.width > 0 && techDims.height > 0) {
+                                const aspect = techDims.width / techDims.height;
+                                sigW = sigAreaW - 4; sigH = sigW / aspect;
+                                if (sigH > sigAreaH - 3) { sigH = sigAreaH - 3; sigW = sigH * aspect; }
+                            } else { sigW = sigAreaW - 6; sigH = sigAreaH - 6; }
+                            const sigX = sigAreaX + (sigAreaW - sigW) / 2;
+                            const sigY = sigAreaY + (sigAreaH - sigH) / 2;
+                            doc.addImage(techVisualSig, 'PNG', sigX, sigY, sigW, sigH);
+                            drawn = true;
+                        } catch (e) { console.warn('Could not render visual signature:', e); }
+                    }
+                    if (!drawn) {
+                        doc.setFontSize(6); doc.setFont('helvetica', 'italic');
+                        doc.setTextColor(156, 185, 208);
+                        doc.text('(visual signature)', sigAreaX + sigAreaW / 2, sigAreaY + sigAreaH / 2 + 1, { align: 'center' });
+                    }
+                    doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
+                    doc.line(leftBoxX + 3, y + 25, leftBoxX + halfWidth - 3, y + 25);
+
+                    if (data.signatureSubject || data['Signature Subject']) {
+                        const subj = sanitizeForPDF(data.signatureSubject || data['Signature Subject'] || '');
+                        const iss  = sanitizeForPDF(data.signatureIssuer  || data['Signature Issuer']  || '—');
+                        const signedAt = data.signatureSignedAt || data['Signature Signed At'];
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 107, 63);
+                        doc.text('Digitally signed (PKCS#7)', leftBoxX + 3, y + 28.5);
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.2); doc.setTextColor(58, 101, 131);
+                        doc.text('Subject: ' + subj, leftBoxX + 3, y + 31.5);
+                        doc.text('Issuer: ' + iss, leftBoxX + 3, y + 34);
+                        if (signedAt) doc.text('Signed: ' + new Date(signedAt).toLocaleString('en-GB'), leftBoxX + 3, y + 36.5);
+                    } else {
+                        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(91, 123, 150);
+                        doc.text('No digital signature — visual only', leftBoxX + 3, y + 30);
+                    }
+                    doc.setDrawColor(150, 180, 200); doc.setLineWidth(0.3);
+                    doc.line(leftBoxX + 3, y + 39, leftBoxX + halfWidth - 3, y + 39);
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
+                    doc.text((data.signatureSubject || data['Signature Subject']) ? 'Signature + PKCS#7 digital seal' : 'Signature', leftBoxX + 3, y + 42);
+
+                    // RIGHT: Supervisor / Dept in-charge
+                    doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
+                    doc.roundedRect(rightBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
+                    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
+                    doc.text('REVIEWED BY (SUPERVISOR / DEPT. IN-CHARGE)', rightBoxX + 3, y + 4.5);
+                    doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
+                    doc.text('Site: CHUB — Engineering', rightBoxX + 3, y + 11);
+                    doc.setFontSize(7.5); doc.setTextColor(122, 83, 0);
+                    doc.text('Name: ____________________________', rightBoxX + 3, y + 18);
+                    doc.text('Signature: _________________________', rightBoxX + 3, y + 25);
+                    doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
+                    doc.line(rightBoxX + 3, y + 33, rightBoxX + halfWidth - 3, y + 33);
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(122, 83, 0);
+                    doc.text('Signature & Date', rightBoxX + 3, y + 36.5);
+
+                    y += boxHeight + 4;
+                    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150);
+                    doc.text(sanitizeForPDF(`Generated from CHUB Generator Fleet System | ${data['Timestamp'] || data.generatedAt || ''}`), margin, y);
                 }
 
-                const filename = 'CHUB_Generator_Reports_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf';
-                doc.save(filename);
+                addFooter();
+                const fname = 'CHUB_Generator_Report_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf';
+                doc.save(fname);
             }
 
-            function formatDateForPDF(val) {
-                if (!val) return '—';
-                if (typeof val === 'string' && val.includes('T')) {
-                    return new Date(val).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                }
-                return String(val);
-            }
-
-            function drawSection(doc, title, x, y, w) {
-                doc.setFillColor(30, 74, 109);
-                doc.rect(x, y - 3.5, 1.5, 4, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(18, 64, 94);
-                doc.text(title, x + 4, y);
-                y += 2;
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.4);
-                doc.line(x, y, x + w, y);
-                return y + 5;
-            }
-
-            function drawRating(doc, rating, x, y) {
-                const label = safeStr(rating) || '—';
-                const text = 'Rating: ' + label;
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(7.5);
-                const tw = doc.getTextWidth(text) + 6;
-                doc.setFillColor(231, 240, 248);
-                doc.roundedRect(x, y - 3, tw, 5.5, 1.5, 1.5, 'F');
-                doc.setTextColor(18, 64, 94);
-                doc.text(text, x + 3, y + 0.8);
-                return y + 5;
-            }
-
-            function drawChecklist(doc, items, checksOrIds, x, y, contentW) {
-                let tickedIds;
-                if (Array.isArray(checksOrIds)) {
-                    tickedIds = checksOrIds.map(String);
-                } else {
-                    const rawStr = safeStr(checksOrIds || '0/6');
-                    const done = parseInt(rawStr.split('/')[0], 10) || 0;
-                    tickedIds = [];
-                    for (let i = 1; i <= done; i++) tickedIds.push(String(i));
-                }
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                const colW = (contentW - 6) / 2;
-                const rowH = 5;
-
-                items.forEach((item, i) => {
-                    const col = i % 2;
-                    const row = Math.floor(i / 2);
-                    const bx = x + col * (colW + 4);
-                    const by = y + row * rowH;
-
-                    const isChecked = tickedIds.indexOf(String(i + 1)) !== -1;
-                    const mark = isChecked ? 'V' : 'X';
-                    doc.setTextColor(isChecked ? 27 : 179, isChecked ? 107 : 58, isChecked ? 63 : 58);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(mark, bx, by + 3.5);
-
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(31, 60, 84);
-                    const maxChars = 42;
-                    const label = item.length > maxChars ? item.substring(0, maxChars - 1) + '…' : item;
-                    doc.text(label, bx + 5, by + 3.5);
-                });
-
-                const rows = Math.ceil(items.length / 2);
-                return y + rows * rowH + 2;
-            }
-
-            function drawRemark(doc, remark, x, y, contentW) {
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(7.5);
-                doc.setTextColor(58, 101, 131);
-                doc.setFillColor(251, 253, 255);
-                doc.setDrawColor(156, 185, 208);
-                const text = 'Remark: ' + safeStr(remark);
-                const wrapped = doc.splitTextToSize(text, contentW - 6);
-                const h = wrapped.length * 3.5 + 3;
-                doc.roundedRect(x, y, contentW, h, 1, 1, 'FD');
-                doc.line(x, y, x, y + h);
-                doc.text(wrapped, x + 3, y + 4);
-                return y + h + 2;
-            }
-
+            // ==================== ANALYSIS REPORT ====================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1469,7 +1580,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 analysisCustomRange.style.display = 'none';
                 analysisModal.classList.add('show');
             });
-
             analysisQuickFilters.forEach(chip => {
                 chip.addEventListener('click', function() {
                     analysisQuickFilters.forEach(c => c.classList.remove('active'));
@@ -1478,9 +1588,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     analysisCustomRange.style.display = analysisSelectedRange === 'custom' ? 'block' : 'none';
                 });
             });
-
             analysisModalCancel.addEventListener('click', function() { analysisModal.classList.remove('show'); });
-
             analysisModalGo.addEventListener('click', async function() {
                 analysisModalGo.disabled = true;
                 const orig = analysisModalGo.innerHTML;
@@ -1531,13 +1639,13 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     return true;
                 });
             }
-
-            function validNum(raw) {
-                if (raw === null || raw === undefined || raw === '' || raw === '—' || raw === '-') return null;
-                if (Array.isArray(raw)) raw = raw[0];
-                const n = parseNumClient(raw);
-                if (n === 0 && String(raw).replace(/[^\d]/g, '') === '') return null;
-                return n;
+            function getISOWeekKeyClient(date) {
+                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
             async function generateAnalysisPDF(records, consIndex) {
@@ -1549,16 +1657,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
 
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 6, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(16);
-                doc.setTextColor(18, 64, 94);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(18, 64, 94);
                 doc.text('Generator Fleet — Analysis Report', mL, 20);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(58, 101, 131);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(58, 101, 131);
                 doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
-                doc.setFontSize(8);
-                doc.setTextColor(91, 123, 150);
+                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
                 const genAt = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const rangeLabel = analysisSelectedRange === 'all' ? 'All time' :
                                    analysisSelectedRange === 'custom' ? (analysisFromDate.value + ' → ' + analysisToDate.value) :
@@ -1566,8 +1669,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 doc.text('Generated: ' + genAt, pageW - mR, 20, { align: 'right' });
                 doc.text('Range: ' + rangeLabel, pageW - mR, 25, { align: 'right' });
                 doc.text('Records: ' + records.length, pageW - mR, 30, { align: 'right' });
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.5);
+                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
                 doc.line(mL, 34, pageW - mR, 34);
 
                 const totalRecords = records.length;
@@ -1579,11 +1681,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const avgRunHours = validHoursRecords.length ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length : 0;
 
                 let y = 44;
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(18, 64, 94);
-                doc.text('KEY PERFORMANCE INDICATORS', mL, y);
-                y += 6;
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
+                doc.text('KEY PERFORMANCE INDICATORS', mL, y); y += 6;
 
                 const kpiBoxes = [
                     { label: 'Total Records', value: String(totalRecords) },
@@ -1596,20 +1695,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const kpiBoxH = 22;
                 const kpiGap = 4;
                 kpiBoxes.forEach((b, i) => {
-                    const col = i % 3;
-                    const row = Math.floor(i / 3);
+                    const col = i % 3, row = Math.floor(i / 3);
                     const bx = mL + col * (kpiBoxW + kpiGap);
                     const by = y + row * (kpiBoxH + kpiGap);
-                    doc.setFillColor(249, 252, 255);
-                    doc.setDrawColor(212, 227, 239);
+                    doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
                     doc.roundedRect(bx, by, kpiBoxW, kpiBoxH, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(7);
-                    doc.setTextColor(91, 123, 150);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(91, 123, 150);
                     doc.text(b.label.toUpperCase(), bx + 3, by + 6);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(15);
-                    doc.setTextColor(18, 64, 94);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, by + 16);
                 });
                 y += 2 * (kpiBoxH + kpiGap) + 4;
@@ -1642,8 +1735,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const chartRowH = 5;
                 const labelW = 30;
                 const barMaxW = cW - labelW - 20;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
                 histogramData.forEach((h, i) => {
                     const rowY = y + i * chartRowH;
                     doc.setTextColor(31, 60, 84);
@@ -1658,9 +1750,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
                 y += histogramData.length * chartRowH + 4;
                 const dominantBin = histogramData.reduce((a, b) => b.count > a.count ? b : a, histogramData[0]);
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(8);
-                doc.setTextColor(58, 101, 131);
+                doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(58, 101, 131);
                 doc.text('Most common range: ' + dominantBin.label + ' (' + dominantBin.count + ' inspections)', mL, y);
                 y += 8;
 
@@ -1680,9 +1770,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 let y2 = 20;
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 4, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(18, 64, 94);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
                 doc.text('Generator Fleet — Analysis Report (continued)', mL, y2);
                 y2 += 8;
 
@@ -1720,34 +1808,23 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 });
                 const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
                 y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(8);
-                doc.setTextColor(91, 123, 150);
+                doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(91, 123, 150);
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
 
                 doc.addPage();
                 let y3 = 20;
                 doc.setFillColor(30, 74, 109);
                 doc.rect(0, 0, pageW, 4, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Fuel Consumption Analysis', mL, y3);
-                y3 += 5;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                doc.setTextColor(91, 123, 150);
-                doc.text('Site: CHUB · Range: ' + rangeLabel + ' · Records: ' + records.length, mL, y3);
-                y3 += 4;
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.5);
-                doc.line(mL, y3, pageW - mR, y3);
-                y3 += 8;
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
+                doc.text('Generator Fleet — Fuel Consumption Analysis', mL, y3); y3 += 5;
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(91, 123, 150);
+                doc.text('Site: CHUB · Range: ' + rangeLabel + ' · Records: ' + records.length, mL, y3); y3 += 4;
+                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
+                doc.line(mL, y3, pageW - mR, y3); y3 += 8;
 
                 const consAgg = aggregateConsumption(records, consIndex);
                 const consList = Object.keys(consAgg).map(k => consAgg[k]);
                 consList.sort((a, b) => ((a.lph === null ? -1 : a.lph) > (b.lph === null ? -1 : b.lph)) ? -1 : 1);
-
                 const totalFuelUsed = consList.reduce((s, a) => s + a.consumed, 0);
                 const totalPeriodHours = consList.reduce((s, a) => s + a.hours, 0);
                 const fleetAvgLph = totalPeriodHours > 0 ? (totalFuelUsed / totalPeriodHours) : 0;
@@ -1762,16 +1839,11 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const fBoxW = (cW - 6) / 4;
                 fkpis.forEach((b, i) => {
                     const bx = mL + i * (fBoxW + 2);
-                    doc.setFillColor(249, 252, 255);
-                    doc.setDrawColor(212, 227, 239);
+                    doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
                     doc.roundedRect(bx, y3, fBoxW, 20, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(6);
-                    doc.setTextColor(91, 123, 150);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(91, 123, 150);
                     doc.text(b.label.toUpperCase(), bx + 3, y3 + 5);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(18, 64, 94);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, y3 + 14);
                 });
                 y3 += 27;
@@ -1790,8 +1862,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const maxLph = Math.max(0.01, ...consList.map(a => a.lph || 0));
                 const barLabelW = 44;
                 const barMaxW2 = cW - barLabelW - 24;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
                 consList.forEach((a, i) => {
                     const rowY = y3 + i * 6;
                     doc.setTextColor(31, 60, 84);
@@ -1801,17 +1872,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     const barW = (val / maxLph) * barMaxW2;
                     doc.setFillColor(42, 107, 150);
                     doc.rect(mL + barLabelW, rowY, Math.max(barW, 0.6), 4, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(18, 64, 94);
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text(a.lph !== null ? a.lph.toFixed(2) + ' L/h' : 'n/a', mL + barLabelW + barW + 2, rowY + 4);
                     doc.setFont('helvetica', 'normal');
                 });
                 y3 += consList.length * 6 + 6;
 
                 y3 = drawAnalysisSection(doc, 'How this is calculated', mL, y3, cW);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.5);
-                doc.setTextColor(58, 101, 131);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(58, 101, 131);
                 const methodLines = [
                     'Fuel used between two inspections of the same generator = Diesel refilled (L) + (Fuel % at previous inspection - Fuel % at current inspection) x Tank capacity (L).',
                     'Average consumption (L/h) = Fuel used (L) / Run hours between the two inspections (difference of the hour-meter readings).',
@@ -1827,32 +1895,23 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
                     doc.setPage(p);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(7);
-                    doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from CHUB Generator Monitoring System', pageW / 2, pageH - 6, { align: 'center' });
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 170, 190);
+                    doc.text('Generated automatically from CHUB Generator Fleet System', pageW / 2, pageH - 6, { align: 'center' });
                     doc.text('Page ' + p + ' of ' + totalPages, pageW / 2, pageH - 2, { align: 'center' });
                 }
-
-                const filename = 'CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf';
-                doc.save(filename);
+                doc.save('CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf');
             }
 
             function drawAnalysisSection(doc, title, x, y, w) {
                 doc.setFillColor(238, 246, 252);
                 doc.rect(x, y - 4, w, 6, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(18, 64, 94);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
                 doc.text(title, x + 2, y);
                 return y + 6;
             }
-
             function drawSimpleTable(doc, headers, rows, x, y, w) {
                 if (rows.length === 0) {
-                    doc.setFont('helvetica', 'italic');
-                    doc.setFontSize(8);
-                    doc.setTextColor(150, 170, 190);
+                    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(150, 170, 190);
                     doc.text('(no data)', x, y + 4);
                     return y + 8;
                 }
@@ -1861,9 +1920,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 const rowH = 6;
                 doc.setFillColor(212, 227, 239);
                 doc.rect(x, y, w, rowH, 'F');
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(8);
-                doc.setTextColor(18, 64, 94);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(18, 64, 94);
                 headers.forEach((h, i) => { doc.text(h, x + i * colW + 2, y + 4); });
                 y += rowH;
                 doc.setFont('helvetica', 'normal');
@@ -1881,38 +1938,158 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     });
                     y += rowH;
                 });
-                doc.setDrawColor(212, 227, 239);
-                doc.setLineWidth(0.2);
+                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.2);
                 doc.rect(x, y - rows.length * rowH - rowH, w, rows.length * rowH + rowH);
                 return y + 4;
             }
 
-            function parseNumClient(val) {
-                if (val === null || val === undefined || val === '') return 0;
-                if (typeof val === 'number') return val;
-                if (Array.isArray(val)) val = val[0];
-                const s = String(val).replace(/[^\d.-]/g, '');
-                const n = parseFloat(s);
-                return isNaN(n) ? 0 : n;
+            // ==================== SIGNATURE MODAL LOGIC ====================
+            const signatureModal = document.getElementById('signatureModal');
+            const sigFileInput = document.getElementById('sigFileInput');
+            const pfxFileInput = document.getElementById('pfxFileInput');
+            const pfxPasswordInput = document.getElementById('pfxPasswordInput');
+            const sigPreview = document.getElementById('sigPreview');
+            const certPreview = document.getElementById('certPreview');
+            const sigError = document.getElementById('sigError');
+
+            let pendingVisualSig = null;
+            let pendingCert = null;
+
+            function renderVisualPreview() {
+                if (pendingVisualSig) sigPreview.innerHTML = `<img src="${pendingVisualSig}" alt="signature">`;
+                else sigPreview.innerHTML = '<span class="placeholder">No visual signature uploaded</span>';
+            }
+            function renderCertPreview() {
+                if (!pendingCert) {
+                    certPreview.innerHTML = '<span class="placeholder">No certificate loaded</span>';
+                    return;
+                }
+                const vf = pendingCert.validFrom ? pendingCert.validFrom.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const vt = pendingCert.validTo   ? pendingCert.validTo.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })   : '—';
+                certPreview.innerHTML = `
+                    <div style="text-align:left; font-size:0.82rem; line-height:1.5;">
+                        <div style="font-weight:700; color:#1b6b3f; margin-bottom:4px;">✅ Certificate ready</div>
+                        <div><strong>Signed by:</strong> ${sanitizeForPDF(pendingCert.subject)}</div>
+                        <div><strong>Issuer:</strong> ${sanitizeForPDF(pendingCert.issuer)}</div>
+                        <div><strong>Serial:</strong> ${pendingCert.serial}</div>
+                        <div><strong>Valid:</strong> ${vf} → ${vt}</div>
+                    </div>`;
             }
 
-            function roundClient(n, decimals) {
-                const f = Math.pow(10, decimals);
-                return Math.round(n * f) / f;
-            }
+            document.getElementById('signatureBtn').addEventListener('click', () => {
+                const name = technicianSelect.value;
+                if (!name) { alert('Please log in first.'); return; }
+                sigError.textContent = '';
+                sigFileInput.value = '';
+                pfxFileInput.value = '';
+                pfxPasswordInput.value = '';
+                pendingVisualSig = getSignatureFor(name) || null;
+                pendingCert = isCertLoaded() ? { ...CERT_STATE } : null;
+                renderVisualPreview();
+                renderCertPreview();
+                signatureModal.classList.add('show');
+            });
 
-            function getISOWeekKeyClient(date) {
-                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-                const dayNum = d.getUTCDay() || 7;
-                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-                return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
-            }
+            document.getElementById('sigCancel').addEventListener('click', () => {
+                pfxPasswordInput.value = '';
+                signatureModal.classList.remove('show');
+            });
+            document.getElementById('sigRemove').addEventListener('click', () => {
+                if (!confirm('Forget the current signature and certificate?')) return;
+                const name = technicianSelect.value;
+                saveSignatureFor(name, '');
+                clearCert();
+                pendingVisualSig = null;
+                pendingCert = null;
+                renderVisualPreview();
+                renderCertPreview();
+                updateTechnicianDisplay();
+                showStatus('🗑️ Signature and certificate cleared.', true);
+            });
 
+            sigFileInput.addEventListener('change', function() {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = (e) => { pendingVisualSig = e.target.result; renderVisualPreview(); };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('sigSave').addEventListener('click', async () => {
+                sigError.textContent = '';
+                const name = technicianSelect.value;
+                if (!name) { sigError.textContent = '⚠️ Please log in first.'; return; }
+
+                if (pfxFileInput.files && pfxFileInput.files[0]) {
+                    const password = pfxPasswordInput.value;
+                    if (!password) { sigError.textContent = '⚠️ Please enter the PFX password.'; return; }
+                    if (typeof forge === 'undefined') { sigError.textContent = '⚠️ Crypto library not loaded.'; return; }
+
+                    try {
+                        const buf = await pfxFileInput.files[0].arrayBuffer();
+                        let binary = '';
+                        const bytes = new Uint8Array(buf);
+                        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+
+                        const asn1 = forge.asn1.fromDer(binary);
+                        const p12  = forge.pkcs12.pkcs12FromAsn1(asn1, password);
+
+                        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+                        const certBag  = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
+                        if (!certBag || !certBag.cert) { sigError.textContent = '⚠️ No certificate found in the PFX.'; return; }
+                        const certificate = certBag.cert;
+
+                        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                        let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+                        if (!keyBag) {
+                            const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
+                            keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0];
+                        }
+                        if (!keyBag || !keyBag.key) { sigError.textContent = '⚠️ No private key found in the PFX.'; return; }
+
+                        const getField = (obj, nm) => { try { const f = obj.getField(nm); return f ? f.value : ''; } catch (e) { return ''; } };
+                        const derBytes = forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes();
+                        const md = forge.md.sha256.create(); md.update(derBytes);
+
+                        pendingCert = {
+                            certificate,
+                            privateKey: keyBag.key,
+                            subject: sanitizeForPDF(getField(certificate.subject, 'CN') || getField(certificate.subject, 'O') || '(unknown)'),
+                            issuer:  sanitizeForPDF(getField(certificate.issuer, 'CN') || '(unknown)'),
+                            serial: certificate.serialNumber || '',
+                            validFrom: certificate.validity.notBefore,
+                            validTo: certificate.validity.notAfter,
+                            fingerprint: md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase()
+                        };
+                        renderCertPreview();
+                    } catch (e) {
+                        console.error(e);
+                        sigError.textContent = '❌ ' + (e.message || 'Could not read the PFX. Check the password.');
+                        return;
+                    }
+                }
+
+                if (pendingVisualSig) saveSignatureFor(name, pendingVisualSig);
+                if (pendingCert) {
+                    CERT_STATE.certificate = pendingCert.certificate;
+                    CERT_STATE.privateKey  = pendingCert.privateKey;
+                    CERT_STATE.subject     = pendingCert.subject;
+                    CERT_STATE.issuer      = pendingCert.issuer;
+                    CERT_STATE.serial      = pendingCert.serial;
+                    CERT_STATE.validFrom   = pendingCert.validFrom;
+                    CERT_STATE.validTo     = pendingCert.validTo;
+                    CERT_STATE.fingerprint = pendingCert.fingerprint;
+                }
+                updateTechnicianDisplay();
+                pfxPasswordInput.value = '';
+                signatureModal.classList.remove('show');
+                showStatus('✅ Signature and certificate saved.', true);
+            });
+
+            // ==================== SERVICE REF / PREDICTION ====================
             const SERVICE_INTERVAL_HOURS = 250;
             const SERVICE_REF_KEY = 'chub_service_refs';
-
             const lastServiceDateInput = document.getElementById('lastServiceDate');
             const lastServiceHoursInput = document.getElementById('lastServiceHours');
             const lastServiceTypeInput = document.getElementById('lastServiceType');
@@ -1920,13 +2097,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
             const predictionStatus = document.getElementById('predictionStatus');
             const predictionStatusText = document.getElementById('predictionStatusText');
 
-            function getServiceRefs() {
-                try { return JSON.parse(localStorage.getItem(SERVICE_REF_KEY) || '{}'); }
-                catch(e) { return {}; }
-            }
-
+            function getServiceRefs() { try { return JSON.parse(localStorage.getItem(SERVICE_REF_KEY) || '{}'); } catch(e) { return {}; } }
             function saveServiceRefs(refs) { localStorage.setItem(SERVICE_REF_KEY, JSON.stringify(refs)); }
-
             function loadServiceRefForGenerator(gen) {
                 const refs = getServiceRefs();
                 const ref = refs[gen];
@@ -1940,7 +2112,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                     lastServiceTypeInput.value = 'Oil + Filters';
                 }
             }
-
             saveServiceRefBtn.addEventListener('click', function() {
                 const gen = generatorSelect.value;
                 const refs = getServiceRefs();
@@ -1949,7 +2120,6 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 showStatus('💾 Service reference saved for ' + gen, true);
                 updatePrediction();
             });
-
             [lastServiceDateInput, lastServiceHoursInput, lastServiceTypeInput].forEach(el => {
                 el.addEventListener('change', function() {
                     const gen = generatorSelect.value;
@@ -2017,7 +2187,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 }
 
                 if (nextDate) {
-                    const dateStr = nextDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+                    const dateStr = nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
                     document.getElementById('predNextDate').textContent = dateStr;
                     const winStart = new Date(nextDate); winStart.setDate(winStart.getDate() - 3);
                     const winEnd = new Date(nextDate); winEnd.setDate(winEnd.getDate() + 3);
@@ -2038,19 +2208,14 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 predictionStatus.querySelector('span:first-child').textContent = icon;
                 predictionStatusText.textContent = msg;
             }
-
             totalRunHours.addEventListener('input', updatePrediction);
             lastServiceDateInput.addEventListener('change', updatePrediction);
             lastServiceHoursInput.addEventListener('input', updatePrediction);
-
-            generatorSelect.addEventListener('change', function() {
-                loadServiceRefForGenerator(generatorSelect.value);
-                updatePrediction();
-            });
-
+            generatorSelect.addEventListener('change', function() { loadServiceRefForGenerator(generatorSelect.value); updatePrediction(); });
             loadServiceRefForGenerator(generatorSelect.value);
             updatePrediction();
 
+            // ==================== LOGIN / SESSION ====================
             const loginModal = document.getElementById('loginModal');
             const loginTechSelect = document.getElementById('loginTechSelect');
             const loginPinInput = document.getElementById('loginPinInput');
@@ -2080,8 +2245,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 updateTechnicianDisplay();
                 loginModal.classList.remove('show');
             }
-
             function lockApp() {
+                clearCert();
                 clearSession();
                 loginModal.classList.add('show');
                 loginPinInput.value = '';
@@ -2101,10 +2266,8 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
                 unlockApp(name);
                 showStatus('✅ Welcome, ' + name + '!', true);
             });
-
-            logoutBtn.addEventListener('click', function() {
-                if (confirm('Log out and lock the app?')) { lockApp(); showStatus('🔒 Logged out.', true); }
-            });
+            loginPinInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); loginBtn.click(); } });
+            logoutBtn.addEventListener('click', function() { if (confirm('Log out and lock the app?')) { lockApp(); showStatus('🔒 Logged out.', true); } });
 
             const existingSession = loadSession();
             if (existingSession && TECHNICIAN_PINS[existingSession]) { unlockApp(existingSession); }
@@ -2125,7 +2288,7 @@ ${data.atsRemark !== '—' ? '<div class="remark-box">📝 ' + data.atsRemark + 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=4')
+                navigator.serviceWorker.register('sw.js?v=5')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
