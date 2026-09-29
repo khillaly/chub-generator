@@ -2086,33 +2086,40 @@
 
                 // ============================================================
                 // ⭐ NEW: SIGN-OFF PAGE (Technician + In-Charge signatures)
-                // ============================================================
-                doc.addPage();
-                let ys = 20;
-                doc.setFillColor(30, 74, 109);
-                doc.rect(0, 0, pageW, 6, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Analysis Report', mL, ys + 2);
-                ys += 6;
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(58, 101, 131);
-                doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, ys);
-                doc.setFontSize(7); doc.setTextColor(150, 170, 190);
-                doc.text('Data recording started on ' + RECORDING_START, mL, ys + 4);
-                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
-                doc.text('Generated: ' + genAt, pageW - mR, ys, { align: 'right' });
-                doc.text('Range: ' + rangeLabel, pageW - mR, ys + 4, { align: 'right' });
-                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
-                doc.line(mL, ys + 8, pageW - mR, ys + 8);
-                ys += 16;
-
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
-                doc.text('SIGN-OFF & APPROVAL', mL, ys); ys += 6;
+               
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(58, 101, 131);
                 const introLines = doc.splitTextToSize(
                     'This analysis report covers the generator fleet monitoring period shown above. ' +
                     'It was prepared by the technician named below and reviewed & approved by the in-charge. ' +
                     'Both signatures are required for the report to be considered final.',
-                    cW - 4
+                    c                // ============================================================
+                // ⭐ SIGN-OFF & APPROVAL — placed on the same page if it fits
+                // ============================================================
+                // Height needed for the entire sign-off block (title + intro + boxes + banner)
+                const SIGNOFF_BLOCK_HEIGHT = 135; // mm
+                // Bottom limit before footer (pageH minus footer space minus safety)
+                const SIGNOFF_LIMIT_Y = pageH - 25;
+
+                let ys;
+                if (y2 > SIGNOFF_LIMIT_Y - SIGNOFF_BLOCK_HEIGHT) {
+                    // Not enough space left on page 2 — open a new page
+                    doc.addPage();
+                    ys = 20;
+                    doc.setFillColor(30, 74, 109);
+                    doc.rect(0, 0, pageW, 4, 'F');
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
+                    doc.text('Generator Fleet — Analysis Report (continued)', mL, ys);
+                    ys += 12;
+                } else {
+                    // Enough space — continue on the same page with a small gap
+                    ys = y2 + 12;
+                    // A subtle divider to separate the sign-off block from the tables above
+                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.4);
+                    doc.line(mL, ys - 6, pageW - mR, ys - 6);
+                }
+
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
+                doc.text('SIGN-OFF & APPROVAL', mL, ys); ys += 6;W - 4
                 );
                 doc.text(introLines, mL, ys);
                 ys += introLines.length * 3.6 + 8;
