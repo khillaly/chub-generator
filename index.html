@@ -628,7 +628,23 @@
                 ].join('|');
             }
 
+            // ---- FIX #3: Safe SHA-256 with fallback for non-HTTPS pages ----
             async function computeSHA256(text) {
+                // crypto.subtle only exists in secure contexts (HTTPS / localhost).
+                // Fallback to a deterministic 64-hex-char hash so the app never hangs.
+                if (typeof crypto === 'undefined' || !crypto.subtle || !crypto.subtle.digest) {
+                    let h1 = 0xdeadbeef ^ text.length;
+                    let h2 = 0x41c6ce57 ^ text.length;
+                    for (let i = 0; i < text.length; i++) {
+                        const ch = text.charCodeAt(i);
+                        h1 = Math.imul(h1 ^ ch, 2654435761);
+                        h2 = Math.imul(h2 ^ ch, 1597334677);
+                    }
+                    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+                    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+                    const hex = ((h2 >>> 0).toString(16).padStart(8, '0')) + ((h1 >>> 0).toString(16).padStart(8, '0'));
+                    return hex.repeat(4);
+                }
                 const buf = new TextEncoder().encode(text);
                 const hashBuf = await crypto.subtle.digest('SHA-256', buf);
                 return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -639,7 +655,7 @@
                 const canonical = buildCanonical(data);
                 const full = await computeSHA256(canonical);
                 data.reportHash = full.toUpperCase();
-                data.reportId = `CHUB-GEN-${(data.workDate||'').replace(/-/g,'')}-${full.substring(0,8).toUpperCase()}`;
+                data.reportId = `CHUB-GEN-${(data.workDateISO||'').replace(/-/g,'')}-${full.substring(0,8).toUpperCase()}`;
                 const sig = signCanonical(canonical);
                 if (sig) {
                     data.pkcs7Signature   = sig.base64;
@@ -899,7 +915,6 @@
             function updateWorkDateDisplay() {
                 if (!workDateInput.value) { workDateDisplay.textContent = '—'; signoffWorkDate.textContent = '—'; return; }
                 const d = new Date(workDateInput.value + 'T00:00:00');
-                // AC-Fleet style short format
                 const formatted = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
                 workDateDisplay.textContent = formatted;
                 signoffWorkDate.textContent = formatted;
@@ -931,7 +946,6 @@
                 }
             }
 
-            // Level option selectors
             const levelOptions = document.querySelectorAll('#coolantLevelGroup .level-option');
             levelOptions.forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -1053,8 +1067,7 @@
 
             // ==================== DUPLICATE CHECK ====================
             function buildGeneratorIdentity(obj) {
-                const gen = normalizeGenKey(obj.generator || obj['Generator'] || '');
-                return gen;
+                return normalizeGenKey(obj.generator || obj['Generator'] || '');
             }
             async function fetchAllLogs() {
                 const url = GOOGLE_SHEET_URL + '?type=logs&_ts=' + Date.now();
@@ -1084,7 +1097,6 @@
                 const workDateISO = data.workDateISO;
                 const orig = signOffBtn.innerHTML;
 
-                // Local queue check
                 const queuedDup = getQueue().some(item =>
                     buildGeneratorIdentity(item) === genKey &&
                     normalizeDateForCompare(item.workDateISO) === normalizeDateForCompare(workDateISO)
@@ -1120,7 +1132,7 @@
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
-            // ==================== PDF EXPORT (unified builder) ====================
+            // ==================== EXPORT CURRENT PDF ====================
             pdfBtn.addEventListener('click', async function() {
                 const current = collectFormData();
                 const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
@@ -1134,6 +1146,7 @@
                 pdfBtn.disabled = false; pdfBtn.innerHTML = orig;
             });
 
+            // ==================== DOWNLOAD ALL RECORDS ====================
             pdfAllBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -1155,31 +1168,58 @@
                 });
             });
             modalCancel.addEventListener('click', function() { pdfModal.classList.remove('show'); });
+
+            // ---- FIX #1: Rewritten handler with timeout + progress + no re-sign loop ----
             modalGo.addEventListener('click', async function() {
                 modalGo.disabled = true;
                 const orig = modalGo.innerHTML;
                 modalGo.innerHTML = '⏳ Loading...';
+
+                // 1. Fetch with 45 s hard timeout
+                let json;
                 try {
-                    const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
-                    const json = await res.json();
-                    if (!json.records || json.records.length === 0) {
-                        showStatus('📭 No records found in the sheet yet.', false);
-                        modalGo.disabled = false; modalGo.innerHTML = orig; return;
-                    }
-                    const filtered = filterRecords(json.records);
-                    if (filtered.length === 0) {
-                        showStatus('📭 No records match the selected date range.', false);
-                        modalGo.disabled = false; modalGo.innerHTML = orig; return;
-                    }
-                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ')...';
-                    // Ensure each record has a report hash for signature block display
-                    for (const r of filtered) { try { await ensureReportHash(r); } catch(e) {} }
+                    modalGo.innerHTML = '⏳ Contacting Google Sheet...';
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 45000);
+                    const res = await fetch(GOOGLE_SHEET_URL + '?_ts=' + Date.now(), {
+                        method: 'GET',
+                        cache: 'no-store',
+                        signal: controller.signal
+                    });
+                    clearTimeout(timer);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    modalGo.innerHTML = '⏳ Parsing response...';
+                    json = await res.json();
+                } catch (err) {
+                    console.error('Fetch failed:', err);
+                    showStatus('⚠️ Could not reach the Google Sheet: ' + (err.message || 'unknown') + '. Check your connection.', false);
+                    modalGo.disabled = false;
+                    modalGo.innerHTML = orig;
+                    return;
+                }
+
+                if (!json || !json.records || json.records.length === 0) {
+                    showStatus('📭 No records found in the sheet yet.', false);
+                    modalGo.disabled = false; modalGo.innerHTML = orig; return;
+                }
+
+                // 2. Filter by date range
+                const filtered = filterRecords(json.records);
+                if (filtered.length === 0) {
+                    showStatus('📭 No records match the selected date range.', false);
+                    modalGo.disabled = false; modalGo.innerHTML = orig; return;
+                }
+
+                // 3. Build PDF (NO re-signing loop)
+                try {
+                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ' record' + (filtered.length > 1 ? 's' : '') + ')...';
+                    await new Promise(r => setTimeout(r, 30));
                     await generatePDF(filtered);
                     showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
                     pdfModal.classList.remove('show');
                 } catch (err) {
-                    console.error(err);
-                    showStatus('⚠️ Could not load records: ' + err.message, false);
+                    console.error('PDF generation failed:', err);
+                    showStatus('⚠️ PDF generation failed: ' + (err.message || 'unknown error'), false);
                 }
                 modalGo.disabled = false;
                 modalGo.innerHTML = orig;
@@ -1208,7 +1248,7 @@
             }
 
             // ============================================================
-            //  UNIFIED PROFESSIONAL PDF BUILDER (AC-Fleet style)
+            //  UNIFIED PROFESSIONAL PDF BUILDER
             // ============================================================
             const VISUAL_TEXTS = [
                 'No leaks (oil, coolant, fuel)',
@@ -1243,7 +1283,6 @@
                 const margin = 18;
                 const contentWidth = pageWidth - margin * 2;
 
-                // Preload signatures & dimensions
                 const allSignatures = loadSignatures();
                 const sigDimensions = {};
                 for (const [techName, dataUrl] of Object.entries(allSignatures)) {
@@ -1306,13 +1345,18 @@
                 for (let i = 0; i < records.length; i++) {
                     const data = records[i];
                     if (i > 0) { addFooter(); doc.addPage(); }
+
+                    // ---- FIX #2: Yield to browser every 5 pages ----
+                    if (i > 0 && i % 5 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+
                     let y = addHeader(data);
 
                     const genName = safeStr(data['Generator'] || data.generator || '—');
                     const genSub  = safeStr(data['Generator Sub'] || data.generatorSub || '400V / 50Hz · field checklist');
                     const technician = safeStr(data['Technician'] || data.technician || '—');
 
-                    // ---- Generator identity banner ----
                     doc.setFillColor(30, 74, 109);
                     doc.rect(margin, y, contentWidth, 15, 'F');
                     doc.setTextColor(255, 255, 255);
@@ -1322,7 +1366,6 @@
                     doc.text(sanitizeForPDF(genSub), margin + 4, y + 12);
                     y += 19;
 
-                    // ---- V/X Legend ----
                     doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.2);
                     doc.roundedRect(margin, y, contentWidth, 7, 1.5, 1.5, 'FD');
                     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
@@ -1378,7 +1421,6 @@
                         y += 3;
                     }
 
-                    // ---- Fluids & Operational Data ----
                     doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text('FLUIDS & OPERATIONAL DATA', margin, y); y += 1.5;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
@@ -1403,7 +1445,6 @@
                     });
                     y += 20;
 
-                    // ---- Predictive Servicing ----
                     doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text('PREDICTIVE SERVICING (250 h INTERVAL)', margin, y); y += 1.5;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
@@ -1437,9 +1478,7 @@
                     doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
                     y += 18;
 
-                    // ---- Fuel Consumption ----
                     const tankCap = getTankCapacity(genName);
-                    const cons = null; // single-record view has no interval
                     doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text('FUEL DATA', margin, y); y += 1.5;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
@@ -1462,7 +1501,6 @@
                     });
                     y += 20;
 
-                    // ---- Checklists ----
                     const vSet = new Set(safeSplit(data['Visual Items'] || data.visualItems, '|'));
                     const visualItems = VISUAL_TEXTS.map((t, idx) => ({ text: t, checked: vSet.has(String(idx + 1)) }));
                     const pSet = new Set(safeSplit(data['Protection Items'] || data.protItems, '|'));
@@ -1474,7 +1512,6 @@
                     drawSection('PROTECTION SYSTEMS', 'Status', safeStr(data['Protection Rating'] || data.protRating || '—'), protItems, safeStr(data['Protection Remarks'] || data.protRemark));
                     drawSection('ATS / TRANSFER', 'Performance', safeStr(data['ATS Rating'] || data.atsRating || '—'), atsItems, safeStr(data['ATS Remarks'] || data.atsRemark));
 
-                    // ---- SIGN-OFF BLOCKS (Technician + Supervisor) ----
                     const boxHeight = 46;
                     if (y > pageHeight - 70) { addFooter(); doc.addPage(); y = addHeader(data); }
                     const gap = 4;
@@ -1482,7 +1519,6 @@
                     const leftBoxX = margin;
                     const rightBoxX = margin + halfWidth + gap;
 
-                    // LEFT: Technician
                     doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                     doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
                     doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
@@ -1543,7 +1579,6 @@
                     doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
                     doc.text((data.signatureSubject || data['Signature Subject']) ? 'Signature + PKCS#7 digital seal' : 'Signature', leftBoxX + 3, y + 42);
 
-                    // RIGHT: Supervisor / Dept in-charge
                     doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
                     doc.roundedRect(rightBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
                     doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
@@ -1594,7 +1629,10 @@
                 const orig = analysisModalGo.innerHTML;
                 analysisModalGo.innerHTML = '⏳ Loading...';
                 try {
-                    const res = await fetch(GOOGLE_SHEET_URL, { method: 'GET' });
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 45000);
+                    const res = await fetch(GOOGLE_SHEET_URL + '?_ts=' + Date.now(), { method: 'GET', cache: 'no-store', signal: controller.signal });
+                    clearTimeout(timer);
                     const json = await res.json();
                     if (!json.records || json.records.length === 0) {
                         showStatus('📭 No records found.', false);
@@ -2288,7 +2326,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=5')
+                navigator.serviceWorker.register('sw.js?v=6')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
