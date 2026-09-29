@@ -24,6 +24,7 @@
         .title-hero h1 .title-accent { background: linear-gradient(90deg, #7fc8ff, #b3e0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 900; }
         .title-hero .title-sub { margin-top: 12px; font-size: 1rem; color: #cbe4f7; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
         .title-hero .title-sub .dot-sep { width: 5px; height: 5px; border-radius: 50%; background: #7fc8ff; display: inline-block; }
+        .title-hero .recording-notice { margin-top: 14px; display: inline-block; background: rgba(255,255,255,0.14); color: #eaf6ff; padding: 8px 20px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.25); position: relative; z-index: 2; }
         .title-ornament { font-size: 2rem; filter: drop-shadow(0 0 8px rgba(127,200,255,0.7)); }
         .subhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; background: #eef6fc; padding: 16px 24px; border-radius: 24px; margin-bottom: 24px; border: 1px solid #d8e8f4; gap: 14px; }
         .tech-info { display: flex; align-items: center; gap: 14px; font-size: 1.05rem; color: #0b3b5c; font-weight: 500; flex-wrap: wrap; }
@@ -90,6 +91,9 @@
         .btn-secondary:hover { background: #e7f0f8; }
         .btn-sync { background: #2a6b96; color: white; border: none; padding: 12px 26px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-sync:hover { background: #1e4a6d; }
+        .btn-approve { background: #1b6b3f; color: white; border: none; padding: 10px 22px; border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.15s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-approve:hover { background: #155231; }
+        .btn-approve:disabled { opacity: 0.6; cursor: wait; }
         .status-message { margin-top: 20px; padding: 14px 24px; border-radius: 40px; background: #e2f0e6; color: #1b6b3f; font-weight: 500; display: none; align-items: center; gap: 10px; }
         .status-message.show { display: flex; }
         .footer-note { font-size: 0.85rem; color: #5b7b96; text-align: center; margin-top: 12px; }
@@ -118,6 +122,11 @@
         .sig-preview img { max-height: 80px; max-width: 100%; object-fit: contain; }
         .sig-preview .placeholder { color: #9cb9d0; font-size: 0.9rem; font-style: italic; }
         .modal-box h3.sig-h3 { font-size: 0.95rem; color: #12405e; margin: 18px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #d4e3ef; }
+        .pending-list { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; padding-right: 4px; }
+        .pending-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: #fbfdff; border: 1px solid #d4e3ef; border-radius: 14px; flex-wrap: wrap; }
+        .pending-row .info { flex: 1; min-width: 200px; }
+        .pending-row .gen { font-weight: 700; color: #12405e; font-size: 0.95rem; }
+        .pending-row .meta { font-size: 0.8rem; color: #5b7b96; margin-top: 2px; }
         @media (max-width: 700px) {
             body { padding: 12px 8px; }
             .app-container { padding: 20px 16px; border-radius: 20px; }
@@ -132,6 +141,7 @@
             .signoff-right .btn-primary { width: 100%; justify-content: center; }
             .signature-pad { min-width: 100%; }
             input, select, textarea { font-size: 16px !important; }
+            .pending-row { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -150,6 +160,7 @@
                 <span class="dot-sep"></span>
                 <span>Weekly Friday Inspection</span>
             </div>
+            <div class="recording-notice">📅 Data recording started on <strong>03 Jul 2026</strong> — all reports & analysis cover this period onwards</div>
         </div>
 
         <div class="subhead">
@@ -206,6 +217,26 @@
                 <div class="gen-sub" id="genSub">Ritewat 500 kVA · 400V / 50Hz · field checklist</div>
             </div>
             <div class="gen-badge">Active</div>
+        </div>
+
+        <!-- ⭐ IN-CHARGE PENDING APPROVALS (Raissa only) -->
+        <div class="card" id="pendingApprovalsCard" style="display:none; margin-bottom: 28px; border: 2px solid #1b6b3f;">
+            <div class="card-header" style="background:#e2f0e6; color:#1b6b3f;">
+                <span>✅</span> In-Charge Approvals — Pending your co-signature
+                <span id="pendingApprovalsCount" style="margin-left:auto; background:#1b6b3f; color:white; padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">0</span>
+            </div>
+            <div class="card-body">
+                <p style="font-size: 0.88rem; color: #3a6583; margin-bottom: 14px;">
+                    As the in-charge, please review each record below and attach your approval signature. Once co-signed, both your signature and the technician's will appear on the downloaded report and analysis.
+                </p>
+                <div class="pending-list" id="pendingApprovalsList">
+                    <div style="text-align:center; color:#5b7b96; font-style:italic; padding: 12px;">Loading pending records…</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 14px;">
+                    <button class="btn-secondary" id="refreshPendingBtn" style="padding: 10px 20px; font-size: 0.88rem;">🔄 Refresh list</button>
+                    <button class="btn-approve" id="approveAllBtn" style="padding: 10px 20px;">✅ Co-sign all pending</button>
+                </div>
+            </div>
         </div>
 
         <div class="section-title"><span>⛽</span> Fluids & Operational Data</div>
@@ -425,7 +456,7 @@
         </div>
 
         <div class="flex-row" style="margin-top: 24px; justify-content: center;">
-            <span class="footer-note">All checks performed on Friday · 400V / 50Hz · CHUB site · System © 2026 Hillaly KUBWIMANA — All rights reserved</span>
+            <span class="footer-note">Records since 03 Jul 2026 · 400V / 50Hz · CHUB site · System © 2026 Hillaly KUBWIMANA — All rights reserved</span>
         </div>
     </div>
 
@@ -461,7 +492,7 @@
             <h2>🖊️ Signature &amp; Digital Certificate</h2>
             <p>Load both for full authenticity — the visual signature for readers, the .pfx certificate for cryptographic proof. The private key stays only in this browser tab.</p>
 
-            <h3 class="sig-h3">✍️ Technician Visual Signature (handwritten PNG)</h3>
+            <h3 class="sig-h3">✍️ Your Visual Signature (handwritten PNG)</h3>
             <div class="sig-preview" id="sigPreview">
                 <span class="placeholder">No visual signature uploaded</span>
             </div>
@@ -470,13 +501,19 @@
                 <input type="file" id="sigFileInput" accept="image/png, image/jpeg">
             </div>
 
-            <h3 class="sig-h3">👤 In-Charge / Supervisor Signature (PNG)</h3>
-            <div class="sig-preview" id="inchargeSigPreview">
-                <span class="placeholder">No in-charge signature uploaded</span>
-            </div>
-            <div class="field-group">
-                <label for="inchargeSigInput">In-charge signature image (shown in the "Reviewed by" box on the report)</label>
-                <input type="file" id="inchargeSigInput" accept="image/png, image/jpeg">
+            <!-- In-charge section: only Raissa can see this -->
+            <div id="inchargeSignatureSection" style="display:none;">
+                <h3 class="sig-h3">👤 In-Charge Signature (only Raissa can upload)</h3>
+                <div class="sig-preview" id="inchargeSigPreview">
+                    <span class="placeholder">No in-charge signature uploaded</span>
+                </div>
+                <div class="field-group">
+                    <label for="inchargeSigInput">In-charge signature image (appears in the "Reviewed by" box on every report)</label>
+                    <input type="file" id="inchargeSigInput" accept="image/png, image/jpeg">
+                </div>
+                <div style="background:#e2f0e6; border-left:3px solid #1b6b3f; padding:10px 14px; border-radius:6px; font-size:0.82rem; color:#1b6b3f; margin-bottom:14px;">
+                    ℹ️ Your uploaded signature is stored on the cloud (Google Sheet Config) so every technician's device can display it in reports.
+                </div>
             </div>
 
             <h3 class="sig-h3">🔐 Digital Certificate (.pfx / .p12)</h3>
@@ -551,6 +588,8 @@
     <script>
         (function() {
             const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxP3k23cM-EYB8Rv31xNYZvmXLYPKb5_ca_f-ITKsDSFeWRVGEuH23O44KOAxW_YvyZhQ/exec';
+            const INCHARGE_NAME = 'GATANGANWA Raissa';
+            const RECORDING_START = '03 Jul 2026';
 
             const TECHNICIAN_PINS = {
                 'Hillaly KUBWIMANA':      '0806',
@@ -560,12 +599,9 @@
                 'GATANGANWA Raissa':      '0401'
             };
 
-            // ============================================================
-            // ⭐ SIGNATURE STORAGE
-            // ============================================================
             const DEFAULT_TECHNICIAN_SIGNATURES = {};
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
-            const INCHARGE_SIG_KEY = 'chub_generator_incharge_signature_v1';
+            const INCHARGE_SIG_CACHE_KEY = 'chub_generator_incharge_signature_cache_v1';
 
             function loadSignatures() {
                 let stored = {};
@@ -580,16 +616,51 @@
                 if (dataUrl) stored[techName] = dataUrl; else delete stored[techName];
                 try { localStorage.setItem(SIG_STORAGE_KEY, JSON.stringify(stored)); } catch(e) { alert('Could not save signature — browser storage may be full.'); }
             }
-            function getInchargeSignature() { try { return localStorage.getItem(INCHARGE_SIG_KEY) || ''; } catch(e) { return ''; } }
-            function saveInchargeSignature(dataUrl) {
-                try { if (dataUrl) localStorage.setItem(INCHARGE_SIG_KEY, dataUrl); else localStorage.removeItem(INCHARGE_SIG_KEY); } catch(e) {}
+            function getInchargeSignatureCached() { try { return localStorage.getItem(INCHARGE_SIG_CACHE_KEY) || ''; } catch(e) { return ''; } }
+            function setInchargeSignatureCached(dataUrl) { try { localStorage.setItem(INCHARGE_SIG_CACHE_KEY, dataUrl || ''); } catch(e) {} }
+
+            async function fetchInchargeSignatureFromCloud() {
+                try {
+                    const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                    const json = await res.json();
+                    const sig = (json && json.config && json.config.InchargeSignature) || '';
+                    if (sig) setInchargeSignatureCached(sig);
+                    return sig;
+                } catch (e) { console.warn('Config fetch failed:', e); return ''; }
+            }
+            async function pushInchargeSignatureToCloud(sigB64) {
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'config_set',
+                            key: 'InchargeSignature',
+                            value: sigB64
+                        })
+                    });
+                    return true;
+                } catch (e) { return false; }
+            }
+            async function pushInchargeMetaToCloud(signer) {
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'config_set', key: 'InchargeSigner', value: signer })
+                    });
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'config_set', key: 'InchargeUpdatedAt', value: new Date().toISOString() })
+                    });
+                } catch (e) {}
             }
 
             function sanitizeForPDF(str) {
                 if (str === null || str === undefined) return '';
                 return String(str).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, ' ').trim();
             }
-
             function loadImageDimensions(dataUrl) {
                 return new Promise((resolve) => {
                     const img = new Image();
@@ -599,7 +670,6 @@
                 });
             }
 
-            // ---- CERT STATE ----
             const CERT_STATE = {
                 certificate: null, privateKey: null,
                 subject: '', issuer: '', serial: '',
@@ -626,9 +696,8 @@
                         validTo:   CERT_STATE.validTo   ? CERT_STATE.validTo.toISOString()   : '',
                         signedAt:  new Date().toISOString()
                     };
-                } catch (e) { console.error('Signature failed:', e); return null; }
+                } catch (e) { return null; }
             }
-
             function buildCanonical(data) {
                 return [
                     data.technician || '', data.workDate || '', data.generator || '',
@@ -639,7 +708,6 @@
                     data.generatedAt || ''
                 ].join('|');
             }
-
             async function computeSHA256(text) {
                 if (typeof crypto === 'undefined' || !crypto.subtle || !crypto.subtle.digest) {
                     let h1 = 0xdeadbeef ^ text.length;
@@ -658,7 +726,6 @@
                 const hashBuf = await crypto.subtle.digest('SHA-256', buf);
                 return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
             }
-
             async function ensureReportHash(data) {
                 if (data.reportHash && data.reportId && data.pkcs7Signature) return data;
                 const canonical = buildCanonical(data);
@@ -712,21 +779,16 @@
                 return Math.round(n * f) / f;
             }
 
-            // ---------- Date helpers ----------
             function formatDateOnly(val) {
                 if (val === null || val === undefined) return '—';
                 const s = String(val).trim();
                 if (!s || s === '—' || s === '-') return '—';
                 let d;
-                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-                    d = new Date(s + 'T00:00:00');
-                } else {
-                    d = new Date(s);
-                }
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) d = new Date(s + 'T00:00:00');
+                else d = new Date(s);
                 if (isNaN(d.getTime())) return s;
                 return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             }
-
             function formatDateTimeForPDF(val) {
                 if (!val) return '—';
                 if (Array.isArray(val)) val = val[0];
@@ -735,7 +797,6 @@
                 }
                 return String(val);
             }
-
             function normalizeDateForCompare(dateVal) {
                 if (!dateVal) return '';
                 if (Array.isArray(dateVal)) dateVal = dateVal[0];
@@ -864,6 +925,7 @@
             let selectedRange = '7';
             let analysisSelectedRange = '7';
             let lastSubmittedSnapshot = null;
+            let currentInchargeSignature = ''; // cached for PDF generation
 
             const QUEUE_KEY = 'chub_generator_queue';
             function getQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) { return []; } }
@@ -878,7 +940,7 @@
                 try {
                     await fetch(GOOGLE_SHEET_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
                     return true;
-                } catch (err) { console.warn('Send failed:', err); return false; }
+                } catch (err) { return false; }
             }
             async function flushQueue() {
                 const q = getQueue();
@@ -945,6 +1007,14 @@
                     const initials = name ? name.split(' ').map(p => p[0]).join('') + '.' : '—';
                     pad.textContent = initials;
                 }
+            }
+
+            // Toggle UI elements depending on whether the current user is the in-charge
+            function applyRoleVisibility() {
+                const isIncharge = technicianSelect.value === INCHARGE_NAME;
+                document.getElementById('inchargeSignatureSection').style.display = isIncharge ? 'block' : 'none';
+                document.getElementById('pendingApprovalsCard').style.display = isIncharge ? 'block' : 'none';
+                if (isIncharge) refreshPendingApprovals();
             }
 
             const levelOptions = document.querySelectorAll('#coolantLevelGroup .level-option');
@@ -1088,9 +1158,17 @@
                 } catch (e) { return { checked: false, error: e.message }; }
             }
 
+            // ==================== SIGN-OFF ====================
             signOffBtn.addEventListener('click', async function() {
                 const data = collectFormData();
                 await ensureReportHash(data);
+
+                // If the signer IS the in-charge, auto-co-sign in the same save
+                if (technicianSelect.value === INCHARGE_NAME) {
+                    data.inchargeSignedAt = new Date().toISOString();
+                    data.inchargeSigner = INCHARGE_NAME;
+                    data.inchargeApproved = 'YES';
+                }
 
                 const genKey = buildGeneratorIdentity(data);
                 const workDateISO = data.workDateISO;
@@ -1131,6 +1209,111 @@
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
+            // ==================== PENDING APPROVALS (Raissa) ====================
+            const pendingApprovalsList = document.getElementById('pendingApprovalsList');
+            const pendingApprovalsCount = document.getElementById('pendingApprovalsCount');
+
+            async function refreshPendingApprovals() {
+                if (technicianSelect.value !== INCHARGE_NAME) return;
+                pendingApprovalsList.innerHTML = '<div style="text-align:center; color:#5b7b96; font-style:italic; padding: 12px;">Loading…</div>';
+                try {
+                    const records = await fetchAllLogs();
+                    const pending = records.filter(r => {
+                        const at = safeStr(r['In-Charge Signed At']).trim();
+                        return !at;
+                    }).sort((a, b) => recordTime(b) - recordTime(a));
+                    pendingApprovalsCount.textContent = pending.length;
+                    if (pending.length === 0) {
+                        pendingApprovalsList.innerHTML = '<div style="text-align:center; color:#1b6b3f; padding: 14px;">✅ All records have been co-signed.</div>';
+                        return;
+                    }
+                    pendingApprovalsList.innerHTML = pending.map((r, idx) => {
+                        const gen = safeStr(r['Generator']) || '—';
+                        const tech = safeStr(r['Technician']) || '—';
+                        const wd = formatDateOnly(r['Work Date'] || r['workDate']);
+                        const hash = safeStr(r['Report Hash']);
+                        return `
+                            <div class="pending-row">
+                                <div class="info">
+                                    <div class="gen">⚙️ ${gen}</div>
+                                    <div class="meta">Work date: ${wd} · Technician: ${tech}</div>
+                                </div>
+                                <button class="btn-approve" data-hash="${hash}" data-idx="${idx}">
+                                    ✅ Co-sign
+                                </button>
+                            </div>`;
+                    }).join('');
+                    pendingApprovalsList.querySelectorAll('.btn-approve').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const hash = this.getAttribute('data-hash');
+                            if (!hash) { alert('Record has no Report Hash — cannot co-sign.'); return; }
+                            this.disabled = true; this.textContent = '⏳ Signing…';
+                            const ok = await cosignRecord(hash);
+                            if (ok) {
+                                this.textContent = '✅ Signed';
+                                setTimeout(() => refreshPendingApprovals(), 800);
+                            } else {
+                                this.disabled = false; this.textContent = '✅ Co-sign';
+                            }
+                        });
+                    });
+                } catch (e) {
+                    pendingApprovalsList.innerHTML = '<div style="text-align:center; color:#b33a3a; padding: 12px;">⚠️ Could not load records: ' + e.message + '</div>';
+                }
+            }
+
+            async function cosignRecord(reportHash) {
+                if (!currentInchargeSignature) {
+                    await fetchInchargeSignatureFromCloud();
+                    currentInchargeSignature = getInchargeSignatureCached();
+                }
+                if (!currentInchargeSignature) {
+                    alert('⚠️ Please upload your in-charge signature first (top-right → 🖊️ Signature & Cert).');
+                    return false;
+                }
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'cosign',
+                            reportHash: reportHash,
+                            inchargeSignedAt: new Date().toISOString(),
+                            inchargeSigner: INCHARGE_NAME
+                        })
+                    });
+                    showStatus('✅ Record co-signed successfully.', true);
+                    return true;
+                } catch (e) {
+                    showStatus('⚠️ Co-sign failed: ' + e.message, false);
+                    return false;
+                }
+            }
+
+            document.getElementById('refreshPendingBtn').addEventListener('click', refreshPendingApprovals);
+            document.getElementById('approveAllBtn').addEventListener('click', async function() {
+                if (!currentInchargeSignature) {
+                    await fetchInchargeSignatureFromCloud();
+                    currentInchargeSignature = getInchargeSignatureCached();
+                }
+                if (!currentInchargeSignature) {
+                    alert('⚠️ Please upload your in-charge signature first.');
+                    return;
+                }
+                const buttons = pendingApprovalsList.querySelectorAll('.btn-approve');
+                if (buttons.length === 0) { showStatus('No pending records.', true); return; }
+                if (!confirm('Co-sign all ' + buttons.length + ' pending record(s)?')) return;
+                for (const btn of buttons) {
+                    const hash = btn.getAttribute('data-hash');
+                    if (hash) {
+                        btn.disabled = true; btn.textContent = '⏳';
+                        await cosignRecord(hash);
+                    }
+                }
+                setTimeout(() => refreshPendingApprovals(), 800);
+            });
+
+            // ==================== PDF: Export current ====================
             pdfBtn.addEventListener('click', async function() {
                 const current = collectFormData();
                 const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
@@ -1140,7 +1323,7 @@
                 const orig = pdfBtn.innerHTML;
                 pdfBtn.innerHTML = '<span>⏳</span> Generating...';
                 try { await generatePDF([data]); showStatus('📄 PDF generated successfully.', true); }
-                catch (e) { console.error(e); showStatus('⚠️ Could not generate PDF: ' + e.message, false); }
+                catch (e) { showStatus('⚠️ Could not generate PDF: ' + e.message, false); }
                 pdfBtn.disabled = false; pdfBtn.innerHTML = orig;
             });
 
@@ -1149,1155 +1332,4 @@
                 const weekAgo = new Date();
                 weekAgo.setDate(today.getDate() - 7);
                 toDate.value = today.toISOString().slice(0,10);
-                fromDate.value = weekAgo.toISOString().slice(0,10);
-                selectedRange = '7';
-                quickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
-                customRangeFields.style.display = 'none';
-                pdfModal.classList.add('show');
-            });
-
-            quickFilters.forEach(chip => {
-                chip.addEventListener('click', function() {
-                    quickFilters.forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    selectedRange = this.dataset.range;
-                    customRangeFields.style.display = selectedRange === 'custom' ? 'block' : 'none';
-                });
-            });
-            modalCancel.addEventListener('click', function() { pdfModal.classList.remove('show'); });
-
-            modalGo.addEventListener('click', async function() {
-                modalGo.disabled = true;
-                const orig = modalGo.innerHTML;
-                modalGo.innerHTML = '⏳ Loading...';
-
-                let json;
-                try {
-                    modalGo.innerHTML = '⏳ Contacting Google Sheet...';
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 45000);
-                    const res = await fetch(GOOGLE_SHEET_URL + '?_ts=' + Date.now(), {
-                        method: 'GET',
-                        cache: 'no-store',
-                        signal: controller.signal
-                    });
-                    clearTimeout(timer);
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    modalGo.innerHTML = '⏳ Parsing response...';
-                    json = await res.json();
-                } catch (err) {
-                    console.error('Fetch failed:', err);
-                    showStatus('⚠️ Could not reach the Google Sheet: ' + (err.message || 'unknown') + '. Check your connection.', false);
-                    modalGo.disabled = false;
-                    modalGo.innerHTML = orig;
-                    return;
-                }
-
-                if (!json || !json.records || json.records.length === 0) {
-                    showStatus('📭 No records found in the sheet yet.', false);
-                    modalGo.disabled = false; modalGo.innerHTML = orig; return;
-                }
-
-                const filtered = filterRecords(json.records);
-                if (filtered.length === 0) {
-                    showStatus('📭 No records match the selected date range.', false);
-                    modalGo.disabled = false; modalGo.innerHTML = orig; return;
-                }
-
-                try {
-                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ' record' + (filtered.length > 1 ? 's' : '') + ')...';
-                    await new Promise(r => setTimeout(r, 30));
-                    await generatePDF(filtered);
-                    showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
-                    pdfModal.classList.remove('show');
-                } catch (err) {
-                    console.error('PDF generation failed:', err);
-                    showStatus('⚠️ PDF generation failed: ' + (err.message || 'unknown error'), false);
-                }
-                modalGo.disabled = false;
-                modalGo.innerHTML = orig;
-            });
-
-            function filterRecords(records) {
-                if (selectedRange === 'all') return records;
-                let from, to;
-                if (selectedRange === 'custom') {
-                    from = fromDate.value ? new Date(fromDate.value + 'T00:00:00') : null;
-                    to = toDate.value ? new Date(toDate.value + 'T23:59:59') : null;
-                } else {
-                    const days = parseInt(selectedRange, 10);
-                    to = new Date(); to.setHours(23, 59, 59, 999);
-                    from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
-                }
-                return records.filter(r => {
-                    const ts = r['Timestamp'] || r['timestamp'];
-                    if (!ts) return false;
-                    const d = new Date(ts);
-                    if (isNaN(d.getTime())) return false;
-                    if (from && d < from) return false;
-                    if (to && d > to) return false;
-                    return true;
-                });
-            }
-
-            const VISUAL_TEXTS = [
-                'No leaks (oil, coolant, fuel)',
-                'Belt tension & wear',
-                'Hoses & connections condition',
-                'Radiator / cooling fins clean',
-                'Battery terminals & electrolyte level',
-                'Mounting bolts & vibration isolators'
-            ];
-            const PROT_TEXTS = [
-                'Low oil pressure shutdown',
-                'High coolant temperature shutdown',
-                'Overcrank / overspeed trip',
-                'Low coolant level alarm',
-                'Emergency stop function',
-                'Battery charger & voltage (24V)'
-            ];
-            const ATS_TEXTS = [
-                'ATS panel indicators (normal / emergency)',
-                'Automatic transfer test (simulate outage)',
-                'Voltage & frequency on transfer (400V / 50Hz)',
-                'Return to normal after delay',
-                'No excessive arching / contact wear',
-                'Manual transfer test (if applicable)'
-            ];
-
-            async function generatePDF(records) {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const margin = 18;
-                const contentWidth = pageWidth - margin * 2;
-
-                const allSignatures = loadSignatures();
-                const sigDimensions = {};
-                for (const [techName, dataUrl] of Object.entries(allSignatures)) {
-                    if (dataUrl) {
-                        const dims = await loadImageDimensions(dataUrl);
-                        if (dims) sigDimensions[techName] = dims;
-                    }
-                }
-                // Preload in-charge signature
-                const inchargeSigData = getInchargeSignature();
-                let inchargeSigDims = null;
-                if (inchargeSigData) {
-                    inchargeSigDims = await loadImageDimensions(inchargeSigData);
-                }
-
-                function addHeader(data) {
-                    try { doc.addImage('chub-logo.png', 'PNG', margin, margin - 2, 24, 11); }
-                    catch (e) {
-                        doc.setFontSize(14); doc.setFont('helvetica', 'bolditalic');
-                        doc.setTextColor(106, 141, 176);
-                        doc.text('CHUB', margin, margin + 6);
-                    }
-                    doc.setFontSize(12); doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(18, 64, 94);
-                    doc.text('Generator Fleet - Testing & Monitoring', margin + 30, margin + 2);
-                    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(58, 101, 131);
-                    doc.text('Site: CHUB  |  400V / 50Hz  |  Weekly Friday', margin + 30, margin + 7);
-
-                    const rightX = pageWidth - margin;
-                    const labelX = rightX - 45;
-                    doc.setFontSize(8);
-
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
-                    doc.text('Work date:', labelX, margin + 1);
-                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
-                    doc.text(formatDateOnly(data['Work Date'] || data.workDate || data.workDateISO), rightX, margin + 1, { align: 'right' });
-
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
-                    doc.text('Technician:', labelX, margin + 5.5);
-                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
-                    doc.text(sanitizeForPDF(data['Technician'] || data.technician || '—'), rightX, margin + 5.5, { align: 'right' });
-
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
-                    doc.text('Generated:', labelX, margin + 10);
-                    doc.setFont('helvetica', 'normal'); doc.setTextColor(18, 64, 94);
-                    doc.text(formatDateTimeForPDF(data['Timestamp'] || data.generatedAt), rightX, margin + 10, { align: 'right' });
-
-                    doc.setDrawColor(200, 210, 220); doc.setLineWidth(0.3);
-                    doc.line(rightX - 55, margin - 3, rightX - 55, margin + 12);
-
-                    doc.setDrawColor(30, 74, 109); doc.setLineWidth(0.5);
-                    doc.line(margin, margin + 14, pageWidth - margin, margin + 14);
-
-                    return margin + 19;
-                }
-
-                function addFooter() {
-                    const footerY = pageHeight - 12;
-                    doc.setDrawColor(106, 141, 176); doc.setLineWidth(0.3);
-                    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4);
-                    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150);
-                    doc.text('P.O Box: 254 Butare  |  Email: info@chub.rw  |  Hotline: 2030', pageWidth / 2, footerY + 1, { align: 'center' });
-                }
-
-                for (let i = 0; i < records.length; i++) {
-                    const data = records[i];
-                    if (i > 0) { addFooter(); doc.addPage(); }
-
-                    if (i > 0 && i % 5 === 0) {
-                        await new Promise(r => setTimeout(r, 0));
-                    }
-
-                    let y = addHeader(data);
-
-                    const genName = safeStr(data['Generator'] || data.generator || '—');
-                    const genSub  = safeStr(data['Generator Sub'] || data.generatorSub || '400V / 50Hz · field checklist');
-                    const technician = safeStr(data['Technician'] || data.technician || '—');
-
-                    doc.setFillColor(30, 74, 109);
-                    doc.rect(margin, y, contentWidth, 15, 'F');
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-                    doc.text(sanitizeForPDF(genName), margin + 4, y + 5.5);
-                    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(203, 228, 247);
-                    doc.text(sanitizeForPDF(genSub), margin + 4, y + 12);
-                    y += 19;
-
-                    doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.2);
-                    doc.roundedRect(margin, y, contentWidth, 7, 1.5, 1.5, 'FD');
-                    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
-                    doc.text('V', margin + 4, y + 5);
-                    doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
-                    doc.text('Checked & OK', margin + 9, y + 5);
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(179, 58, 58);
-                    doc.text('X', margin + 60, y + 5);
-                    doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
-                    doc.text('Not checked / Needs attention', margin + 65, y + 5);
-                    y += 12;
-
-                    function drawSection(title, label, value, items, remark) {
-                        if (y > pageHeight - 60) { addFooter(); doc.addPage(); y = addHeader(data); }
-                        doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                        doc.text(title, margin, y); y += 1.5;
-                        doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
-                        doc.line(margin, y, pageWidth - margin, y); y += 4.5;
-                        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                        doc.text(`${label}: ${value}`, margin, y); y += 4;
-
-                        const rows = [];
-                        for (let j = 0; j < items.length; j += 2) {
-                            const left = items[j];
-                            const right = items[j + 1];
-                            const leftSym = left.checked ? 'V' : 'X';
-                            const leftColor = left.checked ? '#1b6b3f' : '#b33a3a';
-                            let rightSym = '', rightColor = '#000000', rightText = '';
-                            if (right) {
-                                rightSym = right.checked ? 'V' : 'X';
-                                rightColor = right.checked ? '#1b6b3f' : '#b33a3a';
-                                rightText = right.text;
-                            }
-                            rows.push([
-                                { content: leftSym, styles: { textColor: leftColor, fontStyle: 'bold' } },
-                                { content: left.text, styles: { textColor: '#000000' } },
-                                { content: rightSym, styles: { textColor: rightColor, fontStyle: 'bold' } },
-                                { content: rightText, styles: { textColor: '#000000' } }
-                            ]);
-                        }
-                        doc.autoTable({
-                            startY: y, margin: { left: margin, right: margin }, body: rows, theme: 'plain',
-                            styles: { fontSize: 8, cellPadding: 1.5, textColor: '#000000', lineWidth: 0, overflow: 'linebreak' },
-                            columnStyles: { 0: { cellWidth: 6 }, 1: { cellWidth: (contentWidth / 2) - 6 }, 2: { cellWidth: 6 }, 3: { cellWidth: (contentWidth / 2) - 6 } }
-                        });
-                        y = doc.lastAutoTable.finalY + 3;
-                        if (remark && remark !== '—' && remark !== '') {
-                            if (y > pageHeight - 35) { addFooter(); doc.addPage(); y = addHeader(data); }
-                            doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(58, 101, 131);
-                            const lines = doc.splitTextToSize('Note: ' + sanitizeForPDF(remark), contentWidth - 6);
-                            doc.text(lines, margin + 3, y); y += lines.length * 3.5 + 3;
-                        }
-                        y += 3;
-                    }
-
-                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                    doc.text('FLUIDS & OPERATIONAL DATA', margin, y); y += 1.5;
-                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
-                    doc.line(margin, y, pageWidth - margin, y); y += 5;
-
-                    const boxW = (contentWidth - 10) / 5;
-                    const fluids = [
-                        { label: 'FUEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
-                        { label: 'COOLANT', value: safeStr(data['Coolant'] || data.coolantLevel) || '—' },
-                        { label: 'OIL LEVEL', value: safeStr(data['Oil Level'] || data.oilLevel) || '—' },
-                        { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
-                        { label: 'RUN HOURS', value: safeStr(data['Run Hours'] || data.totalRunHours) || '—' }
-                    ];
-                    fluids.forEach((b, idx) => {
-                        const bx = margin + idx * (boxW + 2);
-                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, boxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
-                        doc.text(b.label, bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
-                    y += 20;
-
-                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                    doc.text('PREDICTIVE SERVICING (250 h INTERVAL)', margin, y); y += 1.5;
-                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
-                    doc.line(margin, y, pageWidth - margin, y); y += 5;
-
-                    const pBoxW = (contentWidth - 6) / 4;
-                    const pred = [
-                        { label: 'LAST SERVICE', value: formatDateOnly(data['Last Service Date'] || data.lastServiceDate) },
-                        { label: 'HOURS @ SERVICE', value: safeStr(data['Last Service Hours'] || data.lastServiceHours) || '—' },
-                        { label: 'HOURS SINCE', value: (safeStr(data['Hours Since Service'] || data.hoursSinceService) || '—') + ' h' },
-                        { label: 'HOURS REMAINING', value: (safeStr(data['Hours Until Service'] || data.hoursUntilService) || '—') + ' h' }
-                    ];
-                    pred.forEach((b, idx) => {
-                        const bx = margin + idx * (pBoxW + 2);
-                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, pBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
-                        doc.text(b.label, bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
-                    y += 17;
-
-                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238);
-                    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(18, 64, 94);
-                    doc.text('Predicted next service:', margin + 3, y + 5);
-                    doc.setTextColor(122, 76, 156); doc.setFontSize(9);
-                    const predNextRaw = data['Predicted Next Service Date'] || data.predictedNextServiceDate;
-                    doc.text(formatDateOnly(predNextRaw), margin + 40, y + 5);
-                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(58, 101, 131);
-                    doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
-                    y += 18;
-
-                    const tankCap = getTankCapacity(genName);
-                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                    doc.text('FUEL DATA', margin, y); y += 1.5;
-                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
-                    doc.line(margin, y, pageWidth - margin, y); y += 5;
-                    const fBoxW = (contentWidth - 6) / 4;
-                    const fuelBoxes = [
-                        { label: 'TANK CAPACITY', value: tankCap !== null ? tankCap + ' L' : '—' },
-                        { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
-                        { label: 'FUEL LEVEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
-                        { label: 'RUN HOURS (TOTAL)', value: safeStr(data['Run Hours'] || data.totalRunHours) || '—' }
-                    ];
-                    fuelBoxes.forEach((b, idx) => {
-                        const bx = margin + idx * (fBoxW + 2);
-                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, fBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
-                        doc.text(b.label, bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
-                    y += 20;
-
-                    const vSet = new Set(safeSplit(data['Visual Items'] || data.visualItems, '|'));
-                    const visualItems = VISUAL_TEXTS.map((t, idx) => ({ text: t, checked: vSet.has(String(idx + 1)) }));
-                    const pSet = new Set(safeSplit(data['Protection Items'] || data.protItems, '|'));
-                    const protItems = PROT_TEXTS.map((t, idx) => ({ text: t, checked: pSet.has(String(idx + 1)) }));
-                    const aSet = new Set(safeSplit(data['ATS Items'] || data.atsItems, '|'));
-                    const atsItems = ATS_TEXTS.map((t, idx) => ({ text: t, checked: aSet.has(String(idx + 1)) }));
-
-                    drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
-                    drawSection('PROTECTION SYSTEMS', 'Status', safeStr(data['Protection Rating'] || data.protRating || '—'), protItems, safeStr(data['Protection Remarks'] || data.protRemark));
-                    drawSection('ATS / TRANSFER', 'Performance', safeStr(data['ATS Rating'] || data.atsRating || '—'), atsItems, safeStr(data['ATS Remarks'] || data.atsRemark));
-
-                    const boxHeight = 46;
-                    if (y > pageHeight - 70) { addFooter(); doc.addPage(); y = addHeader(data); }
-                    const gap = 4;
-                    const halfWidth = (contentWidth - gap) / 2;
-                    const leftBoxX = margin;
-                    const rightBoxX = margin + halfWidth + gap;
-
-                    // ---- LEFT: TECHNICIAN ----
-                    doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
-                    doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
-                    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
-                    doc.text('PERFORMED BY (TECHNICIAN)', leftBoxX + 3, y + 4.5);
-                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(10, 42, 63);
-                    doc.text(sanitizeForPDF(technician), leftBoxX + 3, y + 11);
-                    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
-                    doc.text(`Date: ${formatDateOnly(data['Work Date'] || data.workDate || data.workDateISO)}`, leftBoxX + 3, y + 15.5);
-                    doc.text(`Site: CHUB  ·  400V / 50Hz`, leftBoxX + 3, y + 19.5);
-
-                    const sigAreaX = leftBoxX + (halfWidth / 2) + 2;
-                    const sigAreaW = (halfWidth / 2) - 5;
-                    const sigAreaY = y + 7;
-                    const sigAreaH = 16;
-                    doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
-                    doc.roundedRect(sigAreaX, sigAreaY, sigAreaW, sigAreaH, 1, 1, 'S');
-                    const techVisualSig = allSignatures[technician] || '';
-                    let drawn = false;
-                    if (techVisualSig) {
-                        try {
-                            const techDims = sigDimensions[technician];
-                            let sigW, sigH;
-                            if (techDims && techDims.width > 0 && techDims.height > 0) {
-                                const aspect = techDims.width / techDims.height;
-                                sigW = sigAreaW - 4; sigH = sigW / aspect;
-                                if (sigH > sigAreaH - 3) { sigH = sigAreaH - 3; sigW = sigH * aspect; }
-                            } else { sigW = sigAreaW - 6; sigH = sigAreaH - 6; }
-                            const sigX = sigAreaX + (sigAreaW - sigW) / 2;
-                            const sigY = sigAreaY + (sigAreaH - sigH) / 2;
-                            doc.addImage(techVisualSig, 'PNG', sigX, sigY, sigW, sigH);
-                            drawn = true;
-                        } catch (e) { console.warn('Could not render visual signature:', e); }
-                    }
-                    if (!drawn) {
-                        doc.setFontSize(6); doc.setFont('helvetica', 'italic');
-                        doc.setTextColor(156, 185, 208);
-                        doc.text('(visual signature)', sigAreaX + sigAreaW / 2, sigAreaY + sigAreaH / 2 + 1, { align: 'center' });
-                    }
-                    doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
-                    doc.line(leftBoxX + 3, y + 25, leftBoxX + halfWidth - 3, y + 25);
-
-                    if (data.signatureSubject || data['Signature Subject']) {
-                        const subj = sanitizeForPDF(data.signatureSubject || data['Signature Subject'] || '');
-                        const iss  = sanitizeForPDF(data.signatureIssuer  || data['Signature Issuer']  || '—');
-                        const signedAt = data.signatureSignedAt || data['Signature Signed At'];
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(27, 107, 63);
-                        doc.text('Digitally signed (PKCS#7)', leftBoxX + 3, y + 28.5);
-                        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.2); doc.setTextColor(58, 101, 131);
-                        doc.text('Subject: ' + subj, leftBoxX + 3, y + 31.5);
-                        doc.text('Issuer: ' + iss, leftBoxX + 3, y + 34);
-                        if (signedAt) doc.text('Signed: ' + new Date(signedAt).toLocaleString('en-GB'), leftBoxX + 3, y + 36.5);
-                    } else {
-                        doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5); doc.setTextColor(91, 123, 150);
-                        doc.text('No digital signature — visual only', leftBoxX + 3, y + 30);
-                    }
-                    doc.setDrawColor(150, 180, 200); doc.setLineWidth(0.3);
-                    doc.line(leftBoxX + 3, y + 39, leftBoxX + halfWidth - 3, y + 39);
-                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
-                    doc.text((data.signatureSubject || data['Signature Subject']) ? 'Signature + PKCS#7 digital seal' : 'Signature', leftBoxX + 3, y + 42);
-
-                    // ---- RIGHT: IN-CHARGE ----
-                    doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
-                    doc.roundedRect(rightBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
-                    doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
-                    doc.text('REVIEWED BY (SUPERVISOR / DEPT. IN-CHARGE)', rightBoxX + 3, y + 4.5);
-                    doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(58, 101, 131);
-                    doc.text('Site: CHUB — Engineering', rightBoxX + 3, y + 10);
-
-                    // In-charge signature image area
-                    const inchargeSigAreaX = rightBoxX + 3;
-                    const inchargeSigAreaY = y + 12;
-                    const inchargeSigAreaW = halfWidth - 6;
-                    const inchargeSigAreaH = 16;
-                    doc.setDrawColor(200, 180, 120); doc.setLineWidth(0.2);
-                    doc.roundedRect(inchargeSigAreaX, inchargeSigAreaY, inchargeSigAreaW, inchargeSigAreaH, 1, 1, 'S');
-                    let inchargeDrawn = false;
-                    if (inchargeSigData) {
-                        try {
-                            let sigW, sigH;
-                            if (inchargeSigDims && inchargeSigDims.width > 0 && inchargeSigDims.height > 0) {
-                                const aspect = inchargeSigDims.width / inchargeSigDims.height;
-                                sigW = inchargeSigAreaW - 4; sigH = sigW / aspect;
-                                if (sigH > inchargeSigAreaH - 3) { sigH = inchargeSigAreaH - 3; sigW = sigH * aspect; }
-                            } else { sigW = inchargeSigAreaW - 6; sigH = inchargeSigAreaH - 6; }
-                            const sigX = inchargeSigAreaX + (inchargeSigAreaW - sigW) / 2;
-                            const sigY = inchargeSigAreaY + (inchargeSigAreaH - sigH) / 2;
-                            doc.addImage(inchargeSigData, 'PNG', sigX, sigY, sigW, sigH);
-                            inchargeDrawn = true;
-                        } catch (e) { console.warn('Could not render in-charge signature:', e); }
-                    }
-                    if (!inchargeDrawn) {
-                        doc.setFontSize(6); doc.setFont('helvetica', 'italic');
-                        doc.setTextColor(180, 160, 100);
-                        doc.text('(in-charge signature)', inchargeSigAreaX + inchargeSigAreaW / 2, inchargeSigAreaY + inchargeSigAreaH / 2 + 1, { align: 'center' });
-                    }
-                    doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
-                    doc.line(rightBoxX + 3, y + 34, rightBoxX + halfWidth - 3, y + 34);
-                    doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(122, 83, 0);
-                    doc.text('Name & Signature', rightBoxX + 3, y + 38);
-
-                    y += boxHeight + 4;
-                    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150);
-                    doc.text(sanitizeForPDF(`Generated from CHUB Generator Fleet System | ${data['Timestamp'] || data.generatedAt || ''}`), margin, y);
-                }
-
-                addFooter();
-                const fname = 'CHUB_Generator_Report_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf';
-                doc.save(fname);
-            }
-
-            analysisPdfBtn.addEventListener('click', function() {
-                const today = new Date();
-                const weekAgo = new Date();
-                weekAgo.setDate(today.getDate() - 7);
-                analysisToDate.value = today.toISOString().slice(0,10);
-                analysisFromDate.value = weekAgo.toISOString().slice(0,10);
-                analysisSelectedRange = '7';
-                analysisQuickFilters.forEach(c => c.classList.toggle('active', c.dataset.range === '7'));
-                analysisCustomRange.style.display = 'none';
-                analysisModal.classList.add('show');
-            });
-            analysisQuickFilters.forEach(chip => {
-                chip.addEventListener('click', function() {
-                    analysisQuickFilters.forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    analysisSelectedRange = this.dataset.range;
-                    analysisCustomRange.style.display = analysisSelectedRange === 'custom' ? 'block' : 'none';
-                });
-            });
-            analysisModalCancel.addEventListener('click', function() { analysisModal.classList.remove('show'); });
-            analysisModalGo.addEventListener('click', async function() {
-                analysisModalGo.disabled = true;
-                const orig = analysisModalGo.innerHTML;
-                analysisModalGo.innerHTML = '⏳ Loading...';
-                try {
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 45000);
-                    const res = await fetch(GOOGLE_SHEET_URL + '?_ts=' + Date.now(), { method: 'GET', cache: 'no-store', signal: controller.signal });
-                    clearTimeout(timer);
-                    const json = await res.json();
-                    if (!json.records || json.records.length === 0) {
-                        showStatus('📭 No records found.', false);
-                        analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return;
-                    }
-                    const filtered = filterAnalysisRecords(json.records);
-                    if (filtered.length === 0) {
-                        showStatus('📭 No records match the selected date range.', false);
-                        analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return;
-                    }
-                    analysisModalGo.innerHTML = '📊 Generating...';
-                    const consIndex = buildConsumptionIndex(json.records);
-                    await generateAnalysisPDF(filtered, consIndex);
-                    showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true);
-                    analysisModal.classList.remove('show');
-                } catch (err) {
-                    console.error(err);
-                    showStatus('⚠️ Could not load records: ' + err.message, false);
-                }
-                analysisModalGo.disabled = false;
-                analysisModalGo.innerHTML = orig;
-            });
-
-            function filterAnalysisRecords(records) {
-                if (analysisSelectedRange === 'all') return records;
-                let from, to;
-                if (analysisSelectedRange === 'custom') {
-                    from = analysisFromDate.value ? new Date(analysisFromDate.value + 'T00:00:00') : null;
-                    to = analysisToDate.value ? new Date(analysisToDate.value + 'T23:59:59') : null;
-                } else {
-                    const days = parseInt(analysisSelectedRange, 10);
-                    to = new Date(); to.setHours(23, 59, 59, 999);
-                    from = new Date(); from.setDate(from.getDate() - days); from.setHours(0, 0, 0, 0);
-                }
-                return records.filter(r => {
-                    const ts = r['Timestamp'] || r['timestamp'];
-                    if (!ts) return false;
-                    const d = new Date(ts);
-                    if (isNaN(d.getTime())) return false;
-                    if (from && d < from) return false;
-                    if (to && d > to) return false;
-                    return true;
-                });
-            }
-            function getISOWeekKeyClient(date) {
-                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-                const dayNum = d.getUTCDay() || 7;
-                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-                return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
-            }
-
-            // NOTE: Fuel Consumption Analysis page has been REMOVED per user request.
-            async function generateAnalysisPDF(records, consIndex) {
-                if (!consIndex) consIndex = buildConsumptionIndex(records);
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pageW = 210, pageH = 297, mL = 14, mR = 14;
-                const cW = pageW - mL - mR;
-
-                doc.setFillColor(30, 74, 109);
-                doc.rect(0, 0, pageW, 6, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Analysis Report', mL, 20);
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(58, 101, 131);
-                doc.text('Site: CHUB · 400V / 50Hz · Weekly Friday Monitoring', mL, 26);
-                doc.setFontSize(8); doc.setTextColor(91, 123, 150);
-                const genAt = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                const rangeLabel = analysisSelectedRange === 'all' ? 'All time' :
-                                   analysisSelectedRange === 'custom' ? (analysisFromDate.value + ' → ' + analysisToDate.value) :
-                                   'Last ' + analysisSelectedRange + ' days';
-                doc.text('Generated: ' + genAt, pageW - mR, 20, { align: 'right' });
-                doc.text('Range: ' + rangeLabel, pageW - mR, 25, { align: 'right' });
-                doc.text('Records: ' + records.length, pageW - mR, 30, { align: 'right' });
-                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.5);
-                doc.line(mL, 34, pageW - mR, 34);
-
-                const totalRecords = records.length;
-                const totalDiesel = records.reduce((s, r) => s + (validNum(r['Diesel Refilled (L)']) || 0), 0);
-                const totalRunHours = records.reduce((s, r) => s + (validNum(r['Run Hours']) || 0), 0);
-                const fuelValues = records.map(r => parseFuelPercent(r)).filter(v => v !== null);
-                const avgFuel = fuelValues.length ? fuelValues.reduce((s, v) => s + v, 0) / fuelValues.length : 0;
-                const validHoursRecords = records.filter(r => validNum(r['Run Hours']) !== null);
-                const avgRunHours = validHoursRecords.length ? validHoursRecords.reduce((s, r) => s + parseNumClient(r['Run Hours']), 0) / validHoursRecords.length : 0;
-
-                let y = 44;
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
-                doc.text('KEY PERFORMANCE INDICATORS', mL, y); y += 6;
-
-                const kpiBoxes = [
-                    { label: 'Total Records', value: String(totalRecords) },
-                    { label: 'Total Diesel Refilled', value: roundClient(totalDiesel, 1) + ' L' },
-                    { label: 'Total Run Hours', value: roundClient(totalRunHours, 1) + ' h' },
-                    { label: 'Avg Fuel Level', value: roundClient(avgFuel, 1) + ' %' },
-                    { label: 'Avg Run Hours / Check', value: roundClient(avgRunHours, 1) + ' h' }
-                ];
-                const kpiBoxW = (cW - 8) / 3;
-                const kpiBoxH = 22;
-                const kpiGap = 4;
-                kpiBoxes.forEach((b, i) => {
-                    const col = i % 3, row = Math.floor(i / 3);
-                    const bx = mL + col * (kpiBoxW + kpiGap);
-                    const by = y + row * (kpiBoxH + kpiGap);
-                    doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                    doc.roundedRect(bx, by, kpiBoxW, kpiBoxH, 2, 2, 'FD');
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(91, 123, 150);
-                    doc.text(b.label.toUpperCase(), bx + 3, by + 6);
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(18, 64, 94);
-                    doc.text(String(b.value), bx + 3, by + 16);
-                });
-                y += 2 * (kpiBoxH + kpiGap) + 4;
-
-                const overdueCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem <= 0 && safeStr(r['Hours Until Service']) !== ''; }).length;
-                const dueSoonCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 0 && rem <= 25; }).length;
-                const okCount = records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 25; }).length;
-
-                y = drawAnalysisSection(doc, 'Servicing Status Overview', mL, y, cW);
-                const servRows = [
-                    ['[OK]      > 50 h remaining', okCount],
-                    ['[SOON]    <= 50 h remaining', records.filter(r => { const rem = parseNumClient(r['Hours Until Service']); return rem > 25 && rem <= 50; }).length],
-                    ['[DUE]     <= 25 h remaining', dueSoonCount],
-                    ['[OVERDUE] Service required', overdueCount]
-                ];
-                y = drawSimpleTable(doc, ['Status', 'Inspections'], servRows, mL, y, cW);
-
-                y = drawAnalysisSection(doc, 'Weekly Run Hours Distribution (Histogram)', mL, y, cW);
-                const bins = [
-                    { label: '0 – 5 h', min: 0, max: 5 }, { label: '5 – 10 h', min: 5, max: 10 },
-                    { label: '10 – 20 h', min: 10, max: 20 }, { label: '20 – 30 h', min: 20, max: 30 },
-                    { label: '30 – 40 h', min: 30, max: 40 }, { label: '40 – 50 h', min: 40, max: 50 },
-                    { label: '50+ h', min: 50, max: Infinity }
-                ];
-                const histogramData = bins.map(b => ({
-                    label: b.label,
-                    count: records.filter(r => { const h = validNum(r['Run Hours']); if (h === null) return false; return h >= b.min && h < b.max; }).length
-                }));
-                const histMax = Math.max(1, ...histogramData.map(h => h.count));
-                const chartRowH = 5;
-                const labelW = 30;
-                const barMaxW = cW - labelW - 20;
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-                histogramData.forEach((h, i) => {
-                    const rowY = y + i * chartRowH;
-                    doc.setTextColor(31, 60, 84);
-                    doc.text(h.label, mL, rowY + 3.5);
-                    const barW = (h.count / histMax) * barMaxW;
-                    doc.setFillColor(30, 74, 109);
-                    doc.rect(mL + labelW, rowY, barW, 3.5, 'F');
-                    doc.setTextColor(18, 64, 94);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(String(h.count), mL + labelW + barW + 2, rowY + 3.5);
-                    doc.setFont('helvetica', 'normal');
-                });
-                y += histogramData.length * chartRowH + 4;
-                const dominantBin = histogramData.reduce((a, b) => b.count > a.count ? b : a, histogramData[0]);
-                doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(58, 101, 131);
-                doc.text('Most common range: ' + dominantBin.label + ' (' + dominantBin.count + ' inspections)', mL, y);
-                y += 8;
-
-                y = drawAnalysisSection(doc, 'Breakdown by Generator', mL, y, cW);
-                const byGen = {};
-                records.forEach(r => {
-                    const g = safeStr(r['Generator']) || 'Unknown';
-                    if (!byGen[g]) byGen[g] = { count: 0, diesel: 0, hours: 0 };
-                    byGen[g].count++;
-                    byGen[g].diesel += validNum(r['Diesel Refilled (L)']) || 0;
-                    byGen[g].hours += validNum(r['Run Hours']) || 0;
-                });
-                const genRows = Object.keys(byGen).map(g => [g, byGen[g].count, roundClient(byGen[g].diesel, 1), roundClient(byGen[g].hours, 1)]);
-                y = drawSimpleTable(doc, ['Generator', 'Inspections', 'Diesel (L)', 'Run Hours'], genRows, mL, y, cW);
-
-                doc.addPage();
-                let y2 = 20;
-                doc.setFillColor(30, 74, 109);
-                doc.rect(0, 0, pageW, 4, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
-                doc.text('Generator Fleet — Analysis Report (continued)', mL, y2);
-                y2 += 8;
-
-                y2 = drawAnalysisSection(doc, 'Breakdown by Technician', mL, y2, cW);
-                const byTech = {};
-                records.forEach(r => { const t = safeStr(r['Technician']) || 'Unknown'; byTech[t] = (byTech[t] || 0) + 1; });
-                const techRows = Object.keys(byTech).map(t => [t, byTech[t]]);
-                y2 = drawSimpleTable(doc, ['Technician', 'Inspections'], techRows, mL, y2, cW);
-
-                y2 = drawAnalysisSection(doc, 'Weekly Trend', mL, y2, cW);
-                const byWeek = {};
-                records.forEach(r => {
-                    const d = new Date(r['Timestamp']);
-                    if (isNaN(d.getTime())) return;
-                    const wk = getISOWeekKeyClient(d);
-                    if (!byWeek[wk]) byWeek[wk] = { count: 0, diesel: 0, hours: 0 };
-                    byWeek[wk].count++;
-                    byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0;
-                    byWeek[wk].hours += validNum(r['Run Hours']) || 0;
-                });
-                const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), roundClient(byWeek[w].hours, 1)]);
-                y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
-
-                y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
-                const fuelBuckets = { 'Low (0–25%)': 0, 'Medium (26–50%)': 0, 'Good (51–75%)': 0, 'Full (76–100%)': 0 };
-                let fuelSkipped = 0;
-                records.forEach(r => {
-                    let f = validNum(r['Fuel %']);
-                    if (f === null) { fuelSkipped++; return; }
-                    if (f >= 0 && f <= 1) f = f * 100;
-                    if (f <= 25) fuelBuckets['Low (0–25%)']++;
-                    else if (f <= 50) fuelBuckets['Medium (26–50%)']++;
-                    else if (f <= 75) fuelBuckets['Good (51–75%)']++;
-                    else fuelBuckets['Full (76–100%)']++;
-                });
-                const fuelRows = Object.keys(fuelBuckets).map(k => [k, fuelBuckets[k]]);
-                y2 = drawSimpleTable(doc, ['Fuel Level Range', 'Occurrences'], fuelRows, mL, y2, cW);
-                doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(91, 123, 150);
-                doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
-
-                // ---- LAST PAGE REMOVED: Fuel Consumption Analysis ----
-
-                const totalPages = doc.getNumberOfPages();
-                for (let p = 1; p <= totalPages; p++) {
-                    doc.setPage(p);
-                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 170, 190);
-                    doc.text('Generated automatically from CHUB Generator Fleet System', pageW / 2, pageH - 6, { align: 'center' });
-                    doc.text('Page ' + p + ' of ' + totalPages, pageW / 2, pageH - 2, { align: 'center' });
-                }
-                doc.save('CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf');
-            }
-
-            function drawAnalysisSection(doc, title, x, y, w) {
-                doc.setFillColor(238, 246, 252);
-                doc.rect(x, y - 4, w, 6, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
-                doc.text(title, x + 2, y);
-                return y + 6;
-            }
-            function drawSimpleTable(doc, headers, rows, x, y, w) {
-                if (rows.length === 0) {
-                    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(150, 170, 190);
-                    doc.text('(no data)', x, y + 4);
-                    return y + 8;
-                }
-                const colCount = headers.length;
-                const colW = w / colCount;
-                const rowH = 6;
-                doc.setFillColor(212, 227, 239);
-                doc.rect(x, y, w, rowH, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(18, 64, 94);
-                headers.forEach((h, i) => { doc.text(h, x + i * colW + 2, y + 4); });
-                y += rowH;
-                doc.setFont('helvetica', 'normal');
-                rows.forEach((row, rIdx) => {
-                    if (rIdx % 2 === 1) {
-                        doc.setFillColor(249, 252, 255);
-                        doc.rect(x, y, w, rowH, 'F');
-                    }
-                    doc.setTextColor(31, 60, 84);
-                    row.forEach((cell, i) => {
-                        const text = String(cell);
-                        const maxChars = Math.floor(colW / 1.8);
-                        const display = text.length > maxChars ? text.substring(0, maxChars - 1) + '…' : text;
-                        doc.text(display, x + i * colW + 2, y + 4);
-                    });
-                    y += rowH;
-                });
-                doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.2);
-                doc.rect(x, y - rows.length * rowH - rowH, w, rows.length * rowH + rowH);
-                return y + 4;
-            }
-
-            // ==================== SIGNATURE MODAL LOGIC ====================
-            const signatureModal = document.getElementById('signatureModal');
-            const sigFileInput = document.getElementById('sigFileInput');
-            const inchargeSigInput = document.getElementById('inchargeSigInput');
-            const inchargeSigPreview = document.getElementById('inchargeSigPreview');
-            const pfxFileInput = document.getElementById('pfxFileInput');
-            const pfxPasswordInput = document.getElementById('pfxPasswordInput');
-            const sigPreview = document.getElementById('sigPreview');
-            const certPreview = document.getElementById('certPreview');
-            const sigError = document.getElementById('sigError');
-
-            let pendingVisualSig = null;
-            let pendingInchargeSig = null;
-            let pendingCert = null;
-
-            function renderVisualPreview() {
-                if (pendingVisualSig) sigPreview.innerHTML = `<img src="${pendingVisualSig}" alt="signature">`;
-                else sigPreview.innerHTML = '<span class="placeholder">No visual signature uploaded</span>';
-            }
-            function renderInchargeSigPreview() {
-                if (pendingInchargeSig) inchargeSigPreview.innerHTML = `<img src="${pendingInchargeSig}" alt="incharge signature">`;
-                else inchargeSigPreview.innerHTML = '<span class="placeholder">No in-charge signature uploaded</span>';
-            }
-            function renderCertPreview() {
-                if (!pendingCert) {
-                    certPreview.innerHTML = '<span class="placeholder">No certificate loaded</span>';
-                    return;
-                }
-                const vf = pendingCert.validFrom ? pendingCert.validFrom.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-                const vt = pendingCert.validTo   ? pendingCert.validTo.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })   : '—';
-                certPreview.innerHTML = `
-                    <div style="text-align:left; font-size:0.82rem; line-height:1.5;">
-                        <div style="font-weight:700; color:#1b6b3f; margin-bottom:4px;">✅ Certificate ready</div>
-                        <div><strong>Signed by:</strong> ${sanitizeForPDF(pendingCert.subject)}</div>
-                        <div><strong>Issuer:</strong> ${sanitizeForPDF(pendingCert.issuer)}</div>
-                        <div><strong>Serial:</strong> ${pendingCert.serial}</div>
-                        <div><strong>Valid:</strong> ${vf} → ${vt}</div>
-                    </div>`;
-            }
-
-            document.getElementById('signatureBtn').addEventListener('click', () => {
-                const name = technicianSelect.value;
-                if (!name) { alert('Please log in first.'); return; }
-                sigError.textContent = '';
-                sigFileInput.value = '';
-                inchargeSigInput.value = '';
-                pfxFileInput.value = '';
-                pfxPasswordInput.value = '';
-                pendingVisualSig = getSignatureFor(name) || null;
-                pendingInchargeSig = getInchargeSignature() || null;
-                pendingCert = isCertLoaded() ? { ...CERT_STATE } : null;
-                renderVisualPreview();
-                renderInchargeSigPreview();
-                renderCertPreview();
-                signatureModal.classList.add('show');
-            });
-
-            document.getElementById('sigCancel').addEventListener('click', () => {
-                pfxPasswordInput.value = '';
-                signatureModal.classList.remove('show');
-            });
-            document.getElementById('sigRemove').addEventListener('click', () => {
-                if (!confirm('Forget the current signatures and certificate?')) return;
-                const name = technicianSelect.value;
-                saveSignatureFor(name, '');
-                saveInchargeSignature('');
-                clearCert();
-                pendingVisualSig = null;
-                pendingInchargeSig = null;
-                pendingCert = null;
-                renderVisualPreview();
-                renderInchargeSigPreview();
-                renderCertPreview();
-                updateTechnicianDisplay();
-                showStatus('🗑️ Signatures and certificate cleared.', true);
-            });
-
-            sigFileInput.addEventListener('change', function() {
-                const file = this.files && this.files[0];
-                if (!file) return;
-                if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; }
-                const reader = new FileReader();
-                reader.onload = (e) => { pendingVisualSig = e.target.result; renderVisualPreview(); };
-                reader.readAsDataURL(file);
-            });
-
-            inchargeSigInput.addEventListener('change', function() {
-                const file = this.files && this.files[0];
-                if (!file) return;
-                if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; }
-                const reader = new FileReader();
-                reader.onload = (e) => { pendingInchargeSig = e.target.result; renderInchargeSigPreview(); };
-                reader.readAsDataURL(file);
-            });
-
-            document.getElementById('sigSave').addEventListener('click', async () => {
-                sigError.textContent = '';
-                const name = technicianSelect.value;
-                if (!name) { sigError.textContent = '⚠️ Please log in first.'; return; }
-
-                if (pfxFileInput.files && pfxFileInput.files[0]) {
-                    const password = pfxPasswordInput.value;
-                    if (!password) { sigError.textContent = '⚠️ Please enter the PFX password.'; return; }
-                    if (typeof forge === 'undefined') { sigError.textContent = '⚠️ Crypto library not loaded.'; return; }
-
-                    try {
-                        const buf = await pfxFileInput.files[0].arrayBuffer();
-                        let binary = '';
-                        const bytes = new Uint8Array(buf);
-                        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-
-                        const asn1 = forge.asn1.fromDer(binary);
-                        const p12  = forge.pkcs12.pkcs12FromAsn1(asn1, password);
-
-                        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-                        const certBag  = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
-                        if (!certBag || !certBag.cert) { sigError.textContent = '⚠️ No certificate found in the PFX.'; return; }
-                        const certificate = certBag.cert;
-
-                        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-                        let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
-                        if (!keyBag) {
-                            const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
-                            keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0];
-                        }
-                        if (!keyBag || !keyBag.key) { sigError.textContent = '⚠️ No private key found in the PFX.'; return; }
-
-                        const getField = (obj, nm) => { try { const f = obj.getField(nm); return f ? f.value : ''; } catch (e) { return ''; } };
-                        const derBytes = forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes();
-                        const md = forge.md.sha256.create(); md.update(derBytes);
-
-                        pendingCert = {
-                            certificate,
-                            privateKey: keyBag.key,
-                            subject: sanitizeForPDF(getField(certificate.subject, 'CN') || getField(certificate.subject, 'O') || '(unknown)'),
-                            issuer:  sanitizeForPDF(getField(certificate.issuer, 'CN') || '(unknown)'),
-                            serial: certificate.serialNumber || '',
-                            validFrom: certificate.validity.notBefore,
-                            validTo: certificate.validity.notAfter,
-                            fingerprint: md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase()
-                        };
-                        renderCertPreview();
-                    } catch (e) {
-                        console.error(e);
-                        sigError.textContent = '❌ ' + (e.message || 'Could not read the PFX. Check the password.');
-                        return;
-                    }
-                }
-
-                if (pendingVisualSig) saveSignatureFor(name, pendingVisualSig);
-                saveInchargeSignature(pendingInchargeSig || '');
-                if (pendingCert) {
-                    CERT_STATE.certificate = pendingCert.certificate;
-                    CERT_STATE.privateKey  = pendingCert.privateKey;
-                    CERT_STATE.subject     = pendingCert.subject;
-                    CERT_STATE.issuer      = pendingCert.issuer;
-                    CERT_STATE.serial      = pendingCert.serial;
-                    CERT_STATE.validFrom   = pendingCert.validFrom;
-                    CERT_STATE.validTo     = pendingCert.validTo;
-                    CERT_STATE.fingerprint = pendingCert.fingerprint;
-                }
-                updateTechnicianDisplay();
-                pfxPasswordInput.value = '';
-                signatureModal.classList.remove('show');
-                showStatus('✅ Signatures and certificate saved.', true);
-            });
-
-            // ==================== SERVICE REF / PREDICTION ====================
-            const SERVICE_INTERVAL_HOURS = 250;
-            const SERVICE_REF_KEY = 'chub_service_refs';
-            const lastServiceDateInput = document.getElementById('lastServiceDate');
-            const lastServiceHoursInput = document.getElementById('lastServiceHours');
-            const lastServiceTypeInput = document.getElementById('lastServiceType');
-            const saveServiceRefBtn = document.getElementById('saveServiceRefBtn');
-            const predictionStatus = document.getElementById('predictionStatus');
-            const predictionStatusText = document.getElementById('predictionStatusText');
-
-            function getServiceRefs() { try { return JSON.parse(localStorage.getItem(SERVICE_REF_KEY) || '{}'); } catch(e) { return {}; } }
-            function saveServiceRefs(refs) { localStorage.setItem(SERVICE_REF_KEY, JSON.stringify(refs)); }
-            function loadServiceRefForGenerator(gen) {
-                const refs = getServiceRefs();
-                const ref = refs[gen];
-                if (ref) {
-                    lastServiceDateInput.value = ref.lastServiceDate || '';
-                    lastServiceHoursInput.value = ref.lastServiceHours || '';
-                    lastServiceTypeInput.value = ref.lastServiceType || 'Oil + Filters';
-                } else {
-                    lastServiceDateInput.value = '';
-                    lastServiceHoursInput.value = '';
-                    lastServiceTypeInput.value = 'Oil + Filters';
-                }
-            }
-            saveServiceRefBtn.addEventListener('click', function() {
-                const gen = generatorSelect.value;
-                const refs = getServiceRefs();
-                refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
-                saveServiceRefs(refs);
-                showStatus('💾 Service reference saved for ' + gen, true);
-                updatePrediction();
-            });
-            [lastServiceDateInput, lastServiceHoursInput, lastServiceTypeInput].forEach(el => {
-                el.addEventListener('change', function() {
-                    const gen = generatorSelect.value;
-                    if (!gen) return;
-                    const refs = getServiceRefs();
-                    refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
-                    saveServiceRefs(refs);
-                });
-            });
-
-            function updatePrediction() {
-                const lastDate = lastServiceDateInput.value;
-                const lastHours = parseFloat(lastServiceHoursInput.value);
-                const currentHours = parseFloat(totalRunHours.value);
-
-                if (!lastDate || isNaN(lastHours) || isNaN(currentHours)) {
-                    predictionStatus.style.background = '#e7f0f8';
-                    predictionStatus.style.color = '#1e4a6d';
-                    predictionStatus.style.borderColor = '#cfdfeb';
-                    predictionStatus.querySelector('span:first-child').textContent = 'ℹ️';
-                    predictionStatusText.textContent = 'Fill in last service ref + current hour meter';
-                    document.getElementById('predCurrentHours').textContent = isNaN(currentHours) ? '—' : currentHours.toFixed(1) + ' h';
-                    document.getElementById('predHoursSince').textContent = '—';
-                    document.getElementById('predHoursRemaining').textContent = '—';
-                    document.getElementById('predAvgRate').textContent = '—';
-                    document.getElementById('predNextDate').textContent = '—';
-                    document.getElementById('predWindow').textContent = '—';
-                    document.getElementById('predProgressBar').style.width = '0%';
-                    document.getElementById('predProgressLabel').textContent = '0 / 250 h';
-                    return;
-                }
-
-                const hoursSince = Math.max(0, currentHours - lastHours);
-                const hoursRemaining = Math.max(0, SERVICE_INTERVAL_HOURS - hoursSince);
-                const percent = Math.min(100, (hoursSince / SERVICE_INTERVAL_HOURS) * 100);
-
-                const now = new Date();
-                const lastD = new Date(lastDate + 'T00:00:00');
-                let daysElapsed = Math.max(1, Math.round((now - lastD) / 86400000));
-                let avgDailyHours = hoursSince / daysElapsed;
-                if (!isFinite(avgDailyHours) || avgDailyHours <= 0) avgDailyHours = 0;
-                if (avgDailyHours > 24) avgDailyHours = 24;
-
-                let daysToService = null;
-                let nextDate = null;
-                if (avgDailyHours > 0 && hoursRemaining > 0) {
-                    daysToService = Math.ceil(hoursRemaining / avgDailyHours);
-                    nextDate = new Date(now);
-                    nextDate.setDate(nextDate.getDate() + daysToService);
-                } else if (hoursRemaining <= 0) {
-                    daysToService = 0;
-                    nextDate = new Date(now);
-                }
-
-                document.getElementById('predCurrentHours').textContent = currentHours.toFixed(1) + ' h';
-                document.getElementById('predHoursSince').textContent = hoursSince.toFixed(1) + ' h';
-                document.getElementById('predHoursRemaining').textContent = hoursRemaining.toFixed(1) + ' h';
-                document.getElementById('predProgressBar').style.width = percent + '%';
-                document.getElementById('predProgressLabel').textContent = hoursSince.toFixed(1) + ' / ' + SERVICE_INTERVAL_HOURS + ' h (' + percent.toFixed(1) + '%)';
-
-                if (avgDailyHours > 0) {
-                    document.getElementById('predAvgRate').textContent = avgDailyHours.toFixed(2) + ' h/day (' + (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
-                } else {
-                    document.getElementById('predAvgRate').textContent = 'Insufficient data (no hours run since last service)';
-                }
-
-                if (nextDate) {
-                    const dateStr = nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-                    document.getElementById('predNextDate').textContent = dateStr;
-                    const winStart = new Date(nextDate); winStart.setDate(winStart.getDate() - 3);
-                    const winEnd = new Date(nextDate); winEnd.setDate(winEnd.getDate() + 3);
-                    document.getElementById('predWindow').textContent = winStart.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + '  →  ' + winEnd.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-                } else {
-                    document.getElementById('predNextDate').textContent = '—';
-                    document.getElementById('predWindow').textContent = '—';
-                }
-
-                let bg, color, border, icon, msg;
-                if (hoursRemaining <= 0) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '🚨'; msg = 'SERVICE OVERDUE — ' + Math.abs(hoursRemaining).toFixed(1) + ' h past interval'; }
-                else if (hoursRemaining <= 25) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '⚠️'; msg = 'SERVICE DUE SOON — only ' + hoursRemaining.toFixed(1) + ' h left'; }
-                else if (hoursRemaining <= 50) { bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a'; icon = '🔔'; msg = 'Plan service — ' + hoursRemaining.toFixed(1) + ' h remaining'; }
-                else { bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3'; icon = '✅'; msg = 'OK — ' + hoursRemaining.toFixed(1) + ' h until next service'; }
-                predictionStatus.style.background = bg;
-                predictionStatus.style.color = color;
-                predictionStatus.style.borderColor = border;
-                predictionStatus.querySelector('span:first-child').textContent = icon;
-                predictionStatusText.textContent = msg;
-            }
-            totalRunHours.addEventListener('input', updatePrediction);
-            lastServiceDateInput.addEventListener('change', updatePrediction);
-            lastServiceHoursInput.addEventListener('input', updatePrediction);
-            generatorSelect.addEventListener('change', function() { loadServiceRefForGenerator(generatorSelect.value); updatePrediction(); });
-            loadServiceRefForGenerator(generatorSelect.value);
-            updatePrediction();
-
-            // ==================== LOGIN / SESSION ====================
-            const loginModal = document.getElementById('loginModal');
-            const loginTechSelect = document.getElementById('loginTechSelect');
-            const loginPinInput = document.getElementById('loginPinInput');
-            const loginBtn = document.getElementById('loginBtn');
-            const loginError = document.getElementById('loginError');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const loggedInUserName = document.getElementById('loggedInUserName');
-            const lockedTechName = document.getElementById('lockedTechName');
-            const SESSION_KEY = 'chub_generator_session';
-
-            function saveSession(name) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ name, time: Date.now() })); } catch(e) {} }
-            function loadSession() {
-                try {
-                    const raw = sessionStorage.getItem(SESSION_KEY);
-                    if (!raw) return null;
-                    const s = JSON.parse(raw);
-                    if (Date.now() - s.time > 12 * 60 * 60 * 1000) { sessionStorage.removeItem(SESSION_KEY); return null; }
-                    return s.name;
-                } catch(e) { return null; }
-            }
-            function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {} }
-
-            function unlockApp(name) {
-                technicianSelect.value = name;
-                loggedInUserName.textContent = name;
-                lockedTechName.textContent = name;
-                updateTechnicianDisplay();
-                loginModal.classList.remove('show');
-            }
-            function lockApp() {
-                clearCert();
-                clearSession();
-                loginModal.classList.add('show');
-                loginPinInput.value = '';
-                loginError.textContent = '';
-                loginTechSelect.value = '';
-                loginTechSelect.focus();
-            }
-
-            loginBtn.addEventListener('click', function() {
-                const name = loginTechSelect.value;
-                const pin = loginPinInput.value.trim();
-                loginError.textContent = '';
-                if (!name) { loginError.textContent = '⚠️ Please select your name.'; return; }
-                if (!pin) { loginError.textContent = '⚠️ Please enter your PIN.'; return; }
-                if (TECHNICIAN_PINS[name] !== pin) { loginError.textContent = '❌ Wrong PIN for ' + name; loginPinInput.value = ''; loginPinInput.focus(); return; }
-                saveSession(name);
-                unlockApp(name);
-                showStatus('✅ Welcome, ' + name + '!', true);
-            });
-            loginPinInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); loginBtn.click(); } });
-            logoutBtn.addEventListener('click', function() { if (confirm('Log out and lock the app?')) { lockApp(); showStatus('🔒 Logged out.', true); } });
-
-            const existingSession = loadSession();
-            if (existingSession && TECHNICIAN_PINS[existingSession]) { unlockApp(existingSession); }
-            else { lockApp(); }
-
-            resetBtn.addEventListener('click', function() { lastSubmittedSnapshot = null; resetForm(true); });
-
-            setAutoWorkDate();
-            updateGeneratorBanner();
-            updateTechnicianDisplay();
-            updatePendingCount();
-            generatorSelect.addEventListener('change', updateGeneratorBanner);
-            workDateInput.addEventListener('change', updateWorkDateDisplay);
-
-            setTimeout(() => { if (getQueue().length > 0) flushQueue(); }, 1200);
-        })();
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=7')
-                    .then(reg => console.log('✅ Service Worker registered:', reg.scope))
-                    .catch(err => console.warn('⚠️ Service Worker failed:', err));
-            });
-        }
-    </script>
-</body>
-</html>
+                fromDate.value = weekAgo.toISOString().slice(0,
