@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.10.0/forge.min.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -508,6 +508,23 @@
         </div>
     </div>
 
+    <!-- ⭐ NEW SECURE PASSWORD MODAL -->
+    <div class="modal-overlay" id="pfxPasswordModal">
+        <div class="modal-box" style="max-width: 400px; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 12px;">🔐</div>
+            <h2 style="justify-content: center;">Digital Signature Password</h2>
+            <p style="margin-bottom: 22px;">Please enter your PFX password to auto-load your Digital Signature.</p>
+            <div class="field-group" style="text-align: left;">
+                <input type="password" id="pfxAutoPasswordInput" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
+            </div>
+            <div id="pfxAutoError" style="color: #b33a3a; font-size: 0.9rem; margin-top: 6px; min-height: 20px;"></div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-cancel" id="pfxAutoCancel" style="width: 100%;">Cancel (Skip Signature)</button>
+                <button class="btn-go" id="pfxAutoSubmit" style="width: 100%; margin-top: 10px;">🔓 Unlock Signature</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="signatureModal">
         <div class="modal-box">
             <h2>🖊️ Signature &amp; Digital Certificate</h2>
@@ -674,6 +691,49 @@
             function getInchargeSignatureCached() { try { return localStorage.getItem(INCHARGE_SIG_CACHE_KEY) || ''; } catch(e) { return ''; } }
             function setInchargeSignatureCached(dataUrl) { try { localStorage.setItem(INCHARGE_SIG_CACHE_KEY, dataUrl || ''); } catch(e) {} }
 
+            // ⭐ ASK PFX PASSWORD VIA SECURE MODAL
+            function askPfxPassword() {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('pfxPasswordModal');
+                    const input = document.getElementById('pfxAutoPasswordInput');
+                    const submitBtn = document.getElementById('pfxAutoSubmit');
+                    const cancelBtn = document.getElementById('pfxAutoCancel');
+                    const errorDiv = document.getElementById('pfxAutoError');
+
+                    modal.classList.add('show');
+                    input.value = '';
+                    errorDiv.textContent = '';
+                    input.focus();
+
+                    function cleanup() {
+                        modal.classList.remove('show');
+                        submitBtn.removeEventListener('click', onSubmit);
+                        cancelBtn.removeEventListener('click', onCancel);
+                        input.removeEventListener('keydown', onKeydown);
+                    }
+
+                    function onSubmit() {
+                        const pwd = input.value.trim();
+                        if (!pwd) { errorDiv.textContent = 'Please enter your password.'; return; }
+                        cleanup();
+                        resolve(pwd);
+                    }
+
+                    function onCancel() {
+                        cleanup();
+                        resolve(null); // User cancelled
+                    }
+
+                    function onKeydown(e) {
+                        if (e.key === 'Enter') { e.preventDefault(); onSubmit(); }
+                    }
+
+                    submitBtn.addEventListener('click', onSubmit);
+                    cancelBtn.addEventListener('click', onCancel);
+                    input.addEventListener('keydown', onKeydown);
+                });
+            }
+
             // ⭐ CLOUD SYNC FUNCTIONS FOR TECHNICIAN SIGNATURES & PFX (TO DRIVE VIA BACKEND)
             async function pushTechnicianSignatureToCloud(techName, dataUrl) {
                 try {
@@ -720,21 +780,16 @@
                     // 2. Fetch and Auto-Unlock PFX
                     const pfxBase64 = config['TechPFX_' + techName];
                     if (pfxBase64) {
-                        const password = prompt("🔐 Enter your Digital Signature Password to auto-load your PFX:");
-if (password) {
-    try {
-        // ⭐ FIX: Strip the Data URI prefix if present
-        let cleanBase64 = pfxBase64;
-        if (cleanBase64.startsWith('data:')) {
-            cleanBase64 = cleanBase64.split(',')[1];
-        }
-        
-        // Decode the pure Base64 string
-        const binary = forge.util.decode64(cleanBase64); 
-        
-        // Continue with your existing PFX parsing code...
-        const asn1 = forge.asn1.fromDer(binary);
-        // ... (rest of the code remains the same)
+                        const password = await askPfxPassword(); // Uses the new secure modal
+                        if (password) {
+                            try {
+                                // Clean the Base64 string (strip Data URI prefix if present)
+                                let cleanBase64 = pfxBase64;
+                                if (cleanBase64.startsWith('data:')) {
+                                    cleanBase64 = cleanBase64.split(',')[1];
+                                }
+                                
+                                const binary = forge.util.decode64(cleanBase64); 
                                 const asn1 = forge.asn1.fromDer(binary);
                                 const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
                                 
