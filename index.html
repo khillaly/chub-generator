@@ -9,8 +9,8 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <!-- ⭐ CORRECTED FORGE LIBRARY TO 1.3.1 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -509,7 +509,6 @@
         </div>
     </div>
 
-    <!-- ⭐ NEW SECURE PASSWORD MODAL -->
     <div class="modal-overlay" id="pfxPasswordModal">
         <div class="modal-box" style="max-width: 400px; text-align: center;">
             <div style="font-size: 2.5rem; margin-bottom: 12px;">🔐</div>
@@ -640,6 +639,10 @@
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
             const INCHARGE_SIG_CACHE_KEY = 'chub_generator_incharge_signature_cache_v1';
 
+            // ⭐ CACHED PFX FOR PDF SIGNING
+            window.__cachedPfxBuffer = null;
+            window.__cachedPfxPassword = null;
+
             function getHoursDecimal(hEl, mEl) {
                 const hVal = (hEl && hEl.value) ? String(hEl.value).trim() : '';
                 const mVal = (mEl && mEl.value) ? String(mEl.value).trim() : '';
@@ -692,7 +695,6 @@
             function getInchargeSignatureCached() { try { return localStorage.getItem(INCHARGE_SIG_CACHE_KEY) || ''; } catch(e) { return ''; } }
             function setInchargeSignatureCached(dataUrl) { try { localStorage.setItem(INCHARGE_SIG_CACHE_KEY, dataUrl || ''); } catch(e) {} }
 
-            // ⭐ ASK PFX PASSWORD VIA SECURE MODAL
             function askPfxPassword() {
                 return new Promise((resolve) => {
                     const modal = document.getElementById('pfxPasswordModal');
@@ -712,22 +714,13 @@
                         cancelBtn.removeEventListener('click', onCancel);
                         input.removeEventListener('keydown', onKeydown);
                     }
-
                     function onSubmit() {
                         const pwd = input.value.trim();
                         if (!pwd) { errorDiv.textContent = 'Please enter your password.'; return; }
-                        cleanup();
-                        resolve(pwd);
+                        cleanup(); resolve(pwd);
                     }
-
-                    function onCancel() {
-                        cleanup();
-                        resolve(null); // User cancelled
-                    }
-
-                    function onKeydown(e) {
-                        if (e.key === 'Enter') { e.preventDefault(); onSubmit(); }
-                    }
+                    function onCancel() { cleanup(); resolve(null); }
+                    function onKeydown(e) { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }
 
                     submitBtn.addEventListener('click', onSubmit);
                     cancelBtn.addEventListener('click', onCancel);
@@ -735,12 +728,10 @@
                 });
             }
 
-            // ⭐ CLOUD SYNC FUNCTIONS FOR TECHNICIAN SIGNATURES & PFX (TO DRIVE VIA BACKEND)
             async function pushTechnicianSignatureToCloud(techName, dataUrl) {
                 try {
                     await fetch(GOOGLE_SHEET_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
+                        method: 'POST', mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ action: 'config_set_drive', key: 'TechSig_' + techName, value: dataUrl, mimeType: 'image/png', fileName: 'Sig_' + techName.replace(/\s+/g, '_') + '.png' })
                     });
@@ -750,8 +741,7 @@
             async function pushPFXToCloud(techName, pfxBase64) {
                 try {
                     await fetch(GOOGLE_SHEET_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
+                        method: 'POST', mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ action: 'config_set_drive', key: 'TechPFX_' + techName, value: pfxBase64, mimeType: 'application/x-pkcs12', fileName: 'Cert_' + techName.replace(/\s+/g, '_') + '.pfx' })
                     });
@@ -771,25 +761,16 @@
                     const json = await res.json();
                     const config = json.config || {};
                     
-                    // 1. Fetch Visual Signature
                     const visualSig = config['TechSig_' + techName];
-                    if (visualSig) {
-                        saveSignatureFor(techName, visualSig);
-                        updateTechnicianDisplay();
-                    }
+                    if (visualSig) { saveSignatureFor(techName, visualSig); updateTechnicianDisplay(); }
 
-                    // 2. Fetch and Auto-Unlock PFX
                     const pfxBase64 = config['TechPFX_' + techName];
                     if (pfxBase64) {
-                        const password = await askPfxPassword(); // Uses the new secure modal
+                        const password = await askPfxPassword();
                         if (password) {
                             try {
-                                // Clean the Base64 string (strip Data URI prefix if present)
                                 let cleanBase64 = pfxBase64;
-                                if (cleanBase64.startsWith('data:')) {
-                                    cleanBase64 = cleanBase64.split(',')[1];
-                                }
-                                
+                                if (cleanBase64.startsWith('data:')) cleanBase64 = cleanBase64.split(',')[1];
                                 const binary = forge.util.decode64(cleanBase64); 
                                 const asn1 = forge.asn1.fromDer(binary);
                                 const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
@@ -798,10 +779,7 @@
                                 const certBag = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
                                 const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
                                 let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
-                                if (!keyBag) {
-                                    const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
-                                    keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0];
-                                }
+                                if (!keyBag) { const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag }); keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0]; }
 
                                 if (certBag && certBag.cert && keyBag && keyBag.key) {
                                     CERT_STATE.certificate = certBag.cert;
@@ -817,17 +795,17 @@
                                     const md = forge.md.sha256.create(); md.update(derBytes);
                                     CERT_STATE.fingerprint = md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase();
                                     
+                                    // ⭐ Cache for PDF signing
+                                    window.__cachedPfxBuffer = forge.util.binary.raw.decode(binary).buffer;
+                                    window.__cachedPfxPassword = password;
+                                    
                                     updateTechnicianDisplay();
                                     showStatus('🔐 Digital signature auto-loaded successfully!', true);
                                 }
-                            } catch (e) {
-                                alert('❌ Wrong PFX password, or corrupted file. Please re-upload your PFX.');
-                            }
+                            } catch (e) { alert('❌ Wrong PFX password, or corrupted file. Please re-upload your PFX.'); }
                         }
                     }
-                } catch (e) {
-                    console.warn('Could not fetch technician assets', e);
-                }
+                } catch (e) { console.warn('Could not fetch technician assets', e); }
             }
 
             async function fetchInchargeSignatureFromCloud() {
@@ -1203,8 +1181,8 @@
                 const current = collectFormData();
                 const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
                 const data = (isEmpty && lastSubmittedSnapshot) ? lastSubmittedSnapshot : current;
-                await ensureReportHash(data); pdfBtn.disabled = true; const orig = pdfBtn.innerHTML; pdfBtn.innerHTML = '<span>⏳</span> Generating...';
-                try { await generatePDF([data]); showStatus('📄 PDF generated successfully.', true); } catch (e) { showStatus('⚠️ Could not generate PDF: ' + e.message, false); }
+                await ensureReportHash(data); pdfBtn.disabled = true; const orig = pdfBtn.innerHTML; pdfBtn.innerHTML = '<span>⏳</span> Generating & Signing...';
+                try { await generatePDF([data]); } catch (e) { showStatus('⚠️ Could not generate PDF: ' + e.message, false); }
                 pdfBtn.disabled = false; pdfBtn.innerHTML = orig;
             });
 
@@ -1228,8 +1206,8 @@
                 if (filtered.length === 0) { showStatus('📭 No records match the selected date range.', false); modalGo.disabled = false; modalGo.innerHTML = orig; return; }
                 const grouped = groupRecordsByGenerator(filtered); const genCount = countUniqueGenerators(grouped);
                 try {
-                    modalGo.innerHTML = '📄 Generating (' + grouped.length + ' record' + (grouped.length > 1 ? 's' : '') + ' · ' + genCount + ' generator' + (genCount > 1 ? 's' : '') + ')...';
-                    await new Promise(r => setTimeout(r, 30)); await generatePDF(grouped); showStatus('✅ PDF generated: ' + grouped.length + ' record(s) across ' + genCount + ' generator(s).', true); pdfModal.classList.remove('show');
+                    modalGo.innerHTML = '📄 Generating & Signing (' + grouped.length + ' record' + (grouped.length > 1 ? 's' : '') + ' · ' + genCount + ' generator' + (genCount > 1 ? 's' : '') + ')...';
+                    await new Promise(r => setTimeout(r, 30)); await generatePDF(grouped); pdfModal.classList.remove('show');
                 } catch (err) { showStatus('⚠️ PDF generation failed: ' + (err.message || 'unknown error'), false); }
                 modalGo.disabled = false; modalGo.innerHTML = orig;
             });
@@ -1374,7 +1352,7 @@
                     if (data.signatureSubject || data['Signature Subject']) {
                         const subj = sanitizeForPDF(data.signatureSubject || data['Signature Subject'] || ''); const iss = sanitizeForPDF(data.signatureIssuer || data['Signature Issuer'] || '—');
                         doc.setFillColor(226, 240, 230); doc.setDrawColor(27, 107, 63); doc.setLineWidth(0.3); doc.roundedRect(leftBoxX + 3, y + 25, halfWidth - 6, 12, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(27, 107, 63); doc.text('✅ DIGITALLY SIGNED (PKCS#7)', leftBoxX + 5, y + 28);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(27, 107, 63); doc.text('✅ PDF DIGITALLY SIGNED (PKCS#7)', leftBoxX + 5, y + 28);
                         doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(58, 101, 131); doc.text('Subject: ' + subj.substring(0, 50), leftBoxX + 5, y + 31.5); doc.text('Issuer: ' + iss.substring(0, 50), leftBoxX + 5, y + 34.5);
                     } else { doc.setFont('helvetica', 'italic'); doc.setFontSize(6); doc.setTextColor(91, 123, 150); doc.text('No digital signature — visual only', leftBoxX + 3, y + 28); }
                     doc.setDrawColor(150, 180, 200); doc.setLineWidth(0.3); doc.line(leftBoxX + 3, y + 35, leftBoxX + halfWidth - 3, y + 35);
@@ -1409,7 +1387,12 @@
 
                     y += boxHeight + 2; doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.setTextColor(91, 123, 150); doc.text(sanitizeForPDF(`Generated from CHUB Generator Fleet System | ${data['Timestamp'] || data.generatedAt || ''}`), margin, y);
                 }
-                addFooter(); const fname = 'CHUB_Generator_Report_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf'; doc.save(fname);
+                addFooter();
+                const fname = 'CHUB_Generator_Report_' + new Date().toISOString().slice(0,10) + '_' + records.length + 'records.pdf';
+                const pdfBytes = doc.output('arraybuffer');
+                const signedBytes = await signPdfBytes(pdfBytes, fname);
+                if (signedBytes) { downloadBytes(signedBytes, fname); showStatus('📄 Signed PDF generated successfully.', true); }
+                else { doc.save(fname); showStatus('⚠️ PDF saved without digital signature (see console).', false); }
             }
 
             analysisPdfBtn.addEventListener('click', function() {
@@ -1428,8 +1411,8 @@
                     if (!json.records || json.records.length === 0) { showStatus('📭 No records found.', false); analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return; }
                     const filtered = filterAnalysisRecords(json.records);
                     if (filtered.length === 0) { showStatus('📭 No records match the selected date range.', false); analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig; return; }
-                    analysisModalGo.innerHTML = '📊 Generating...'; const consIndex = buildConsumptionIndex(json.records); await generateAnalysisPDF(filtered, consIndex);
-                    showStatus('✅ Analysis report generated from ' + filtered.length + ' record(s).', true); analysisModal.classList.remove('show');
+                    analysisModalGo.innerHTML = '📊 Generating & Signing...'; const consIndex = buildConsumptionIndex(json.records); await generateAnalysisPDF(filtered, consIndex);
+                    analysisModal.classList.remove('show');
                 } catch (err) { showStatus('⚠️ Could not load records: ' + err.message, false); }
                 analysisModalGo.disabled = false; analysisModalGo.innerHTML = orig;
             });
@@ -1553,7 +1536,7 @@
                 doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.3); doc.line(leftBoxX + 3, ys + 33, leftBoxX + halfWidth - 3, ys + 33);
                 doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150); doc.text('Signature', leftBoxX + 3, ys + 37);
                 if (isCertLoaded() && CERT_STATE.subject) {
-                    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63); doc.text('PKCS#7 digital seal active', leftBoxX + 3, ys + 43);
+                    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63); doc.text('PDF digitally signed (PKCS#7)', leftBoxX + 3, ys + 43);
                     doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(58, 101, 131); doc.text(sanitizeForPDF(CERT_STATE.subject).substring(0, 46), leftBoxX + 3, ys + 47);
                 } else { doc.setFontSize(6); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150); doc.text('Visual signature only - no PKCS#7 seal loaded', leftBoxX + 3, ys + 44); }
 
@@ -1583,7 +1566,147 @@
 
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) { doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 170, 190); doc.text('Generated automatically from CHUB Generator Fleet System', pageW / 2, pageH - 6, { align: 'center' }); doc.text('Page ' + p + ' of ' + totalPages, pageW / 2, pageH - 2, { align: 'center' }); }
-                doc.save('CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf');
+                
+                const fname = 'CHUB_Generator_Analysis_' + new Date().toISOString().slice(0,10) + '.pdf';
+                const pdfBytes = doc.output('arraybuffer');
+                const signedBytes = await signPdfBytes(pdfBytes, fname);
+                if (signedBytes) { downloadBytes(signedBytes, fname); showStatus('📊 Signed analysis PDF generated successfully.', true); }
+                else { doc.save(fname); showStatus('⚠️ Analysis PDF saved without digital signature (see console).', false); }
+            }
+
+            // ⭐ TRUE PDF DIGITAL SIGNING WITH PKCS#7
+            function downloadBytes(bytes, filename) {
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+            }
+
+            async function signPdfBytes(pdfArrayBuffer, filename) {
+                if (!isCertLoaded()) { console.warn('No certificate loaded — skipping PDF signing'); return null; }
+                if (typeof PDFLib === 'undefined') { console.warn('pdf-lib not loaded — skipping PDF signing'); return null; }
+                try {
+                    const { PDFDocument, PDFName, PDFString, PDFHexString, PDFNumber, PDFArray, PDFDict, PDFRef } = PDFLib;
+                    const pfxBuffer = window.__cachedPfxBuffer;
+                    const pfxPassword = window.__cachedPfxPassword;
+                    if (!pfxBuffer || !pfxPassword) { console.warn('No cached PFX credentials — cannot sign PDF'); return null; }
+
+                    // 1. Load existing PDF
+                    const pdfDoc = await PDFDocument.load(pdfArrayBuffer, { ignoreEncryption: true, updateMetadata: false });
+                    const ctx = pdfDoc.context;
+
+                    // 2. Reserve signature placeholder
+                    const SIG_HEX_LEN = 16384;
+                    const placeholderHex = '0'.repeat(SIG_HEX_LEN);
+
+                    // 3. Create signature dictionary
+                    const sigDict = ctx.obj({
+                        Type: 'Sig',
+                        Filter: 'Adobe.PPKLite',
+                        SubFilter: 'adbe.pkcs7.detached',
+                        ByteRange: [0, 9999999999, 9999999999, 9999999999],
+                        Contents: PDFHexString.of(placeholderHex),
+                        M: PDFString.fromDate(new Date()),
+                        Name: PDFString.of(CERT_STATE.subject || 'CHUB Technician'),
+                        Reason: PDFString.of('Generator inspection sign-off'),
+                        Location: PDFString.of('CHUB Site — Rwanda')
+                    });
+                    const sigDictRef = ctx.register(sigDict);
+
+                    // 4. Add signature widget on first page
+                    const firstPage = pdfDoc.getPages()[0];
+                    const { width, height } = firstPage.getSize();
+                    const widget = ctx.obj({
+                        Type: 'Annot',
+                        Subtype: 'Widget',
+                        FT: 'Sig',
+                        T: PDFString.of('CHUBSignature'),
+                        V: sigDictRef,
+                        F: 132,
+                        Rect: [width - 220, 40, width - 20, 100],
+                        P: firstPage.ref,
+                        Ff: 0
+                    });
+                    const widgetRef = ctx.register(widget);
+                    firstPage.node.set(PDFName.of('Annots'), ctx.obj([widgetRef]));
+
+                    // 5. Register in AcroForm
+                    let acroFormRef = pdfDoc.catalog.get(PDFName.of('AcroForm'));
+                    let acroForm = acroFormRef ? ctx.lookup(acroFormRef) : null;
+                    if (!acroForm) {
+                        acroForm = ctx.obj({ Fields: [widgetRef], SigFlags: 3 });
+                        pdfDoc.catalog.set(PDFName.of('AcroForm'), acroForm);
+                    } else {
+                        const fields = acroForm.get(PDFName.of('Fields'));
+                        if (fields instanceof PDFArray) fields.push(widgetRef);
+                        acroForm.set(PDFName.of('SigFlags'), PDFNumber.of(3));
+                    }
+
+                    // 6. Save with placeholders
+                    const pdfBytesWithPlaceholder = await pdfDoc.save({ useObjectStreams: false });
+                    let uint8 = pdfBytesWithPlaceholder;
+
+                    // 7. Locate placeholders
+                    const pdfStr = new TextDecoder('latin1').decode(uint8);
+                    const byteRangeMarker = '/ByteRange [0 9999999999 9999999999 9999999999]';
+                    const byteRangeIndex = pdfStr.indexOf(byteRangeMarker);
+                    if (byteRangeIndex === -1) { console.error('ByteRange placeholder not found'); return null; }
+                    const contentsStart = pdfStr.indexOf('/Contents <' + '0'.repeat(20), byteRangeIndex);
+                    if (contentsStart === -1) { console.error('Contents placeholder not found'); return null; }
+                    const contentsHexStart = contentsStart + '/Contents <'.length;
+                    const contentsHexEnd = contentsHexStart + SIG_HEX_LEN;
+
+                    // 8. Compute real ByteRange
+                    const byteRange = [0, contentsHexStart, contentsHexEnd, uint8.length - contentsHexEnd];
+                    const byteRangeStr = `[0 ${byteRange[1]} ${byteRange[2]} ${byteRange[3]}]`;
+                    const byteRangeStrPadded = byteRangeStr.padEnd(byteRangeMarker.length, ' ');
+                    const paddedBytes = new TextEncoder().encode(byteRangeStrPadded);
+                    uint8.set(paddedBytes, byteRangeIndex);
+
+                    // 9. Compute SHA-256 over byte ranges
+                    const data1 = uint8.slice(byteRange[0], byteRange[0] + byteRange[1]);
+                    const data2 = uint8.slice(byteRange[2], byteRange[2] + byteRange[3]);
+                    const md = forge.md.sha256.create();
+                    md.update(forge.util.binary.raw.encode(data1));
+                    md.update(forge.util.binary.raw.encode(data2));
+                    const digest = md.digest().bytes();
+
+                    // 10. Create PKCS#7 detached signature
+                    const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(forge.util.binary.raw.encode(new Uint8Array(pfxBuffer))), pfxPassword);
+                    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+                    const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                    const certificate = certBags[forge.pki.oids.certBag][0].cert;
+                    let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+                    if (!keyBag) { const plain = p12.getBags({ bagType: forge.pki.oids.keyBag }); keyBag = plain[forge.pki.oids.keyBag][0]; }
+
+                    const p7 = forge.pkcs7.createSignedData();
+                    p7.content = forge.util.createBuffer(digest);
+                    p7.addCertificate(certificate);
+                    p7.addSigner({
+                        key: keyBag.key,
+                        certificate: certificate,
+                        digestAlgorithm: forge.pki.oids.sha256,
+                        authenticatedAttributes: [
+                            { type: forge.pki.oids.contentType, value: forge.pki.oids.data },
+                            { type: forge.pki.oids.messageDigest, value: digest },
+                            { type: forge.pki.oids.signingTime, value: new Date() }
+                        ]
+                    });
+                    p7.sign({ detached: true });
+                    const sigDer = forge.asn1.toDer(p7.toAsn1()).getBytes();
+                    const sigHex = forge.util.bytesToHex(sigDer);
+
+                    // 11. Insert signature
+                    if (sigHex.length > SIG_HEX_LEN) { console.warn('Signature too large for placeholder'); return null; }
+                    const sigHexPadded = sigHex + '0'.repeat(SIG_HEX_LEN - sigHex.length);
+                    const sigBytes = new TextEncoder().encode(sigHexPadded);
+                    uint8.set(sigBytes, contentsHexStart);
+
+                    console.log('✅ PDF digitally signed successfully');
+                    return uint8;
+                } catch (e) { console.error('PDF signing error:', e); return null; }
             }
 
             function drawAnalysisSection(doc, title, x, y, w) { doc.setFillColor(238, 246, 252); doc.rect(x, y - 4, w, 6, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94); doc.text(title, x + 2, y); return y + 6; }
@@ -1607,7 +1730,7 @@
             function renderCertPreview() {
                 if (!pendingCert) { certPreview.innerHTML = '<span class="placeholder">No certificate loaded</span>'; return; }
                 const vf = pendingCert.validFrom ? pendingCert.validFrom.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; const vt = pendingCert.validTo ? pendingCert.validTo.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-                certPreview.innerHTML = `<div style="text-align:left; font-size:0.82rem; line-height:1.5;"><div style="font-weight:700; color:#1b6b3f; margin-bottom:4px;">✅ Certificate ready</div><div><strong>Signed by:</strong> ${sanitizeForPDF(pendingCert.subject)}</div><div><strong>Issuer:</strong> ${sanitizeForPDF(pendingCert.issuer)}</div><div><strong>Serial:</strong> ${pendingCert.serial}</div><div><strong>Valid:</strong> ${vf} → ${vt}</div></div>`;
+                certPreview.innerHTML = `<div style="text-align:left; font-size:0.82rem; line-height:1.5;"><div style="font-weight:700; color:#1b6b3f; margin-bottom:4px;">✅ Certificate ready for PDF signing</div><div><strong>Signed by:</strong> ${sanitizeForPDF(pendingCert.subject)}</div><div><strong>Issuer:</strong> ${sanitizeForPDF(pendingCert.issuer)}</div><div><strong>Serial:</strong> ${pendingCert.serial}</div><div><strong>Valid:</strong> ${vf} → ${vt}</div></div>`;
             }
 
             document.getElementById('signatureBtn').addEventListener('click', () => {
@@ -1621,6 +1744,7 @@
             document.getElementById('sigRemove').addEventListener('click', () => {
                 if (!confirm('Forget the current signatures and certificate?')) return;
                 const name = technicianSelect.value; saveSignatureFor(name, ''); setInchargeSignatureCached(''); clearCert();
+                window.__cachedPfxBuffer = null; window.__cachedPfxPassword = null;
                 pendingVisualSig = null; pendingInchargeSig = null; pendingCert = null;
                 renderVisualPreview(); renderInchargeSigPreview(); renderCertPreview(); updateTechnicianDisplay(); showStatus('Signatures and certificate cleared.', true);
             });
@@ -1628,7 +1752,6 @@
             sigFileInput.addEventListener('change', function() { const file = this.files && this.files[0]; if (!file) return; if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; } const reader = new FileReader(); reader.onload = (e) => { pendingVisualSig = e.target.result; renderVisualPreview(); }; reader.readAsDataURL(file); });
             inchargeSigInput.addEventListener('change', function() { const file = this.files && this.files[0]; if (!file) return; if (file.size > 500 * 1024) { alert('Image too large — please compress to under 500 KB.'); this.value = ''; return; } const reader = new FileReader(); reader.onload = (e) => { pendingInchargeSig = e.target.result; renderInchargeSigPreview(); }; reader.readAsDataURL(file); });
 
-            // ⭐ NEW: PFX Change Listener for instant preview and error feedback
             pfxFileInput.addEventListener('change', async function() {
                 const file = this.files && this.files[0];
                 if (!file) return;
@@ -1641,6 +1764,8 @@
                 
                 try {
                     const buf = await file.arrayBuffer();
+                    window.__cachedPfxBuffer = buf;
+                    window.__cachedPfxPassword = password;
                     let binary = '';
                     const bytes = new Uint8Array(buf);
                     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
@@ -1672,13 +1797,14 @@
                     renderCertPreview();
                 } catch (e) {
                     pendingCert = null;
+                    window.__cachedPfxBuffer = null;
+                    window.__cachedPfxPassword = null;
                     certPreview.innerHTML = '<span class="placeholder" style="color:#b33a3a;">❌ Could not load certificate</span>';
                     sigError.textContent = 'Error: ' + (e.message || 'Unknown error');
                     console.error('PFX Parse Error:', e);
                 }
             });
 
-            // ⭐ NEW: Re-parse PFX if password is changed after selecting the file
             pfxPasswordInput.addEventListener('change', function() {
                 if (pfxFileInput.files && pfxFileInput.files[0]) {
                     pfxFileInput.dispatchEvent(new Event('change'));
@@ -1695,8 +1821,9 @@
                     if (!pendingCert) { sigError.textContent = 'Please wait for the certificate to load or check the error above.'; return; }
                     
                     try {
-                        // ⭐ SYNC PFX TO CLOUD (DRIVE)
                         const buf = await pfxFileInput.files[0].arrayBuffer(); 
+                        window.__cachedPfxBuffer = buf;
+                        window.__cachedPfxPassword = password;
                         let binary = ''; 
                         const bytes = new Uint8Array(buf);
                         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
@@ -1708,7 +1835,7 @@
                 if (pendingVisualSig) { saveSignatureFor(name, pendingVisualSig); await pushTechnicianSignatureToCloud(name, pendingVisualSig); }
                 if (name === INCHARGE_NAME && pendingInchargeSig) { setInchargeSignatureCached(pendingInchargeSig); await pushInchargeSignatureToCloud(pendingInchargeSig); await pushInchargeMetaToCloud(INCHARGE_NAME); }
                 if (pendingCert) { CERT_STATE.certificate = pendingCert.certificate; CERT_STATE.privateKey = pendingCert.privateKey; CERT_STATE.subject = pendingCert.subject; CERT_STATE.issuer = pendingCert.issuer; CERT_STATE.serial = pendingCert.serial; CERT_STATE.validFrom = pendingCert.validFrom; CERT_STATE.validTo = pendingCert.validTo; CERT_STATE.fingerprint = pendingCert.fingerprint; }
-                updateTechnicianDisplay(); pfxPasswordInput.value = ''; signatureModal.classList.remove('show'); showStatus('Signature and certificate saved.', true);
+                updateTechnicianDisplay(); pfxPasswordInput.value = ''; signatureModal.classList.remove('show'); showStatus('Signature and certificate saved. PDF will now be digitally signed.', true);
             });
 
             const SERVICE_INTERVAL_HOURS = 250; const SERVICE_REF_KEY = 'chub_service_refs'; const lastServiceDateInput = document.getElementById('lastServiceDate'); const lastServiceTypeInput = document.getElementById('lastServiceType'); const saveServiceRefBtn = document.getElementById('saveServiceRefBtn'); const predictionStatus = document.getElementById('predictionStatus'); const predictionStatusText = document.getElementById('predictionStatusText');
@@ -1827,7 +1954,7 @@
                 if (name === INCHARGE_NAME) { fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; }); }
                 fetchTechnicianAssetsFromCloud(name);
             }
-            function lockApp() { clearCert(); clearSession(); loginModal.classList.add('show'); loginPinInput.value = ''; loginError.textContent = ''; loginTechSelect.value = ''; loginTechSelect.focus(); }
+            function lockApp() { clearCert(); window.__cachedPfxBuffer = null; window.__cachedPfxPassword = null; clearSession(); loginModal.classList.add('show'); loginPinInput.value = ''; loginError.textContent = ''; loginTechSelect.value = ''; loginTechSelect.focus(); }
 
             loginBtn.addEventListener('click', function() {
                 const name = loginTechSelect.value; const pin = loginPinInput.value.trim(); loginError.textContent = '';
