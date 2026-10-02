@@ -222,7 +222,6 @@
             <div class="gen-badge">Active</div>
         </div>
 
-        <!-- IN-CHARGE PENDING APPROVALS (Raissa only) -->
         <div class="card" id="pendingApprovalsCard" style="display:none; margin-bottom: 28px; border: 2px solid #1b6b3f;">
             <div class="card-header" style="background:#e2f0e6; color:#1b6b3f;">
                 <span>✅</span> In-Charge Approvals — Pending your co-signature
@@ -326,7 +325,7 @@
                         💾 Save service reference
                     </button>
                     <div style="font-size:0.78rem; color:#5b7b96; margin-top:8px;">
-                        ℹ️ Saved per-generator in your browser. Pre-fills next time.
+                        ℹ️ Saved per-generator in your browser and in the cloud. Pre-fills next time.
                     </div>
                 </div>
             </div>
@@ -446,7 +445,6 @@
             </div>
         </div>
 
-        <!-- ⚠️ SERVICE WARNING BANNER (hidden until 200 h reached) -->
         <div class="card" id="serviceWarningBanner" style="display:none; margin-top: 24px; margin-bottom: 8px; border: 2px solid #b33a3a; background: #fff8f8;">
             <div class="card-header" style="background:#ffe0e0; color:#b33a3a;">
                 <span>⚠️</span> <span id="serviceWarningTitle">Next service is nearly due!</span>
@@ -485,7 +483,6 @@
         </div>
     </div>
 
-    <!-- LOGIN MODAL -->
     <div class="modal-overlay show" id="loginModal">
         <div class="modal-box" style="max-width: 420px; text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 12px;">🔐</div>
@@ -511,7 +508,6 @@
         </div>
     </div>
 
-    <!-- SIGNATURE + CERTIFICATE MODAL -->
     <div class="modal-overlay" id="signatureModal">
         <div class="modal-box">
             <h2>🖊️ Signature &amp; Digital Certificate</h2>
@@ -563,7 +559,6 @@
         </div>
     </div>
 
-    <!-- PDF RANGE MODAL -->
     <div class="modal-overlay" id="pdfModal">
         <div class="modal-box">
             <h2>📚 Download All Records</h2>
@@ -586,7 +581,6 @@
         </div>
     </div>
 
-    <!-- ANALYSIS MODAL -->
     <div class="modal-overlay" id="analysisModal">
         <div class="modal-box">
             <h2>📊 Download Analysis Report</h2>
@@ -627,7 +621,6 @@
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
             const INCHARGE_SIG_CACHE_KEY = 'chub_generator_incharge_signature_cache_v1';
 
-            // ===== Hour/Minute helpers =====
             function getHoursDecimal(hEl, mEl) {
                 const hVal = (hEl && hEl.value) ? String(hEl.value).trim() : '';
                 const mVal = (mEl && mEl.value) ? String(mEl.value).trim() : '';
@@ -646,6 +639,17 @@
                 const m = totalMin % 60;
                 return h + ' h ' + m + ' min';
             }
+            // Always display fuel as a percentage, even if the sheet stored it as a decimal (0.88 → 88%)
+            function formatFuelPercentDisplay(val) {
+                if (val === null || val === undefined || val === '' || val === '—' || val === '-') return '—';
+                if (Array.isArray(val)) val = val[0];
+                let n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+                if (isNaN(n)) return safeStr(val);
+                if (n >= 0 && n <= 1) n = n * 100;
+                if (n < 0) n = 0;
+                if (n > 100) n = 100;
+                return Math.round(n) + '%';
+            }
             function setHoursInputs(hEl, mEl, decimal) {
                 if (decimal === null || decimal === undefined || decimal === '' || (typeof decimal === 'number' && isNaN(decimal))) {
                     hEl.value = '';
@@ -658,7 +662,6 @@
                 hEl.value = Math.floor(totalMin / 60);
                 mEl.value = totalMin % 60;
             }
-            // ================================
 
             function loadSignatures() {
                 let stored = {};
@@ -931,7 +934,6 @@
                 return index;
             }
 
-            // ==================== DOM refs ====================
             const generatorSelect = document.getElementById('generatorSelect');
             const technicianSelect = document.getElementById('technicianSelect');
             const signoffTechName = document.getElementById('signoffTechName');
@@ -1218,7 +1220,6 @@
                 } catch (e) { return { checked: false, error: e.message }; }
             }
 
-            // ==================== SIGN-OFF ====================
             signOffBtn.addEventListener('click', async function() {
                 const data = collectFormData();
                 await ensureReportHash(data);
@@ -1268,7 +1269,6 @@
 
             syncBtn.addEventListener('click', function() { flushQueue(); });
 
-            // ==================== PENDING APPROVALS (Raissa) ====================
             const pendingApprovalsList = document.getElementById('pendingApprovalsList');
             const pendingApprovalsCount = document.getElementById('pendingApprovalsCount');
 
@@ -1372,7 +1372,6 @@
                 setTimeout(() => refreshPendingApprovals(), 800);
             });
 
-            // ==================== PDF: Export current ====================
             pdfBtn.addEventListener('click', async function() {
                 const current = collectFormData();
                 const isEmpty = (!current.visualItems && !current.protItems && !current.atsItems && current.fuelLevel === '—' && current.refilledDiesel === '—' && current.totalRunHours === '—');
@@ -1661,7 +1660,7 @@
 
                     const boxW = (contentWidth - 10) / 5;
                     const fluids = [
-                        { label: 'FUEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
+                        { label: 'FUEL', value: formatFuelPercentDisplay(data['Fuel %'] || data.fuelLevel) },
                         { label: 'COOLANT', value: safeStr(data['Coolant'] || data.coolantLevel) || '—' },
                         { label: 'OIL LEVEL', value: safeStr(data['Oil Level'] || data.oilLevel) || '—' },
                         { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
@@ -1711,29 +1710,6 @@
                     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(58, 101, 131);
                     doc.text('Avg rate: ' + (safeStr(data['Avg Daily Run Rate'] || data.avgDailyRunRate) || '—') + ' h/day  ·  Status: ' + (safeStr(data['Prediction Status'] || data.predictionStatus) || '—'), margin + 3, y + 10);
                     y += 18;
-
-                    const tankCap = getTankCapacity(genName);
-                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
-                    doc.text('FUEL DATA', margin, y); y += 1.5;
-                    doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
-                    doc.line(margin, y, pageWidth - margin, y); y += 5;
-                    const fBoxW = (contentWidth - 6) / 4;
-                    const fuelBoxes = [
-                        { label: 'TANK CAPACITY', value: tankCap !== null ? tankCap + ' L' : '—' },
-                        { label: 'DIESEL REFILLED', value: safeStr(data['Diesel Refilled (L)'] || data.refilledDiesel) || '—' },
-                        { label: 'FUEL LEVEL', value: safeStr(data['Fuel %'] || data.fuelLevel) || '—' },
-                        { label: 'RUN HOURS (TOTAL)', value: safeStr(data['Run Hours'] || data.totalRunHours) || '—' }
-                    ];
-                    fuelBoxes.forEach((b, idx) => {
-                        const bx = margin + idx * (fBoxW + 2);
-                        doc.setFillColor(249, 252, 255); doc.setDrawColor(212, 227, 239);
-                        doc.roundedRect(bx, y, fBoxW, 14, 1.5, 1.5, 'FD');
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5); doc.setTextColor(91, 123, 150);
-                        doc.text(b.label, bx + 2, y + 4);
-                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(18, 64, 94);
-                        doc.text(String(b.value), bx + 2, y + 10.5);
-                    });
-                    y += 20;
 
                     const vSet = new Set(safeSplit(data['Visual Items'] || data.visualItems, '|'));
                     const visualItems = VISUAL_TEXTS.map((t, idx) => ({ text: t, checked: vSet.has(String(idx + 1)) }));
@@ -1878,7 +1854,6 @@
                 doc.save(fname);
             }
 
-            // ==================== ANALYSIS REPORT ====================
             analysisPdfBtn.addEventListener('click', function() {
                 const today = new Date();
                 const weekAgo = new Date();
@@ -2347,7 +2322,6 @@
                 return y + 4;
             }
 
-            // ==================== SIGNATURE MODAL LOGIC ====================
             const signatureModal = document.getElementById('signatureModal');
             const sigFileInput = document.getElementById('sigFileInput');
             const inchargeSigInput = document.getElementById('inchargeSigInput');
@@ -2519,7 +2493,6 @@
                 showStatus('Signature and certificate saved.', true);
             });
 
-            // ==================== SERVICE REF / PREDICTION ====================
             const SERVICE_INTERVAL_HOURS = 250;
             const SERVICE_REF_KEY = 'chub_service_refs';
             const lastServiceDateInput = document.getElementById('lastServiceDate');
@@ -2664,7 +2637,6 @@
             loadServiceRefForGenerator(generatorSelect.value);
             updatePrediction();
 
-            // ==================== SERVICE WARNING BANNER ====================
             function sanitizeForHTML(s) {
                 return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
             }
@@ -2710,7 +2682,6 @@
                 }
             }
 
-            // ==================== SERVICE REF CLOUD SYNC ====================
             async function syncServiceRefsToCloud() {
                 try {
                     const allRefs = getServiceRefs();
@@ -2743,14 +2714,13 @@
                     updatePrediction();
                 } catch (e) { /* silent */ }
             }
-                        // ==================== TOGGLE SERVICE REF CARD ====================
+
             (function() {
                 const titleEl = document.getElementById('predictiveSectionTitle');
                 const cardEl = document.getElementById('serviceRefCard');
                 const chevronEl = document.getElementById('predictiveSectionChevron');
                 if (!titleEl || !cardEl) return;
 
-                // Restore last toggle state from session
                 let open = false;
                 try { open = sessionStorage.getItem('chub_serviceRefOpen') === '1'; } catch(e) {}
                 function applyState() {
@@ -2763,7 +2733,6 @@
                     open = !open;
                     applyState();
                     try { sessionStorage.setItem('chub_serviceRefOpen', open ? '1' : '0'); } catch(e) {}
-                    // If opening, focus the first input so the user can start typing right away
                     if (open) {
                         setTimeout(() => {
                             const firstInput = document.getElementById('lastServiceDate');
@@ -2773,7 +2742,6 @@
                 });
             })();
 
-            // ==================== LOGIN / SESSION ====================
             const loginModal = document.getElementById('loginModal');
             const loginTechSelect = document.getElementById('loginTechSelect');
             const loginPinInput = document.getElementById('loginPinInput');
@@ -2875,7 +2843,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=10')
+                navigator.serviceWorker.register('sw.js?v=11')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
