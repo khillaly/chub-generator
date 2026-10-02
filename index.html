@@ -676,6 +676,88 @@
             function getInchargeSignatureCached() { try { return localStorage.getItem(INCHARGE_SIG_CACHE_KEY) || ''; } catch(e) { return ''; } }
             function setInchargeSignatureCached(dataUrl) { try { localStorage.setItem(INCHARGE_SIG_CACHE_KEY, dataUrl || ''); } catch(e) {} }
 
+            // ⭐ CLOUD SYNC FUNCTIONS FOR TECHNICIAN SIGNATURES & PFX
+            async function pushTechnicianSignatureToCloud(techName, dataUrl) {
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'config_set', key: 'TechSig_' + techName, value: dataUrl })
+                    });
+                } catch (e) { console.warn('Could not sync visual signature', e); }
+            }
+
+            async function pushPFXToCloud(techName, pfxBase64) {
+                try {
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'config_set', key: 'TechPFX_' + techName, value: pfxBase64 })
+                    });
+                } catch (e) { console.warn('Could not sync PFX', e); }
+            }
+
+            async function fetchTechnicianAssetsFromCloud(techName) {
+                try {
+                    const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                    const json = await res.json();
+                    const config = json.config || {};
+                    
+                    // 1. Fetch Visual Signature
+                    const visualSig = config['TechSig_' + techName];
+                    if (visualSig) {
+                        saveSignatureFor(techName, visualSig);
+                        updateTechnicianDisplay();
+                    }
+
+                    // 2. Fetch and Auto-Unlock PFX
+                    const pfxBase64 = config['TechPFX_' + techName];
+                    if (pfxBase64) {
+                        const password = prompt("🔐 Enter your Digital Signature Password to auto-load your PFX:");
+                        if (password) {
+                            try {
+                                const binary = forge.util.decode64(pfxBase64);
+                                const asn1 = forge.asn1.fromDer(binary);
+                                const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
+                                
+                                const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+                                const certBag = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
+                                const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                                let keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+                                if (!keyBag) {
+                                    const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
+                                    keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0];
+                                }
+
+                                if (certBag && certBag.cert && keyBag && keyBag.key) {
+                                    CERT_STATE.certificate = certBag.cert;
+                                    CERT_STATE.privateKey = keyBag.key;
+                                    const getField = (obj, nm) => { try { const f = obj.getField(nm); return f ? f.value : ''; } catch (e) { return ''; } };
+                                    CERT_STATE.subject = sanitizeForPDF(getField(certBag.cert.subject, 'CN') || '(unknown)');
+                                    CERT_STATE.issuer = sanitizeForPDF(getField(certBag.cert.issuer, 'CN') || '(unknown)');
+                                    CERT_STATE.serial = certBag.cert.serialNumber || '';
+                                    CERT_STATE.validFrom = certBag.cert.validity.notBefore;
+                                    CERT_STATE.validTo = certBag.cert.validity.notAfter;
+                                    
+                                    const derBytes = forge.asn1.toDer(forge.pki.certificateToAsn1(certBag.cert)).getBytes();
+                                    const md = forge.md.sha256.create(); md.update(derBytes);
+                                    CERT_STATE.fingerprint = md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase();
+                                    
+                                    updateTechnicianDisplay();
+                                    showStatus('🔐 Digital signature auto-loaded successfully!', true);
+                                }
+                            } catch (e) {
+                                alert('❌ Wrong PFX password, or corrupted file. Please re-upload your PFX.');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch technician assets', e);
+                }
+            }
+
             async function fetchInchargeSignatureFromCloud() {
                 try {
                     const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
@@ -1638,14 +1720,21 @@
                     doc.setDrawColor(200, 215, 230); doc.setLineWidth(0.2);
                     doc.line(leftBoxX + 3, y + 23, leftBoxX + halfWidth - 3, y + 23);
 
+                    // ⭐ NEW: VISUAL DIGITAL SIGNATURE BADGE
                     if (data.signatureSubject || data['Signature Subject']) {
                         const subj = sanitizeForPDF(data.signatureSubject || data['Signature Subject'] || '');
                         const iss  = sanitizeForPDF(data.signatureIssuer  || data['Signature Issuer']  || '—');
+                        
+                        doc.setFillColor(226, 240, 230); // Light green
+                        doc.setDrawColor(27, 107, 63);    // Dark green
+                        doc.setLineWidth(0.3);
+                        doc.roundedRect(leftBoxX + 3, y + 25, halfWidth - 6, 12, 1.5, 1.5, 'FD');
+                        
                         doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(27, 107, 63);
-                        doc.text('Digitally signed (PKCS#7)', leftBoxX + 3, y + 26.5);
-                        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.8); doc.setTextColor(58, 101, 131);
-                        doc.text('Subject: ' + subj.substring(0, 50), leftBoxX + 3, y + 29.5);
-                        doc.text('Issuer: ' + iss.substring(0, 50), leftBoxX + 3, y + 32);
+                        doc.text('✅ DIGITALLY SIGNED (PKCS#7)', leftBoxX + 5, y + 28);
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(58, 101, 131);
+                        doc.text('Subject: ' + subj.substring(0, 50), leftBoxX + 5, y + 31.5);
+                        doc.text('Issuer: ' + iss.substring(0, 50), leftBoxX + 5, y + 34.5);
                     } else {
                         doc.setFont('helvetica', 'italic'); doc.setFontSize(6); doc.setTextColor(91, 123, 150);
                         doc.text('No digital signature — visual only', leftBoxX + 3, y + 28);
@@ -2240,10 +2329,18 @@
                             fingerprint: md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase()
                         };
                         renderCertPreview();
+                        
+                        // ⭐ SYNC PFX TO CLOUD
+                        const pfxBase64 = forge.util.encode64(binary);
+                        await pushPFXToCloud(name, pfxBase64);
+                        
                     } catch (e) { sigError.textContent = 'Could not read the PFX. Check the password. (' + (e.message || '') + ')'; return; }
                 }
 
-                if (pendingVisualSig) saveSignatureFor(name, pendingVisualSig);
+                if (pendingVisualSig) {
+                    saveSignatureFor(name, pendingVisualSig);
+                    await pushTechnicianSignatureToCloud(name, pendingVisualSig);
+                }
                 if (name === INCHARGE_NAME && pendingInchargeSig) {
                     setInchargeSignatureCached(pendingInchargeSig);
                     await pushInchargeSignatureToCloud(pendingInchargeSig);
@@ -2454,6 +2551,8 @@
                 applyRoleVisibility();
                 loginModal.classList.remove('show');
                 if (name === INCHARGE_NAME) { fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; }); }
+                // ⭐ AUTO-FETCH TECHNICIAN SIGNATURES AND PFX ON LOGIN
+                fetchTechnicianAssetsFromCloud(name);
             }
             function lockApp() {
                 clearCert(); clearSession();
