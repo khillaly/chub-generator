@@ -721,9 +721,20 @@
                     const pfxBase64 = config['TechPFX_' + techName];
                     if (pfxBase64) {
                         const password = prompt("🔐 Enter your Digital Signature Password to auto-load your PFX:");
-                        if (password) {
-                            try {
-                                const binary = forge.util.decode64(pfxBase64);
+if (password) {
+    try {
+        // ⭐ FIX: Strip the Data URI prefix if present
+        let cleanBase64 = pfxBase64;
+        if (cleanBase64.startsWith('data:')) {
+            cleanBase64 = cleanBase64.split(',')[1];
+        }
+        
+        // Decode the pure Base64 string
+        const binary = forge.util.decode64(cleanBase64); 
+        
+        // Continue with your existing PFX parsing code...
+        const asn1 = forge.asn1.fromDer(binary);
+        // ... (rest of the code remains the same)
                                 const asn1 = forge.asn1.fromDer(binary);
                                 const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
                                 
