@@ -1571,16 +1571,21 @@
                     const aSet = new Set(safeSplit(data['ATS Items'] || data.atsItems, '|'));
                     const atsItems = ATS_TEXTS.map((t, idx) => ({ text: t, checked: aSet.has(String(idx + 1)) }));
 
-                    drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
+                                       drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
                     drawSection('PROTECTION SYSTEMS', 'Status', safeStr(data['Protection Rating'] || data.protRating || '—'), protItems, safeStr(data['Protection Remarks'] || data.protRemark));
                     drawSection('ATS / TRANSFER', 'Performance', safeStr(data['ATS Rating'] || data.atsRating || '—'), atsItems, safeStr(data['ATS Remarks'] || data.atsRemark));
 
-                    // ⭐ Signature blocks — ALWAYS on the same page (no page-break check)
+                    // ⭐ Signature blocks — PINNED to the bottom of the page
                     const boxHeight = 42;
                     const gap = 4;
                     const halfWidth = (contentWidth - gap) / 2;
                     const leftBoxX = margin;
                     const rightBoxX = margin + halfWidth + gap;
+
+                    // Force signature block to sit just above the footer,
+                    // leaving 6 mm for the "Generated from..." line under it.
+                    y = pageHeight - margin - boxHeight - 6;
+                    if (y < 200) y = 200;   // safety fallback for extremely crowded pages
 
                     doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                     doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
