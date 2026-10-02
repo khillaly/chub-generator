@@ -294,7 +294,7 @@
 
         <div class="section-title" style="margin-top: 28px;"><span>🛠️</span> Predictive Servicing (250 h interval)</div>
         <div style="margin-bottom: 32px;">
-            <div class="card">
+            <div class="card" style="display:none;">
                 <div class="card-header"><span>📋</span> Last Service Reference</div>
                 <div class="card-body">
                     <div class="field-group">
@@ -440,6 +440,16 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ⚠️ SERVICE WARNING BANNER (hidden until 200 h reached) -->
+        <div class="card" id="serviceWarningBanner" style="display:none; margin-top: 24px; margin-bottom: 8px; border: 2px solid #b33a3a; background: #fff8f8;">
+            <div class="card-header" style="background:#ffe0e0; color:#b33a3a;">
+                <span>⚠️</span> <span id="serviceWarningTitle">Next service is nearly due!</span>
+            </div>
+            <div class="card-body">
+                <p id="serviceWarningText" style="font-size: 0.95rem; color: #7a2626; margin: 0; line-height: 1.5;"></p>
             </div>
         </div>
 
@@ -625,7 +635,6 @@
             }
             function formatHoursMinutes(decimal) {
                 if (decimal === null || decimal === undefined || decimal === '') return '—';
-                // If already formatted string like "12200 h 0 min"
                 if (typeof decimal === 'string' && decimal.indexOf('min') !== -1) return decimal;
                 const v = parseFloat(decimal);
                 if (isNaN(v)) return String(decimal);
@@ -944,7 +953,6 @@
             const oilLevelRadios = document.querySelectorAll('input[name="oilLevel"]');
             const refilledDiesel = document.getElementById('refilledDiesel');
 
-            // Hour/Minute inputs
             const totalRunHoursH = document.getElementById('totalRunHoursH');
             const totalRunHoursMin = document.getElementById('totalRunHoursMin');
             const lastServiceHoursH = document.getElementById('lastServiceHoursH');
@@ -1136,7 +1144,6 @@
                     coolantLevel: getCoolantLevel(),
                     oilLevel: getOilLevel(),
                     refilledDiesel: refilledDiesel.value ? refilledDiesel.value + ' L' : '—',
-                    // Sheet expects numeric for weekly-delta math — send decimal
                     currentRunHours: hasCurrent ? currentRunHoursDec.toFixed(2) : '',
                     totalRunHours: hasCurrent ? formatHoursMinutes(currentRunHoursDec) : '—',
                     visualChecks: s.visual, visualTotal: s.visualTotal,
@@ -1152,7 +1159,6 @@
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
                     atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
                     lastServiceDate: lastServiceDateInput.value || '—',
-                    // Display in h/min format (Apps Script stores it as text — safe)
                     lastServiceHours: hasLast ? formatHoursMinutes(lastServiceHoursDec) : '—',
                     lastServiceType: lastServiceTypeInput.value || '—',
                     currentHourMeter: hasCurrent ? currentRunHoursDec.toFixed(2) : '—',
@@ -2139,7 +2145,6 @@
                 doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(150, 170, 190);
                 doc.text('Data recording started on ' + RECORDING_START + ' - analysis covers this period onwards.', mL, y2);
 
-                // SIGN-OFF & APPROVAL — placed on the same page if it fits
                 const SIGNOFF_BLOCK_HEIGHT = 135;
                 const SIGNOFF_LIMIT_Y = pageH - 25;
 
@@ -2180,7 +2185,6 @@
                 const today = new Date();
                 const todayStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-                // LEFT: PREPARED BY (TECHNICIAN)
                 doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                 doc.roundedRect(leftBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
                 doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
@@ -2234,7 +2238,6 @@
                     doc.text('Visual signature only - no PKCS#7 seal loaded', leftBoxX + 3, ys + 44);
                 }
 
-                // RIGHT: APPROVED BY (IN-CHARGE)
                 doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
                 doc.roundedRect(rightBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
                 doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
@@ -2529,7 +2532,6 @@
                 const ref = refs[gen];
                 if (ref) {
                     lastServiceDateInput.value = ref.lastServiceDate || '';
-                    // Backward compat: accept old decimal key or new decimal key
                     const dec = (ref.lastServiceHoursDecimal !== undefined && ref.lastServiceHoursDecimal !== null && ref.lastServiceHoursDecimal !== '')
                         ? ref.lastServiceHoursDecimal
                         : (ref.lastServiceHours !== undefined ? parseFloat(ref.lastServiceHours) : NaN);
@@ -2559,12 +2561,16 @@
 
             saveServiceRefBtn.addEventListener('click', function() {
                 persistServiceRef();
+                syncServiceRefsToCloud();
                 showStatus('Service reference saved for ' + generatorSelect.value, true);
                 updatePrediction();
             });
 
             [lastServiceDateInput, lastServiceTypeInput, lastServiceHoursH, lastServiceHoursMin].forEach(el => {
-                el.addEventListener('change', persistServiceRef);
+                el.addEventListener('change', function() {
+                    persistServiceRef();
+                    syncServiceRefsToCloud();
+                });
             });
 
             function updatePrediction() {
@@ -2586,6 +2592,7 @@
                     document.getElementById('predWindow').textContent = '—';
                     document.getElementById('predProgressBar').style.width = '0%';
                     document.getElementById('predProgressLabel').textContent = '0 / 250 h';
+                    updateServiceWarningBanner(NaN, NaN);
                     return;
                 }
 
@@ -2642,6 +2649,8 @@
                 predictionStatus.style.borderColor = border;
                 predictionStatus.querySelector('span:first-child').textContent = icon;
                 predictionStatusText.textContent = msg;
+
+                updateServiceWarningBanner(hoursRemaining, hoursSince);
             }
             totalRunHoursH.addEventListener('input', updatePrediction);
             totalRunHoursMin.addEventListener('input', updatePrediction);
@@ -2651,6 +2660,86 @@
             generatorSelect.addEventListener('change', function() { loadServiceRefForGenerator(generatorSelect.value); updatePrediction(); });
             loadServiceRefForGenerator(generatorSelect.value);
             updatePrediction();
+
+            // ==================== SERVICE WARNING BANNER ====================
+            function sanitizeForHTML(s) {
+                return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+            }
+            function updateServiceWarningBanner(hoursRemaining, hoursSince) {
+                const banner = document.getElementById('serviceWarningBanner');
+                const titleEl = document.getElementById('serviceWarningTitle');
+                const textEl = document.getElementById('serviceWarningText');
+                if (!banner || !titleEl || !textEl) return;
+
+                if (isNaN(hoursRemaining) || isNaN(hoursSince)) {
+                    banner.style.display = 'none';
+                    return;
+                }
+
+                const gen = generatorSelect.value;
+                const lastDate = lastServiceDateInput.value ? formatDateOnly(lastServiceDateInput.value) : '—';
+                const lastHours = formatHoursMinutes(getHoursDecimal(lastServiceHoursH, lastServiceHoursMin));
+                const currentHours = formatHoursMinutes(getHoursDecimal(totalRunHoursH, totalRunHoursMin));
+
+                if (hoursRemaining <= 0) {
+                    banner.style.display = 'block';
+                    banner.style.borderColor = '#b33a3a';
+                    banner.style.background = '#ffe6e6';
+                    titleEl.textContent = 'Service is OVERDUE!';
+                    textEl.innerHTML =
+                        '<strong>' + sanitizeForHTML(gen) + '</strong> has run <strong>' +
+                        formatHoursMinutes(Math.abs(hoursRemaining)) + '</strong> past the 250 h service interval.' +
+                        '<br><span style="font-size:0.85rem;">Last service: ' + lastDate + ' at ' + lastHours +
+                        ' &middot; Current: ' + currentHours + '</span>';
+                } else if (hoursSince >= 200) {
+                    banner.style.display = 'block';
+                    banner.style.borderColor = '#e8a33d';
+                    banner.style.background = '#fffaf0';
+                    titleEl.textContent = 'Next service is nearly due';
+                    textEl.innerHTML =
+                        '<strong>' + sanitizeForHTML(gen) + '</strong> has run <strong>' +
+                        formatHoursMinutes(hoursSince) + '</strong> since its last service. ' +
+                        'Only <strong>' + formatHoursMinutes(hoursRemaining) + '</strong> remain before the 250 h interval.' +
+                        '<br><span style="font-size:0.85rem;">Last service: ' + lastDate + ' at ' + lastHours +
+                        ' &middot; Current: ' + currentHours + '</span>';
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+
+            // ==================== SERVICE REF CLOUD SYNC ====================
+            async function syncServiceRefsToCloud() {
+                try {
+                    const allRefs = getServiceRefs();
+                    await fetch(GOOGLE_SHEET_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'config_set',
+                            key: 'ServiceRefs',
+                            value: JSON.stringify(allRefs)
+                        })
+                    });
+                } catch (e) { /* silent */ }
+            }
+            async function loadServiceRefsFromCloud() {
+                try {
+                    const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                    const json = await res.json();
+                    const raw = json && json.config && json.config.ServiceRefs;
+                    if (!raw) return;
+                    const cloud = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (!cloud || typeof cloud !== 'object') return;
+                    const local = getServiceRefs();
+                    Object.keys(cloud).forEach(k => {
+                        if (!local[k]) local[k] = cloud[k];
+                        else if ((cloud[k].savedAt || '') > (local[k].savedAt || '')) local[k] = cloud[k];
+                    });
+                    saveServiceRefs(local);
+                    loadServiceRefForGenerator(generatorSelect.value);
+                    updatePrediction();
+                } catch (e) { /* silent */ }
+            }
 
             // ==================== LOGIN / SESSION ====================
             const loginModal = document.getElementById('loginModal');
@@ -2746,6 +2835,7 @@
             workDateInput.addEventListener('change', updateWorkDateDisplay);
 
             fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; });
+            loadServiceRefsFromCloud();
 
             setTimeout(() => { if (getQueue().length > 0) flushQueue(); }, 1200);
         })();
@@ -2753,7 +2843,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=9')
+                navigator.serviceWorker.register('sw.js?v=10')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
