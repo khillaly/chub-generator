@@ -63,6 +63,9 @@
         .field-group label { font-weight: 600; color: #1f3c54; font-size: 0.95rem; }
         .field-group input[type="number"], .field-group input[type="text"], .field-group input[type="date"], .field-group input[type="password"], .field-group select { padding: 12px 16px; border-radius: 16px; border: 1.5px solid #cfdfeb; background: #fbfdff; font-size: 0.95rem; color: #0a2a3f; transition: 0.2s; width: 100%; font-family: inherit; }
         .field-group input:focus, .field-group select:focus { outline: none; border-color: #1e4a6d; background: white; box-shadow: 0 0 0 3px rgba(30,74,109,0.1); }
+        .hours-row { display: flex; gap: 8px; align-items: center; }
+        .hours-row .hr-input { flex: 1; }
+        .hours-row .hr-unit { font-weight: 700; color: #1e4a6d; font-size: 0.95rem; white-space: nowrap; padding: 0 4px; }
         .level-selector { display: flex; gap: 12px; margin-top: 4px; }
         .level-option { flex: 1; text-align: center; padding: 12px 8px; border-radius: 16px; border: 1.5px solid #cfdfeb; background: #fbfdff; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: #5b7b96; transition: 0.2s; user-select: none; }
         .level-option:hover { border-color: #1e4a6d; background: #f0f7fd; }
@@ -240,9 +243,9 @@
         </div>
 
         <div class="section-title"><span>⛽</span> Fluids & Operational Data</div>
-               <div style="margin-bottom: 32px;">
+        <div class="grid-3-wide" style="margin-bottom: 32px;">
             <div class="card">
-                <div class="card-header"><span>📋</span> Last Service Reference</div>
+                <div class="card-header"><span>💧</span> Fuel, Coolant & Oil Levels</div>
                 <div class="card-body">
                     <div class="field-group">
                         <label for="fuelLevel">Fuel level (%)</label>
@@ -274,10 +277,15 @@
                         <input type="number" id="refilledDiesel" min="0" step="0.1" placeholder="e.g. 120.5">
                     </div>
                     <div class="field-group">
-                        <label for="totalRunHours">Current total run hours on meter (Hours)</label>
-                        <input type="number" id="totalRunHours" min="0" step="0.1" placeholder="e.g. 12450.5 (reading from generator)">
+                        <label>Current total run hours on meter</label>
+                        <div class="hours-row">
+                            <input type="number" id="totalRunHoursH" class="hr-input" min="0" step="1" placeholder="Hours e.g. 12450">
+                            <span class="hr-unit">h</span>
+                            <input type="number" id="totalRunHoursMin" class="hr-input" min="0" max="59" step="1" placeholder="Min e.g. 30">
+                            <span class="hr-unit">min</span>
+                        </div>
                         <span style="font-size: 0.78rem; color: #5b7b96; margin-top: 4px;">
-                            ℹ️ Enter the number shown on the generator's hour meter. Weekly hours are computed automatically.
+                            ℹ️ Enter hours and minutes shown on the generator's hour meter. Weekly hours are computed automatically.
                         </span>
                     </div>
                 </div>
@@ -285,7 +293,7 @@
         </div>
 
         <div class="section-title" style="margin-top: 28px;"><span>🛠️</span> Predictive Servicing (250 h interval)</div>
-        <div class="grid-3-wide" style="margin-bottom: 32px;">
+        <div style="margin-bottom: 32px;">
             <div class="card">
                 <div class="card-header"><span>📋</span> Last Service Reference</div>
                 <div class="card-body">
@@ -294,8 +302,13 @@
                         <input type="date" id="lastServiceDate">
                     </div>
                     <div class="field-group">
-                        <label for="lastServiceHours">Hour meter at last service (h)</label>
-                        <input type="number" id="lastServiceHours" min="0" step="0.1" placeholder="e.g. 12200.0">
+                        <label>Hour meter at last service</label>
+                        <div class="hours-row">
+                            <input type="number" id="lastServiceHoursH" class="hr-input" min="0" step="1" placeholder="Hours e.g. 12200">
+                            <span class="hr-unit">h</span>
+                            <input type="number" id="lastServiceHoursMin" class="hr-input" min="0" max="59" step="1" placeholder="Min e.g. 0">
+                            <span class="hr-unit">min</span>
+                        </div>
                     </div>
                     <div class="field-group">
                         <label for="lastServiceType">Service type performed</label>
@@ -500,7 +513,6 @@
                 <input type="file" id="sigFileInput" accept="image/png, image/jpeg">
             </div>
 
-            <!-- In-charge section: only Raissa can see this -->
             <div id="inchargeSignatureSection" style="display:none;">
                 <h3 class="sig-h3">👤 In-Charge Signature (only Raissa can upload)</h3>
                 <div class="sig-preview" id="inchargeSigPreview">
@@ -601,6 +613,40 @@
             const DEFAULT_TECHNICIAN_SIGNATURES = {};
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
             const INCHARGE_SIG_CACHE_KEY = 'chub_generator_incharge_signature_cache_v1';
+
+            // ===== Hour/Minute helpers =====
+            function getHoursDecimal(hEl, mEl) {
+                const hVal = (hEl && hEl.value) ? String(hEl.value).trim() : '';
+                const mVal = (mEl && mEl.value) ? String(mEl.value).trim() : '';
+                if (hVal === '' && mVal === '') return NaN;
+                const h = parseFloat(hVal) || 0;
+                const m = parseFloat(mVal) || 0;
+                return h + (m / 60);
+            }
+            function formatHoursMinutes(decimal) {
+                if (decimal === null || decimal === undefined || decimal === '') return '—';
+                // If already formatted string like "12200 h 0 min"
+                if (typeof decimal === 'string' && decimal.indexOf('min') !== -1) return decimal;
+                const v = parseFloat(decimal);
+                if (isNaN(v)) return String(decimal);
+                const totalMin = Math.round(v * 60);
+                const h = Math.floor(totalMin / 60);
+                const m = totalMin % 60;
+                return h + ' h ' + m + ' min';
+            }
+            function setHoursInputs(hEl, mEl, decimal) {
+                if (decimal === null || decimal === undefined || decimal === '' || (typeof decimal === 'number' && isNaN(decimal))) {
+                    hEl.value = '';
+                    mEl.value = '';
+                    return;
+                }
+                const v = parseFloat(decimal);
+                if (isNaN(v)) { hEl.value = ''; mEl.value = ''; return; }
+                const totalMin = Math.round(v * 60);
+                hEl.value = Math.floor(totalMin / 60);
+                mEl.value = totalMin % 60;
+            }
+            // ================================
 
             function loadSignatures() {
                 let stored = {};
@@ -897,7 +943,13 @@
             const coolantLevelRadios = document.querySelectorAll('input[name="coolantLevel"]');
             const oilLevelRadios = document.querySelectorAll('input[name="oilLevel"]');
             const refilledDiesel = document.getElementById('refilledDiesel');
-            const totalRunHours = document.getElementById('totalRunHours');
+
+            // Hour/Minute inputs
+            const totalRunHoursH = document.getElementById('totalRunHoursH');
+            const totalRunHoursMin = document.getElementById('totalRunHoursMin');
+            const lastServiceHoursH = document.getElementById('lastServiceHoursH');
+            const lastServiceHoursMin = document.getElementById('lastServiceHoursMin');
+
             const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
             const visualRemark = document.getElementById('visualRemark');
             const protRemark = document.getElementById('protRemark');
@@ -1058,6 +1110,20 @@
                 const now = new Date();
                 const timestamp = now.toLocaleString('en-GB', { hour12: false, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const opt = generatorSelect.options[generatorSelect.selectedIndex];
+
+                const currentRunHoursDec = getHoursDecimal(totalRunHoursH, totalRunHoursMin);
+                const lastServiceHoursDec = getHoursDecimal(lastServiceHoursH, lastServiceHoursMin);
+                const hasCurrent = !isNaN(currentRunHoursDec);
+                const hasLast = !isNaN(lastServiceHoursDec);
+
+                const hoursSince = (hasCurrent && hasLast) ? Math.max(0, currentRunHoursDec - lastServiceHoursDec) : null;
+                const hoursUntil = (hasCurrent && hasLast) ? Math.max(0, SERVICE_INTERVAL_HOURS - hoursSince) : null;
+                const avgDaily = (hasCurrent && hasLast && lastServiceDateInput.value) ? (function(){
+                    const ld = lastServiceDateInput.value;
+                    const days = Math.max(1, Math.round((new Date() - new Date(ld + 'T00:00:00')) / 86400000));
+                    return (currentRunHoursDec - lastServiceHoursDec) / days;
+                })() : null;
+
                 return {
                     generator: generatorSelect.value,
                     generatorSub: opt.getAttribute('data-sub') || '',
@@ -1070,8 +1136,9 @@
                     coolantLevel: getCoolantLevel(),
                     oilLevel: getOilLevel(),
                     refilledDiesel: refilledDiesel.value ? refilledDiesel.value + ' L' : '—',
-                    currentRunHours: totalRunHours.value ? totalRunHours.value : '',
-                    totalRunHours: totalRunHours.value ? totalRunHours.value + ' h' : '—',
+                    // Sheet expects numeric for weekly-delta math — send decimal
+                    currentRunHours: hasCurrent ? currentRunHoursDec.toFixed(2) : '',
+                    totalRunHours: hasCurrent ? formatHoursMinutes(currentRunHoursDec) : '—',
                     visualChecks: s.visual, visualTotal: s.visualTotal,
                     protChecks: s.prot, protTotal: s.protTotal,
                     atsChecks: s.ats, atsTotal: s.atsTotal,
@@ -1085,26 +1152,14 @@
                     protRating: document.querySelector('input[name="protRating"]:checked')?.value || '—',
                     atsRating: document.querySelector('input[name="atsRating"]:checked')?.value || '—',
                     lastServiceDate: lastServiceDateInput.value || '—',
-                    lastServiceHours: lastServiceHoursInput.value || '—',
+                    // Display in h/min format (Apps Script stores it as text — safe)
+                    lastServiceHours: hasLast ? formatHoursMinutes(lastServiceHoursDec) : '—',
                     lastServiceType: lastServiceTypeInput.value || '—',
-                    currentHourMeter: totalRunHours.value || '—',
-                    hoursSinceService: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value);
-                        if (isNaN(lh) || isNaN(ch)) return '—';
-                        return Math.max(0, ch - lh).toFixed(1);
-                    })(),
-                    hoursUntilService: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value);
-                        if (isNaN(lh) || isNaN(ch)) return '—';
-                        return Math.max(0, SERVICE_INTERVAL_HOURS - (ch - lh)).toFixed(1);
-                    })(),
+                    currentHourMeter: hasCurrent ? currentRunHoursDec.toFixed(2) : '—',
+                    hoursSinceService: hoursSince !== null ? hoursSince.toFixed(2) : '—',
+                    hoursUntilService: hoursUntil !== null ? hoursUntil.toFixed(2) : '—',
                     predictedNextServiceDate: document.getElementById('predNextDate').textContent || '—',
-                    avgDailyRunRate: (function(){
-                        const lh = parseFloat(lastServiceHoursInput.value); const ch = parseFloat(totalRunHours.value); const ld = lastServiceDateInput.value;
-                        if (isNaN(lh) || isNaN(ch) || !ld) return '—';
-                        const days = Math.max(1, Math.round((new Date() - new Date(ld + 'T00:00:00')) / 86400000));
-                        return ((ch - lh) / days).toFixed(2);
-                    })(),
+                    avgDailyRunRate: avgDaily !== null ? avgDaily.toFixed(2) : '—',
                     predictionStatus: predictionStatusText.textContent || '—'
                 };
             }
@@ -1112,8 +1167,10 @@
             function resetForm(showMsg) {
                 allCheckboxes.forEach(cb => cb.checked = false);
                 visualRemark.value = ''; protRemark.value = ''; atsRemark.value = '';
-                fuelLevel.value = ''; refilledDiesel.value = ''; totalRunHours.value = '';
-                lastServiceDateInput.value = ''; lastServiceHoursInput.value = '';
+                fuelLevel.value = ''; refilledDiesel.value = '';
+                totalRunHoursH.value = ''; totalRunHoursMin.value = '';
+                lastServiceDateInput.value = '';
+                lastServiceHoursH.value = ''; lastServiceHoursMin.value = '';
                 lastServiceTypeInput.value = 'Oil + Filters';
                 updatePrediction();
                 coolantLevelRadios.forEach(r => r.checked = false);
@@ -1620,9 +1677,9 @@
                     const pBoxW = (contentWidth - 6) / 4;
                     const pred = [
                         { label: 'LAST SERVICE', value: formatDateOnly(data['Last Service Date'] || data.lastServiceDate) },
-                        { label: 'HOURS @ SERVICE', value: safeStr(data['Last Service Hours'] || data.lastServiceHours) || '—' },
-                        { label: 'HOURS SINCE', value: (safeStr(data['Hours Since Service'] || data.hoursSinceService) || '—') + ' h' },
-                        { label: 'HOURS REMAINING', value: (safeStr(data['Hours Until Service'] || data.hoursUntilService) || '—') + ' h' }
+                        { label: 'HOURS @ SERVICE', value: formatHoursMinutes(data['Last Service Hours'] || data.lastServiceHours) },
+                        { label: 'HOURS SINCE', value: formatHoursMinutes(data['Hours Since Service'] || data.hoursSinceService) },
+                        { label: 'HOURS REMAINING', value: formatHoursMinutes(data['Hours Until Service'] || data.hoursUntilService) }
                     ];
                     pred.forEach((b, idx) => {
                         const bx = margin + idx * (pBoxW + 2);
@@ -1791,7 +1848,7 @@
                         doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
                         doc.line(rightBoxX + 3, y + 25, rightBoxX + halfWidth - 3, y + 25);
                         doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
-                        doc.text('✅ Co-signed (approved)', rightBoxX + 3, y + 29);
+                        doc.text('Co-signed (approved)', rightBoxX + 3, y + 29);
                     } else {
                         doc.setFontSize(7.5); doc.setTextColor(122, 83, 0);
                         doc.text('Name: ____________________________', rightBoxX + 3, y + 12);
@@ -1799,7 +1856,7 @@
                         doc.setDrawColor(180, 140, 60); doc.setLineWidth(0.3);
                         doc.line(rightBoxX + 3, y + 32, rightBoxX + halfWidth - 3, y + 32);
                         doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(179, 58, 58);
-                        doc.text('⏳ Pending co-signature', rightBoxX + 3, y + 36);
+                        doc.text('Pending co-signature', rightBoxX + 3, y + 36);
                     }
 
                     y += boxHeight + 4;
@@ -1895,14 +1952,13 @@
                 return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
             }
 
-                        async function generateAnalysisPDF(records, consIndex) {
+            async function generateAnalysisPDF(records, consIndex) {
                 if (!consIndex) consIndex = buildConsumptionIndex(records);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageW = 210, pageH = 297, mL = 14, mR = 14;
                 const cW = pageW - mL - mR;
 
-                // ---- Preload signatures ----
                 const allSignatures = loadSignatures();
                 const sigDimensions = {};
                 for (const [techName, dataUrl] of Object.entries(allSignatures)) {
@@ -1956,9 +2012,9 @@
                 const kpiBoxes = [
                     { label: 'Total Records', value: String(totalRecords) },
                     { label: 'Total Diesel Refilled', value: roundClient(totalDiesel, 1) + ' L' },
-                    { label: 'Total Run Hours', value: roundClient(totalRunHours, 1) + ' h' },
+                    { label: 'Total Run Hours', value: formatHoursMinutes(totalRunHours) },
                     { label: 'Avg Fuel Level', value: roundClient(avgFuel, 1) + ' %' },
-                    { label: 'Avg Run Hours / Check', value: roundClient(avgRunHours, 1) + ' h' }
+                    { label: 'Avg Run Hours / Check', value: formatHoursMinutes(avgRunHours) }
                 ];
                 const kpiBoxW = (cW - 8) / 3;
                 const kpiBoxH = 22;
@@ -1971,7 +2027,7 @@
                     doc.roundedRect(bx, by, kpiBoxW, kpiBoxH, 2, 2, 'FD');
                     doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(91, 123, 150);
                     doc.text(b.label.toUpperCase(), bx + 3, by + 6);
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(18, 64, 94);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(18, 64, 94);
                     doc.text(String(b.value), bx + 3, by + 16);
                 });
                 y += 2 * (kpiBoxH + kpiGap) + 4;
@@ -2032,7 +2088,7 @@
                     byGen[g].diesel += validNum(r['Diesel Refilled (L)']) || 0;
                     byGen[g].hours += validNum(r['Run Hours']) || 0;
                 });
-                const genRows = Object.keys(byGen).map(g => [g, byGen[g].count, roundClient(byGen[g].diesel, 1), roundClient(byGen[g].hours, 1)]);
+                const genRows = Object.keys(byGen).map(g => [g, byGen[g].count, roundClient(byGen[g].diesel, 1), formatHoursMinutes(byGen[g].hours)]);
                 y = drawSimpleTable(doc, ['Generator', 'Inspections', 'Diesel (L)', 'Run Hours'], genRows, mL, y, cW);
 
                 doc.addPage();
@@ -2060,7 +2116,7 @@
                     byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0;
                     byWeek[wk].hours += validNum(r['Run Hours']) || 0;
                 });
-                const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), roundClient(byWeek[w].hours, 1)]);
+                const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), formatHoursMinutes(byWeek[w].hours)]);
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
 
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
@@ -2081,18 +2137,14 @@
                 doc.text('Records without fuel data: ' + fuelSkipped, mL, y2);
                 y2 += 4;
                 doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(150, 170, 190);
-                doc.text('Data recording started on ' + RECORDING_START + ' — analysis covers this period onwards.', mL, y2);
+                doc.text('Data recording started on ' + RECORDING_START + ' - analysis covers this period onwards.', mL, y2);
 
-                // ============================================================
-                              // ============================================================
-                // ⭐ SIGN-OFF & APPROVAL — placed on the same page if it fits
-                // ============================================================
-                const SIGNOFF_BLOCK_HEIGHT = 135; // mm needed for the whole block
+                // SIGN-OFF & APPROVAL — placed on the same page if it fits
+                const SIGNOFF_BLOCK_HEIGHT = 135;
                 const SIGNOFF_LIMIT_Y = pageH - 25;
 
                 let ys;
                 if (y2 > SIGNOFF_LIMIT_Y - SIGNOFF_BLOCK_HEIGHT) {
-                    // Not enough space left on page 2 — start a new page
                     doc.addPage();
                     ys = 20;
                     doc.setFillColor(30, 74, 109);
@@ -2101,7 +2153,6 @@
                     doc.text('Generator Fleet — Analysis Report (continued)', mL, ys);
                     ys += 12;
                 } else {
-                    // Enough space — continue on the same page with a small gap
                     ys = y2 + 12;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.4);
                     doc.line(mL, ys - 6, pageW - mR, ys - 6);
@@ -2129,7 +2180,7 @@
                 const today = new Date();
                 const todayStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-                // ---------- LEFT: PREPARED BY (TECHNICIAN) ----------
+                // LEFT: PREPARED BY (TECHNICIAN)
                 doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                 doc.roundedRect(leftBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
                 doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(91, 123, 150);
@@ -2141,7 +2192,6 @@
                 doc.text('Date: ' + todayStr, leftBoxX + 3, ys + 17);
                 doc.text('Site: CHUB · 400V / 50Hz', leftBoxX + 3, ys + 21);
 
-                // Technician signature image area (right half of the box)
                 const tsAreaX = leftBoxX + (halfWidth / 2) + 2;
                 const tsAreaW = (halfWidth / 2) - 5;
                 const tsAreaY = ys + 8;
@@ -2174,18 +2224,17 @@
                 doc.setFontSize(6.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
                 doc.text('Signature', leftBoxX + 3, ys + 37);
 
-                // Small "digital seal" hint if cert loaded
                 if (isCertLoaded() && CERT_STATE.subject) {
                     doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
-                    doc.text('🔐 PKCS#7 digital seal active', leftBoxX + 3, ys + 43);
+                    doc.text('PKCS#7 digital seal active', leftBoxX + 3, ys + 43);
                     doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(58, 101, 131);
                     doc.text(sanitizeForPDF(CERT_STATE.subject).substring(0, 46), leftBoxX + 3, ys + 47);
                 } else {
                     doc.setFontSize(6); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
-                    doc.text('Visual signature only — no PKCS#7 seal loaded', leftBoxX + 3, ys + 44);
+                    doc.text('Visual signature only - no PKCS#7 seal loaded', leftBoxX + 3, ys + 44);
                 }
 
-                // ---------- RIGHT: APPROVED BY (IN-CHARGE) ----------
+                // RIGHT: APPROVED BY (IN-CHARGE)
                 doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
                 doc.roundedRect(rightBoxX, ys, halfWidth, boxHeight, 2, 2, 'FD');
                 doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
@@ -2197,7 +2246,6 @@
                 doc.text('Date: ' + todayStr, rightBoxX + 3, ys + 17);
                 doc.text('Site: CHUB — Engineering', rightBoxX + 3, ys + 21);
 
-                // In-charge signature image area
                 const isAreaX = rightBoxX + (halfWidth / 2) + 2;
                 const isAreaW = (halfWidth / 2) - 5;
                 const isAreaY = ys + 8;
@@ -2235,17 +2283,13 @@
 
                 ys += boxHeight + 10;
 
-                // Notice banner
                 doc.setFillColor(255, 243, 205); doc.setDrawColor(244, 217, 122);
                 doc.roundedRect(mL, ys, cW, 12, 2, 2, 'FD');
                 doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(122, 83, 0);
                 doc.text('Recording started: ' + RECORDING_START + ' - reports & analysis cover this period onwards.', mL + 3, ys + 5);
                 doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-                doc.text('Generated automatically from the CHUB Generator Fleet System · ' + genAt, mL + 3, ys + 9.5);
+                doc.text('Generated automatically from the CHUB Generator Fleet System - ' + genAt, mL + 3, ys + 9.5);
 
-                // ============================================================
-                // PAGE NUMBERS / FOOTER
-                // ============================================================
                 const totalPages = doc.getNumberOfPages();
                 for (let p = 1; p <= totalPages; p++) {
                     doc.setPage(p);
@@ -2371,7 +2415,7 @@
                 renderInchargeSigPreview();
                 renderCertPreview();
                 updateTechnicianDisplay();
-                showStatus('🗑️ Signatures and certificate cleared.', true);
+                showStatus('Signatures and certificate cleared.', true);
             });
 
             sigFileInput.addEventListener('change', function() {
@@ -2395,12 +2439,12 @@
             document.getElementById('sigSave').addEventListener('click', async () => {
                 sigError.textContent = '';
                 const name = technicianSelect.value;
-                if (!name) { sigError.textContent = '⚠️ Please log in first.'; return; }
+                if (!name) { sigError.textContent = 'Please log in first.'; return; }
 
                 if (pfxFileInput.files && pfxFileInput.files[0]) {
                     const password = pfxPasswordInput.value;
-                    if (!password) { sigError.textContent = '⚠️ Please enter the PFX password.'; return; }
-                    if (typeof forge === 'undefined') { sigError.textContent = '⚠️ Crypto library not loaded.'; return; }
+                    if (!password) { sigError.textContent = 'Please enter the PFX password.'; return; }
+                    if (typeof forge === 'undefined') { sigError.textContent = 'Crypto library not loaded.'; return; }
 
                     try {
                         const buf = await pfxFileInput.files[0].arrayBuffer();
@@ -2413,7 +2457,7 @@
 
                         const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
                         const certBag  = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
-                        if (!certBag || !certBag.cert) { sigError.textContent = '⚠️ No certificate found in the PFX.'; return; }
+                        if (!certBag || !certBag.cert) { sigError.textContent = 'No certificate found in the PFX.'; return; }
                         const certificate = certBag.cert;
 
                         const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
@@ -2422,7 +2466,7 @@
                             const plainBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
                             keyBag = plainBags[forge.pki.oids.keyBag] && plainBags[forge.pki.oids.keyBag][0];
                         }
-                        if (!keyBag || !keyBag.key) { sigError.textContent = '⚠️ No private key found in the PFX.'; return; }
+                        if (!keyBag || !keyBag.key) { sigError.textContent = 'No private key found in the PFX.'; return; }
 
                         const getField = (obj, nm) => { try { const f = obj.getField(nm); return f ? f.value : ''; } catch (e) { return ''; } };
                         const derBytes = forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes();
@@ -2440,14 +2484,13 @@
                         };
                         renderCertPreview();
                     } catch (e) {
-                        sigError.textContent = '❌ ' + (e.message || 'Could not read the PFX. Check the password.');
+                        sigError.textContent = 'Could not read the PFX. Check the password. (' + (e.message || '') + ')';
                         return;
                     }
                 }
 
                 if (pendingVisualSig) saveSignatureFor(name, pendingVisualSig);
 
-                // Only Raissa can push in-charge signature to the cloud
                 if (name === INCHARGE_NAME && pendingInchargeSig) {
                     setInchargeSignatureCached(pendingInchargeSig);
                     await pushInchargeSignatureToCloud(pendingInchargeSig);
@@ -2467,14 +2510,13 @@
                 updateTechnicianDisplay();
                 pfxPasswordInput.value = '';
                 signatureModal.classList.remove('show');
-                showStatus('✅ Signature and certificate saved.', true);
+                showStatus('Signature and certificate saved.', true);
             });
 
             // ==================== SERVICE REF / PREDICTION ====================
             const SERVICE_INTERVAL_HOURS = 250;
             const SERVICE_REF_KEY = 'chub_service_refs';
             const lastServiceDateInput = document.getElementById('lastServiceDate');
-            const lastServiceHoursInput = document.getElementById('lastServiceHours');
             const lastServiceTypeInput = document.getElementById('lastServiceType');
             const saveServiceRefBtn = document.getElementById('saveServiceRefBtn');
             const predictionStatus = document.getElementById('predictionStatus');
@@ -2487,36 +2529,48 @@
                 const ref = refs[gen];
                 if (ref) {
                     lastServiceDateInput.value = ref.lastServiceDate || '';
-                    lastServiceHoursInput.value = ref.lastServiceHours || '';
+                    // Backward compat: accept old decimal key or new decimal key
+                    const dec = (ref.lastServiceHoursDecimal !== undefined && ref.lastServiceHoursDecimal !== null && ref.lastServiceHoursDecimal !== '')
+                        ? ref.lastServiceHoursDecimal
+                        : (ref.lastServiceHours !== undefined ? parseFloat(ref.lastServiceHours) : NaN);
+                    setHoursInputs(lastServiceHoursH, lastServiceHoursMin, dec);
                     lastServiceTypeInput.value = ref.lastServiceType || 'Oil + Filters';
                 } else {
                     lastServiceDateInput.value = '';
-                    lastServiceHoursInput.value = '';
+                    lastServiceHoursH.value = '';
+                    lastServiceHoursMin.value = '';
                     lastServiceTypeInput.value = 'Oil + Filters';
                 }
             }
-            saveServiceRefBtn.addEventListener('click', function() {
+
+            function persistServiceRef() {
                 const gen = generatorSelect.value;
+                if (!gen) return;
                 const refs = getServiceRefs();
-                refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
+                const dec = getHoursDecimal(lastServiceHoursH, lastServiceHoursMin);
+                refs[gen] = {
+                    lastServiceDate: lastServiceDateInput.value,
+                    lastServiceHoursDecimal: isNaN(dec) ? '' : dec,
+                    lastServiceType: lastServiceTypeInput.value,
+                    savedAt: new Date().toISOString()
+                };
                 saveServiceRefs(refs);
-                showStatus('💾 Service reference saved for ' + gen, true);
+            }
+
+            saveServiceRefBtn.addEventListener('click', function() {
+                persistServiceRef();
+                showStatus('Service reference saved for ' + generatorSelect.value, true);
                 updatePrediction();
             });
-            [lastServiceDateInput, lastServiceHoursInput, lastServiceTypeInput].forEach(el => {
-                el.addEventListener('change', function() {
-                    const gen = generatorSelect.value;
-                    if (!gen) return;
-                    const refs = getServiceRefs();
-                    refs[gen] = { lastServiceDate: lastServiceDateInput.value, lastServiceHours: lastServiceHoursInput.value, lastServiceType: lastServiceTypeInput.value, savedAt: new Date().toISOString() };
-                    saveServiceRefs(refs);
-                });
+
+            [lastServiceDateInput, lastServiceTypeInput, lastServiceHoursH, lastServiceHoursMin].forEach(el => {
+                el.addEventListener('change', persistServiceRef);
             });
 
             function updatePrediction() {
                 const lastDate = lastServiceDateInput.value;
-                const lastHours = parseFloat(lastServiceHoursInput.value);
-                const currentHours = parseFloat(totalRunHours.value);
+                const lastHours = getHoursDecimal(lastServiceHoursH, lastServiceHoursMin);
+                const currentHours = getHoursDecimal(totalRunHoursH, totalRunHoursMin);
 
                 if (!lastDate || isNaN(lastHours) || isNaN(currentHours)) {
                     predictionStatus.style.background = '#e7f0f8';
@@ -2524,7 +2578,7 @@
                     predictionStatus.style.borderColor = '#cfdfeb';
                     predictionStatus.querySelector('span:first-child').textContent = 'ℹ️';
                     predictionStatusText.textContent = 'Fill in last service ref + current hour meter';
-                    document.getElementById('predCurrentHours').textContent = isNaN(currentHours) ? '—' : currentHours.toFixed(1) + ' h';
+                    document.getElementById('predCurrentHours').textContent = isNaN(currentHours) ? '—' : formatHoursMinutes(currentHours);
                     document.getElementById('predHoursSince').textContent = '—';
                     document.getElementById('predHoursRemaining').textContent = '—';
                     document.getElementById('predAvgRate').textContent = '—';
@@ -2555,14 +2609,14 @@
                     nextDate = new Date(now);
                 }
 
-                document.getElementById('predCurrentHours').textContent = currentHours.toFixed(1) + ' h';
-                document.getElementById('predHoursSince').textContent = hoursSince.toFixed(1) + ' h';
-                document.getElementById('predHoursRemaining').textContent = hoursRemaining.toFixed(1) + ' h';
+                document.getElementById('predCurrentHours').textContent = formatHoursMinutes(currentHours);
+                document.getElementById('predHoursSince').textContent = formatHoursMinutes(hoursSince);
+                document.getElementById('predHoursRemaining').textContent = formatHoursMinutes(hoursRemaining);
                 document.getElementById('predProgressBar').style.width = percent + '%';
                 document.getElementById('predProgressLabel').textContent = hoursSince.toFixed(1) + ' / ' + SERVICE_INTERVAL_HOURS + ' h (' + percent.toFixed(1) + '%)';
 
                 if (avgDailyHours > 0) {
-                    document.getElementById('predAvgRate').textContent = avgDailyHours.toFixed(2) + ' h/day (' + (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
+                    document.getElementById('predAvgRate').textContent = formatHoursMinutes(avgDailyHours) + '/day (' + (avgDailyHours * 7).toFixed(1) + ' h/week) over ' + daysElapsed + ' days';
                 } else {
                     document.getElementById('predAvgRate').textContent = 'Insufficient data (no hours run since last service)';
                 }
@@ -2579,19 +2633,21 @@
                 }
 
                 let bg, color, border, icon, msg;
-                if (hoursRemaining <= 0) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '🚨'; msg = 'SERVICE OVERDUE — ' + Math.abs(hoursRemaining).toFixed(1) + ' h past interval'; }
-                else if (hoursRemaining <= 25) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '⚠️'; msg = 'SERVICE DUE SOON — only ' + hoursRemaining.toFixed(1) + ' h left'; }
-                else if (hoursRemaining <= 50) { bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a'; icon = '🔔'; msg = 'Plan service — ' + hoursRemaining.toFixed(1) + ' h remaining'; }
-                else { bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3'; icon = '✅'; msg = 'OK — ' + hoursRemaining.toFixed(1) + ' h until next service'; }
+                if (hoursRemaining <= 0) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '🚨'; msg = 'SERVICE OVERDUE — ' + formatHoursMinutes(Math.abs(hoursRemaining)) + ' past interval'; }
+                else if (hoursRemaining <= 25) { bg = '#ffe6e6'; color = '#b33a3a'; border = '#f0b8b8'; icon = '⚠️'; msg = 'SERVICE DUE SOON — only ' + formatHoursMinutes(hoursRemaining) + ' left'; }
+                else if (hoursRemaining <= 50) { bg = '#fff3cd'; color = '#7a5300'; border = '#f4d97a'; icon = '🔔'; msg = 'Plan service — ' + formatHoursMinutes(hoursRemaining) + ' remaining'; }
+                else { bg = '#e2f0e6'; color = '#1b6b3f'; border = '#b8dfc3'; icon = '✅'; msg = 'OK — ' + formatHoursMinutes(hoursRemaining) + ' until next service'; }
                 predictionStatus.style.background = bg;
                 predictionStatus.style.color = color;
                 predictionStatus.style.borderColor = border;
                 predictionStatus.querySelector('span:first-child').textContent = icon;
                 predictionStatusText.textContent = msg;
             }
-            totalRunHours.addEventListener('input', updatePrediction);
+            totalRunHoursH.addEventListener('input', updatePrediction);
+            totalRunHoursMin.addEventListener('input', updatePrediction);
             lastServiceDateInput.addEventListener('change', updatePrediction);
-            lastServiceHoursInput.addEventListener('input', updatePrediction);
+            lastServiceHoursH.addEventListener('input', updatePrediction);
+            lastServiceHoursMin.addEventListener('input', updatePrediction);
             generatorSelect.addEventListener('change', function() { loadServiceRefForGenerator(generatorSelect.value); updatePrediction(); });
             loadServiceRefForGenerator(generatorSelect.value);
             updatePrediction();
@@ -2633,7 +2689,6 @@
                 updateTechnicianDisplay();
                 applyRoleVisibility();
                 loginModal.classList.remove('show');
-                // Refresh in-charge signature on unlock
                 if (name === INCHARGE_NAME) {
                     fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; });
                 }
@@ -2653,17 +2708,17 @@
                 const name = loginTechSelect.value;
                 const pin = loginPinInput.value.trim();
                 loginError.textContent = '';
-                if (!name) { loginError.textContent = '⚠️ Please select your name.'; return; }
-                if (!pin)  { loginError.textContent = '⚠️ Please enter your PIN.'; return; }
+                if (!name) { loginError.textContent = 'Please select your name.'; return; }
+                if (!pin)  { loginError.textContent = 'Please enter your PIN.'; return; }
                 if (TECHNICIAN_PINS[name] !== pin) {
-                    loginError.textContent = '❌ Wrong PIN for ' + name;
+                    loginError.textContent = 'Wrong PIN for ' + name;
                     loginPinInput.value = '';
                     loginPinInput.focus();
                     return;
                 }
                 saveSession(name);
                 unlockApp(name);
-                showStatus('✅ Welcome, ' + name + '!', true);
+                showStatus('Welcome, ' + name + '!', true);
             });
 
             loginPinInput.addEventListener('keydown', function(e) {
@@ -2671,10 +2726,9 @@
             });
 
             logoutBtn.addEventListener('click', function() {
-                if (confirm('Log out and lock the app?')) { lockApp(); showStatus('🔒 Logged out.', true); }
+                if (confirm('Log out and lock the app?')) { lockApp(); showStatus('Logged out.', true); }
             });
 
-            // Restore prior session or lock
             const existingSession = loadSession();
             if (existingSession && TECHNICIAN_PINS[existingSession]) {
                 unlockApp(existingSession);
@@ -2682,7 +2736,6 @@
                 lockApp();
             }
 
-            // ---- Initial UI priming ----
             resetBtn.addEventListener('click', function() { lastSubmittedSnapshot = null; resetForm(true); });
 
             setAutoWorkDate();
@@ -2692,7 +2745,6 @@
             generatorSelect.addEventListener('change', updateGeneratorBanner);
             workDateInput.addEventListener('change', updateWorkDateDisplay);
 
-            // Preload in-charge signature on startup
             fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; });
 
             setTimeout(() => { if (getQueue().length > 0) flushQueue(); }, 1200);
@@ -2701,7 +2753,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=8')
+                navigator.serviceWorker.register('sw.js?v=9')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
