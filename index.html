@@ -292,9 +292,12 @@
             </div>
         </div>
 
-        <div class="section-title" style="margin-top: 28px;"><span>🛠️</span> Predictive Servicing (250 h interval)</div>
+        <div class="section-title" id="predictiveSectionTitle" style="margin-top: 28px; cursor: pointer; user-select: none;" title="Click to show/hide the service reference editor">
+            <span>🛠️</span> Predictive Servicing (250 h interval)
+            <span id="predictiveSectionChevron" style="margin-left: auto; font-size: 0.9rem; color: #5b7b96; font-weight: 600;">✏️ Edit ▾</span>
+        </div>
         <div style="margin-bottom: 32px;">
-            <div class="card" style="display:none;">
+            <div class="card" id="serviceRefCard" style="display:none;">
                 <div class="card-header"><span>📋</span> Last Service Reference</div>
                 <div class="card-body">
                     <div class="field-group">
@@ -2740,6 +2743,35 @@
                     updatePrediction();
                 } catch (e) { /* silent */ }
             }
+                        // ==================== TOGGLE SERVICE REF CARD ====================
+            (function() {
+                const titleEl = document.getElementById('predictiveSectionTitle');
+                const cardEl = document.getElementById('serviceRefCard');
+                const chevronEl = document.getElementById('predictiveSectionChevron');
+                if (!titleEl || !cardEl) return;
+
+                // Restore last toggle state from session
+                let open = false;
+                try { open = sessionStorage.getItem('chub_serviceRefOpen') === '1'; } catch(e) {}
+                function applyState() {
+                    cardEl.style.display = open ? 'block' : 'none';
+                    if (chevronEl) chevronEl.textContent = open ? '✏️ Editing ▴' : '✏️ Edit ▾';
+                }
+                applyState();
+
+                titleEl.addEventListener('click', function() {
+                    open = !open;
+                    applyState();
+                    try { sessionStorage.setItem('chub_serviceRefOpen', open ? '1' : '0'); } catch(e) {}
+                    // If opening, focus the first input so the user can start typing right away
+                    if (open) {
+                        setTimeout(() => {
+                            const firstInput = document.getElementById('lastServiceDate');
+                            if (firstInput) firstInput.focus();
+                        }, 50);
+                    }
+                });
+            })();
 
             // ==================== LOGIN / SESSION ====================
             const loginModal = document.getElementById('loginModal');
