@@ -639,7 +639,6 @@
                 const m = totalMin % 60;
                 return h + ' h ' + m + ' min';
             }
-            // Always display fuel as a percentage, even if the sheet stored it as a decimal (0.88 → 88%)
             function formatFuelPercentDisplay(val) {
                 if (val === null || val === undefined || val === '' || val === '—' || val === '-') return '—';
                 if (Array.isArray(val)) val = val[0];
@@ -808,17 +807,11 @@
                 return Math.round(n * f) / f;
             }
 
-            // ===== ⭐ FIXED: bulletproof date extraction =====
             const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             function formatDateOnly(val) {
                 if (val === null || val === undefined) return '—';
                 const s = String(val).trim();
                 if (!s || s === '—' || s === '-') return '—';
-
-                // Extract YYYY-MM-DD from the start of the string. Works for:
-                //   "2026-10-02"
-                //   "2026-10-02 00:00:00"
-                //   "2026-10-02T22:00:00.000Z"
                 const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
                 if (m) {
                     const yyyy = parseInt(m[1], 10);
@@ -826,8 +819,6 @@
                     const dd = parseInt(m[3], 10);
                     return String(dd).padStart(2, '0') + ' ' + MONTHS_SHORT[mm - 1] + ' ' + yyyy;
                 }
-
-                // Fallback for other formats
                 const d = new Date(s);
                 if (isNaN(d.getTime())) return s;
                 return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1330,11 +1321,16 @@
                 if (!json || !json.records || json.records.length === 0) { showStatus('📭 No records found in the sheet yet.', false); modalGo.disabled = false; modalGo.innerHTML = orig; return; }
                 const filtered = filterRecords(json.records);
                 if (filtered.length === 0) { showStatus('📭 No records match the selected date range.', false); modalGo.disabled = false; modalGo.innerHTML = orig; return; }
+
+                // ⭐ Group by generator (A→Z) — chronological within each generator
+                const grouped = groupRecordsByGenerator(filtered);
+                const genCount = countUniqueGenerators(grouped);
+
                 try {
-                    modalGo.innerHTML = '📄 Generating (' + filtered.length + ' record' + (filtered.length > 1 ? 's' : '') + ')...';
+                    modalGo.innerHTML = '📄 Generating (' + grouped.length + ' record' + (grouped.length > 1 ? 's' : '') + ' · ' + genCount + ' generator' + (genCount > 1 ? 's' : '') + ')...';
                     await new Promise(r => setTimeout(r, 30));
-                    await generatePDF(filtered);
-                    showStatus('✅ PDF generated with ' + filtered.length + ' record(s).', true);
+                    await generatePDF(grouped);
+                    showStatus('✅ PDF generated: ' + grouped.length + ' record(s) across ' + genCount + ' generator(s).', true);
                     pdfModal.classList.remove('show');
                 } catch (err) { showStatus('⚠️ PDF generation failed: ' + (err.message || 'unknown error'), false); }
                 modalGo.disabled = false; modalGo.innerHTML = orig;
@@ -1360,6 +1356,27 @@
                     if (to && d > to) return false;
                     return true;
                 });
+            }
+
+            // ⭐ NEW — group by generator (A→Z), then by timestamp within each generator
+            function groupRecordsByGenerator(records) {
+                if (!Array.isArray(records) || records.length === 0) return [];
+                return records.slice().sort((a, b) => {
+                    const ga = safeStr(a['Generator'] || a.generator || '').toLowerCase();
+                    const gb = safeStr(b['Generator'] || b.generator || '').toLowerCase();
+                    if (ga !== gb) return ga < gb ? -1 : 1;
+                    const ta = recordTime(a);
+                    const tb = recordTime(b);
+                    return ta - tb;
+                });
+            }
+            function countUniqueGenerators(records) {
+                const set = new Set();
+                records.forEach(r => {
+                    const g = safeStr(r['Generator'] || r.generator || '').trim();
+                    if (g) set.add(g);
+                });
+                return set.size;
             }
 
             const VISUAL_TEXTS = ['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'];
@@ -1449,7 +1466,6 @@
                     doc.text(sanitizeForPDF(genSub), margin + 4, y + 10.5);
                     y += 16;
 
-                    // Legend (compact)
                     doc.setFillColor(248, 250, 252); doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.2);
                     doc.roundedRect(margin, y, contentWidth, 6, 1.5, 1.5, 'FD');
                     doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(27, 107, 63);
@@ -1462,7 +1478,6 @@
                     doc.text('Not checked / Needs attention', margin + 60, y + 4);
                     y += 10;
 
-                    // Compact section drawer — no page breaks
                     function drawSection(title, label, value, items, remark) {
                         doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                         doc.text(title, margin, y); y += 1;
@@ -1506,7 +1521,6 @@
                         y += 2;
                     }
 
-                    // Fluids (compact)
                     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text('FLUIDS & OPERATIONAL DATA', margin, y); y += 1;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
@@ -1530,7 +1544,6 @@
                     });
                     y += 16;
 
-                    // Predictive (compact)
                     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(18, 64, 94);
                     doc.text('PREDICTIVE SERVICING (250 h INTERVAL)', margin, y); y += 1;
                     doc.setDrawColor(212, 227, 239); doc.setLineWidth(0.3);
@@ -1571,21 +1584,18 @@
                     const aSet = new Set(safeSplit(data['ATS Items'] || data.atsItems, '|'));
                     const atsItems = ATS_TEXTS.map((t, idx) => ({ text: t, checked: aSet.has(String(idx + 1)) }));
 
-                                       drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
+                    drawSection('VISUAL & MECHANICAL', 'Condition', safeStr(data['Visual Rating'] || data.visualRating || '—'), visualItems, safeStr(data['Visual Remarks'] || data.visualRemark));
                     drawSection('PROTECTION SYSTEMS', 'Status', safeStr(data['Protection Rating'] || data.protRating || '—'), protItems, safeStr(data['Protection Remarks'] || data.protRemark));
                     drawSection('ATS / TRANSFER', 'Performance', safeStr(data['ATS Rating'] || data.atsRating || '—'), atsItems, safeStr(data['ATS Remarks'] || data.atsRemark));
 
-                    // ⭐ Signature blocks — PINNED to the bottom of the page
                     const boxHeight = 42;
                     const gap = 4;
                     const halfWidth = (contentWidth - gap) / 2;
                     const leftBoxX = margin;
                     const rightBoxX = margin + halfWidth + gap;
 
-                    // Force signature block to sit just above the footer,
-                    // leaving 6 mm for the "Generated from..." line under it.
                     y = pageHeight - margin - boxHeight - 6;
-                    if (y < 200) y = 200;   // safety fallback for extremely crowded pages
+                    if (y < 200) y = 200;
 
                     doc.setFillColor(240, 246, 252); doc.setDrawColor(207, 224, 238); doc.setLineWidth(0.3);
                     doc.roundedRect(leftBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
@@ -1645,7 +1655,6 @@
                     doc.setFontSize(6); doc.setFont('helvetica', 'italic'); doc.setTextColor(91, 123, 150);
                     doc.text((data.signatureSubject || data['Signature Subject']) ? 'Signature + PKCS#7 digital seal' : 'Signature', leftBoxX + 3, y + 38.5);
 
-                    // Right — In-charge
                     doc.setFillColor(255, 251, 235); doc.setDrawColor(244, 217, 122); doc.setLineWidth(0.3);
                     doc.roundedRect(rightBoxX, y, halfWidth, boxHeight, 2, 2, 'FD');
                     doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(122, 83, 0);
@@ -2488,7 +2497,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=12')
+                navigator.serviceWorker.register('sw.js?v=13')
                     .then(reg => console.log('✅ Service Worker registered:', reg.scope))
                     .catch(err => console.warn('⚠️ Service Worker failed:', err));
             });
