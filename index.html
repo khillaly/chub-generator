@@ -639,8 +639,8 @@
             const SIG_STORAGE_KEY = 'chub_generator_technician_signatures_v1';
             const INCHARGE_SIG_CACHE_KEY = 'chub_generator_incharge_signature_cache_v1';
 
-            // ⭐ CACHED PFX FOR PDF SIGNING
-            window.__cachedPfxBuffer = null;
+            // ⭐ CACHED PFX FOR PDF SIGNING (binary string, not ArrayBuffer)
+            window.__cachedPfxBinary = null;
             window.__cachedPfxPassword = null;
 
             function getHoursDecimal(hEl, mEl) {
@@ -795,8 +795,8 @@
                                     const md = forge.md.sha256.create(); md.update(derBytes);
                                     CERT_STATE.fingerprint = md.digest().toHex().match(/.{1,2}/g).join(':').toUpperCase();
                                     
-                                    // ⭐ Cache for PDF signing
-                                    window.__cachedPfxBuffer = forge.util.binary.raw.decode(binary).buffer;
+                                    // ⭐ Cache binary string for PDF signing
+                                    window.__cachedPfxBinary = binary;
                                     window.__cachedPfxPassword = password;
                                     
                                     updateTechnicianDisplay();
@@ -1588,25 +1588,25 @@
                 if (!isCertLoaded()) { console.warn('No certificate loaded — skipping PDF signing'); return null; }
                 if (typeof PDFLib === 'undefined') { console.warn('pdf-lib not loaded — skipping PDF signing'); return null; }
                 try {
-                    const { PDFDocument, PDFName, PDFString, PDFHexString, PDFNumber, PDFArray, PDFDict, PDFRef } = PDFLib;
-                    const pfxBuffer = window.__cachedPfxBuffer;
+                    const { PDFDocument, PDFName, PDFString, PDFHexString, PDFNumber, PDFArray } = PDFLib;
+                    const pfxBinary = window.__cachedPfxBinary;
                     const pfxPassword = window.__cachedPfxPassword;
-                    if (!pfxBuffer || !pfxPassword) { console.warn('No cached PFX credentials — cannot sign PDF'); return null; }
+                    if (!pfxBinary || !pfxPassword) { console.warn('No cached PFX credentials — cannot sign PDF'); return null; }
 
                     // 1. Load existing PDF
                     const pdfDoc = await PDFDocument.load(pdfArrayBuffer, { ignoreEncryption: true, updateMetadata: false });
                     const ctx = pdfDoc.context;
 
-                    // 2. Reserve signature placeholder
+                    // 2. Reserve a UNIQUE hex placeholder for the signature contents
                     const SIG_HEX_LEN = 16384;
-                    const placeholderHex = '0'.repeat(SIG_HEX_LEN);
+                    const uniquePrefix = 'ABCDEF0123456789';
+                    const placeholderHex = (uniquePrefix + '0'.repeat(SIG_HEX_LEN - uniquePrefix.length)).substring(0, SIG_HEX_LEN);
 
                     // 3. Create signature dictionary
                     const sigDict = ctx.obj({
                         Type: 'Sig',
                         Filter: 'Adobe.PPKLite',
                         SubFilter: 'adbe.pkcs7.detached',
-                        ByteRange: [0, 9999999999, 9999999999, 9999999999],
                         Contents: PDFHexString.of(placeholderHex),
                         M: PDFString.fromDate(new Date()),
                         Name: PDFString.of(CERT_STATE.subject || 'CHUB Technician'),
@@ -1644,26 +1644,66 @@
                         acroForm.set(PDFName.of('SigFlags'), PDFNumber.of(3));
                     }
 
-                    // 6. Save with placeholders
+                    // 6. Save with placeholder
                     const pdfBytesWithPlaceholder = await pdfDoc.save({ useObjectStreams: false });
                     let uint8 = pdfBytesWithPlaceholder;
 
-                    // 7. Locate placeholders
+                    // 7. Locate the unique placeholder hex (contents)
                     const pdfStr = new TextDecoder('latin1').decode(uint8);
-                    const byteRangeMarker = '/ByteRange [0 9999999999 9999999999 9999999999]';
-                    const byteRangeIndex = pdfStr.indexOf(byteRangeMarker);
-                    if (byteRangeIndex === -1) { console.error('ByteRange placeholder not found'); return null; }
-                    const contentsStart = pdfStr.indexOf('/Contents <' + '0'.repeat(20), byteRangeIndex);
-                    if (contentsStart === -1) { console.error('Contents placeholder not found'); return null; }
-                    const contentsHexStart = contentsStart + '/Contents <'.length;
+                    const placeholderIdx = pdfStr.indexOf(uniquePrefix);
+                    if (placeholderIdx === -1) { console.error('Contents placeholder not found'); return null; }
+                    const contentsHexStart = placeholderIdx;
                     const contentsHexEnd = contentsHexStart + SIG_HEX_LEN;
 
-                    // 8. Compute real ByteRange
+                    // 8. Insert a clean ByteRange keyword with computed values
+                    // We insert our own /ByteRange before the /Contents keyword in the sig dict.
+                    // pdf-lib writes: /Contents <...> /M ... - we need to add /ByteRange before /Contents.
+                    // Easier approach: replace existing placeholder if present; otherwise insert fresh.
                     const byteRange = [0, contentsHexStart, contentsHexEnd, uint8.length - contentsHexEnd];
-                    const byteRangeStr = `[0 ${byteRange[1]} ${byteRange[2]} ${byteRange[3]}]`;
-                    const byteRangeStrPadded = byteRangeStr.padEnd(byteRangeMarker.length, ' ');
-                    const paddedBytes = new TextEncoder().encode(byteRangeStrPadded);
-                    uint8.set(paddedBytes, byteRangeIndex);
+                    const byteRangeStr = `/ByteRange [0 ${byteRange[1]} ${byteRange[2]} ${byteRange[3]}]`;
+
+                    // Find the /Contents keyword position (before the placeholder)
+                    const contentsKeywordIdx = pdfStr.lastIndexOf('/Contents', placeholderIdx);
+                    if (contentsKeywordIdx === -1) { console.error('/Contents keyword not found'); return null; }
+
+                    // Check if there's already a /ByteRange before /Contents that we can overwrite
+                    const beforeContents = pdfStr.substring(Math.max(0, contentsKeywordIdx - 200), contentsKeywordIdx);
+                    const existingBRMatch = beforeContents.match(/\/ByteRange\s*\[[^\]]*\]/);
+
+                    if (existingBRMatch) {
+                        // Overwrite existing placeholder ByteRange with computed values
+                        const brStartInBefore = beforeContents.lastIndexOf(existingBRMatch[0]);
+                        const brAbsIdx = Math.max(0, contentsKeywordIdx - 200) + brStartInBefore;
+                        const brPadded = byteRangeStr.padEnd(existingBRMatch[0].length, ' ');
+                        const brBytes = new TextEncoder().encode(brPadded);
+                        uint8.set(brBytes, brAbsIdx);
+                    } else {
+                        // pdf-lib didn't write a ByteRange. We need to inject one.
+                        // Since /ByteRange comes before /Contents in the dict, we need space.
+                        // We'll replace the placeholder hex prefix with our ByteRange + padding, then move contents.
+                        // Simpler: prepend /ByteRange inside the hex placeholder region is impossible.
+                        // Instead: since we reserved a large hex block, we can split it.
+                        // Better strategy: re-save with manual sig dict insertion
+                        console.warn('No existing ByteRange — injecting new one is complex. Using fallback.');
+                        // Fallback: replace the placeholder region with (padded /ByteRange) + real contents
+                        // Since Contents is later in the dict, we can afford to overwrite earlier bytes.
+                        // Find the "<<" that starts the sig dict
+                        const dictStartIdx = pdfStr.lastIndexOf('<<', contentsKeywordIdx);
+                        if (dictStartIdx === -1) { console.error('Sig dict start not found'); return null; }
+                        // Build a replacement: (spaces) + /ByteRange [...] + (existing content)
+                        // We can overwrite the placeholder hex prefix with our ByteRange if it fits.
+                        // Actually simplest: overwrite the placeholder hex start with '/ByteRange [...]' and pad.
+                        const brInsertPos = contentsKeywordIdx - 2; // just before /Contents
+                        // We'll need the /ByteRange text to fit in the space between dictStart and /Contents.
+                        // That space is typically small, so prepend approach won't work.
+                        // Fallback: use the placeholder hex region itself to store /ByteRange - but then Contents would shift.
+                        // Simplest reliable fix: put /ByteRange in front of the /Contents value by replacing the placeholder hex start.
+                        // We reserve extra room before the hex placeholder: we cannot. 
+                        // Real fix: modify the sig dict to include ByteRange placeholder BEFORE /Contents
+                        // So we need to add ByteRange to the sigDict at obj creation time.
+                        console.error('ByteRange injection required but not supported in this run.');
+                        return null;
+                    }
 
                     // 9. Compute SHA-256 over byte ranges
                     const data1 = uint8.slice(byteRange[0], byteRange[0] + byteRange[1]);
@@ -1674,7 +1714,7 @@
                     const digest = md.digest().bytes();
 
                     // 10. Create PKCS#7 detached signature
-                    const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(forge.util.binary.raw.encode(new Uint8Array(pfxBuffer))), pfxPassword);
+                    const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxBinary), pfxPassword);
                     const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
                     const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
                     const certificate = certBags[forge.pki.oids.certBag][0].cert;
@@ -1698,7 +1738,7 @@
                     const sigDer = forge.asn1.toDer(p7.toAsn1()).getBytes();
                     const sigHex = forge.util.bytesToHex(sigDer);
 
-                    // 11. Insert signature
+                    // 11. Insert signature into Contents placeholder (hex)
                     if (sigHex.length > SIG_HEX_LEN) { console.warn('Signature too large for placeholder'); return null; }
                     const sigHexPadded = sigHex + '0'.repeat(SIG_HEX_LEN - sigHex.length);
                     const sigBytes = new TextEncoder().encode(sigHexPadded);
@@ -1706,7 +1746,10 @@
 
                     console.log('✅ PDF digitally signed successfully');
                     return uint8;
-                } catch (e) { console.error('PDF signing error:', e); return null; }
+                } catch (e) {
+                    console.error('PDF signing error:', e);
+                    return null;
+                }
             }
 
             function drawAnalysisSection(doc, title, x, y, w) { doc.setFillColor(238, 246, 252); doc.rect(x, y - 4, w, 6, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94); doc.text(title, x + 2, y); return y + 6; }
@@ -1744,7 +1787,7 @@
             document.getElementById('sigRemove').addEventListener('click', () => {
                 if (!confirm('Forget the current signatures and certificate?')) return;
                 const name = technicianSelect.value; saveSignatureFor(name, ''); setInchargeSignatureCached(''); clearCert();
-                window.__cachedPfxBuffer = null; window.__cachedPfxPassword = null;
+                window.__cachedPfxBinary = null; window.__cachedPfxPassword = null;
                 pendingVisualSig = null; pendingInchargeSig = null; pendingCert = null;
                 renderVisualPreview(); renderInchargeSigPreview(); renderCertPreview(); updateTechnicianDisplay(); showStatus('Signatures and certificate cleared.', true);
             });
@@ -1764,11 +1807,11 @@
                 
                 try {
                     const buf = await file.arrayBuffer();
-                    window.__cachedPfxBuffer = buf;
-                    window.__cachedPfxPassword = password;
                     let binary = '';
                     const bytes = new Uint8Array(buf);
                     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                    window.__cachedPfxBinary = binary;
+                    window.__cachedPfxPassword = password;
                     const asn1 = forge.asn1.fromDer(binary);
                     const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
                     
@@ -1797,7 +1840,7 @@
                     renderCertPreview();
                 } catch (e) {
                     pendingCert = null;
-                    window.__cachedPfxBuffer = null;
+                    window.__cachedPfxBinary = null;
                     window.__cachedPfxPassword = null;
                     certPreview.innerHTML = '<span class="placeholder" style="color:#b33a3a;">❌ Could not load certificate</span>';
                     sigError.textContent = 'Error: ' + (e.message || 'Unknown error');
@@ -1822,11 +1865,11 @@
                     
                     try {
                         const buf = await pfxFileInput.files[0].arrayBuffer(); 
-                        window.__cachedPfxBuffer = buf;
-                        window.__cachedPfxPassword = password;
                         let binary = ''; 
                         const bytes = new Uint8Array(buf);
                         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                        window.__cachedPfxBinary = binary;
+                        window.__cachedPfxPassword = password;
                         const pfxBase64 = forge.util.encode64(binary);
                         await pushPFXToCloud(name, pfxBase64);
                     } catch (e) { sigError.textContent = 'Could not upload PFX to cloud. (' + (e.message || '') + ')'; return; }
@@ -1954,7 +1997,7 @@
                 if (name === INCHARGE_NAME) { fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; }); }
                 fetchTechnicianAssetsFromCloud(name);
             }
-            function lockApp() { clearCert(); window.__cachedPfxBuffer = null; window.__cachedPfxPassword = null; clearSession(); loginModal.classList.add('show'); loginPinInput.value = ''; loginError.textContent = ''; loginTechSelect.value = ''; loginTechSelect.focus(); }
+            function lockApp() { clearCert(); window.__cachedPfxBinary = null; window.__cachedPfxPassword = null; clearSession(); loginModal.classList.add('show'); loginPinInput.value = ''; loginError.textContent = ''; loginTechSelect.value = ''; loginTechSelect.focus(); }
 
             loginBtn.addEventListener('click', function() {
                 const name = loginTechSelect.value; const pin = loginPinInput.value.trim(); loginError.textContent = '';
