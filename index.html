@@ -424,12 +424,12 @@
             <div class="card">
                 <div class="card-header"><span>🔄</span> ATS / Transfer</div>
                 <div class="card-body">
-                    <div class="check-item"><input type="checkbox" id="ats1" class="check-ats"><label for="ats1">ATS panel indicators (normal / emergency)</label></div>
-                    <div class="check-item"><input type="checkbox" id="ats2" class="check-ats"><label for="ats2">Automatic transfer test (simulate outage)</label></div>
-                    <div class="check-item"><input type="checkbox" id="ats3" class="check-ats"><label for="ats3">Voltage & frequency on transfer (400V / 50Hz)</label></div>
-                    <div class="check-item"><input type="checkbox" id="ats4" class="check-ats"><label for="ats4">Return to normal after delay</label></div>
-                    <div class="check-item"><input type="checkbox" id="ats5" class="check-ats"><label for="ats5">No excessive arching / contact wear</label></div>
-                    <div class="check-item"><input type="checkbox" id="ats6" class="check-ats"><label for="ats6">Manual transfer test (if applicable)</label></div>
+                   <div class="check-item"><input type="checkbox" id="ats1" class="check-ats"><label for="ats1">Phase rotation change detection</label></div>
+<div class="check-item"><input type="checkbox" id="ats2" class="check-ats"><label for="ats2">Automatic transfer test (simulate outage)</label></div>
+<div class="check-item"><input type="checkbox" id="ats3" class="check-ats"><label for="ats3">Voltage & frequency on transfer (400V / 50Hz)</label></div>
+<div class="check-item"><input type="checkbox" id="ats4" class="check-ats"><label for="ats4">Return to normal after delay</label></div>
+<div class="check-item"><input type="checkbox" id="ats5" class="check-ats"><label for="ats5">Phase failure detection</label></div>
+<div class="check-item"><input type="checkbox" id="ats6" class="check-ats"><label for="ats6">Under/overvoltage detection</label></div>
                     <div style="margin-top: 18px;">
                         <label style="font-weight: 500; color: #1f3c54;">📝 Remarks (ATS)</label>
                         <input type="text" class="remark-input" id="atsRemark" placeholder="e.g. transfer time 9s...">
@@ -1278,7 +1278,46 @@ return sig;
 
             const VISUAL_TEXTS = ['No leaks (oil, coolant, fuel)','Belt tension & wear','Hoses & connections condition','Radiator / cooling fins clean','Battery terminals & electrolyte level','Mounting bolts & vibration isolators'];
             const PROT_TEXTS = ['Low oil pressure shutdown','High coolant temperature shutdown','Overcrank / overspeed trip','Low coolant level alarm','Emergency stop function','Battery charger & voltage (24V)'];
-            const ATS_TEXTS = ['ATS panel indicators (normal / emergency)','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','No excessive arching / contact wear','Manual transfer test (if applicable)'];
+           const ATS_TEXTS = ['Phase rotation change detection','Automatic transfer test (simulate outage)','Voltage & frequency on transfer (400V / 50Hz)','Return to normal after delay','Phase failure detection','Under/overvoltage detection'];
+                        // ⭐ All checklist items used by the attention analysis
+            const ALL_CHECK_ITEMS = [
+                { cat: 'Visual', text: 'No leaks (oil, coolant, fuel)' },
+                { cat: 'Visual', text: 'Belt tension & wear' },
+                { cat: 'Visual', text: 'Hoses & connections condition' },
+                { cat: 'Visual', text: 'Radiator / cooling fins clean' },
+                { cat: 'Visual', text: 'Battery terminals & electrolyte level' },
+                { cat: 'Visual', text: 'Mounting bolts & vibration isolators' },
+                { cat: 'Protection', text: 'Low oil pressure shutdown' },
+                { cat: 'Protection', text: 'High coolant temperature shutdown' },
+                { cat: 'Protection', text: 'Overcrank / overspeed trip' },
+                { cat: 'Protection', text: 'Low coolant level alarm' },
+                { cat: 'Protection', text: 'Emergency stop function' },
+                { cat: 'Protection', text: 'Battery charger & voltage (24V)' },
+                { cat: 'ATS', text: 'Phase rotation change detection' },
+                { cat: 'ATS', text: 'Automatic transfer test (simulate outage)' },
+                { cat: 'ATS', text: 'Voltage & frequency on transfer (400V / 50Hz)' },
+                { cat: 'ATS', text: 'Return to normal after delay' },
+                { cat: 'ATS', text: 'Phase failure detection' },
+                { cat: 'ATS', text: 'Under/overvoltage detection' }
+            ];
+
+            // ⭐ Given a record, return array of items that were NOT checked
+            function getAttentionItems(record) {
+                const visualSet = new Set(safeSplit(record['Visual Items'] || record.visualItems, '|'));
+                const protSet = new Set(safeSplit(record['Protection Items'] || record.protItems, '|'));
+                const atsSet = new Set(safeSplit(record['ATS Items'] || record.atsItems, '|'));
+
+                const attention = [];
+                ALL_CHECK_ITEMS.forEach((item, idx) => {
+                    // Determine which category this belongs to and what its index in that category is
+                    let checked = false;
+                    if (item.cat === 'Visual') checked = visualSet.has(String(idx + 1));
+                    else if (item.cat === 'Protection') checked = protSet.has(String(idx - 5));
+                    else if (item.cat === 'ATS') checked = atsSet.has(String(idx - 11));
+                    if (!checked) attention.push({ cat: item.cat, text: item.text });
+                });
+                return attention;
+            }
 
             async function generatePDF(records) {
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -1595,6 +1634,59 @@ return sig;
                 const byWeek = {}; records.forEach(r => { const d = new Date(r['Timestamp']); if (isNaN(d.getTime())) return; const wk = getISOWeekKeyClient(d); if (!byWeek[wk]) byWeek[wk] = { count: 0, diesel: 0, hours: 0 }; byWeek[wk].count++; byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0; byWeek[wk].hours += validNum(r['Run Hours']) || 0; });
                 const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), formatHoursMinutes(byWeek[w].hours)]);
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
+                                // ⭐ NEW: Attention Items Analysis
+y2 = drawAnalysisSection(doc, 'Anomalies Found During Inspections', mL, y2, cW, {
+    fillColor: [255, 235, 235],
+    textColor: [179, 58, 58]
+});
+
+                const attentionMap = {};
+                ALL_CHECK_ITEMS.forEach(item => {
+                    attentionMap[item.text] = { count: 0, generators: new Set() };
+                });
+
+                records.forEach(r => {
+                    const gen = safeStr(r['Generator']) || 'Unknown';
+                    const attention = getAttentionItems(r);
+                    attention.forEach(a => {
+                        if (attentionMap[a.text]) {
+                            attentionMap[a.text].count++;
+                            attentionMap[a.text].generators.add(gen);
+                        }
+                    });
+                });
+
+                const attentionRows = Object.keys(attentionMap)
+                    .filter(k => attentionMap[k].count > 0)
+                    .map(k => {
+                        const gens = Array.from(attentionMap[k].generators).join(', ');
+                        const truncated = gens.length > 40 ? gens.substring(0, 37) + '...' : gens;
+                        return [k, attentionMap[k].count, truncated];
+                    });
+
+                if (attentionRows.length === 0) {
+                    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(27, 107, 63);
+                 doc.text('Total anomalies detected: ' + totalX + ' across ' + attentionRows.length + ' distinct item(s).', mL, y2);
+                    y2 += 6;
+                } else {
+                  y2 = drawSimpleTable(doc, ['Checklist Item', 'Times Flagged', 'Affected Generators'], attentionRows, mL, y2, cW);
+                    const totalX = attentionRows.reduce((s, r) => s + r[1], 0);
+                    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(179, 58, 58);
+                    doc.text('Total attention flags: ' + totalX + ' across ' + attentionRows.length + ' distinct item(s).', mL, y2);
+                    y2 += 5;
+                }
+
+                // ⭐ Ensure page break if attention table pushed content near bottom
+                if (y2 > pageH - 80) {
+                    doc.addPage();
+                    y2 = 20;
+                    doc.setFillColor(30, 74, 109);
+                    doc.rect(0, 0, pageW, 4, 'F');
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94);
+                    doc.text('Generator Fleet — Analysis Report (continued)', mL, y2);
+                    y2 += 8;
+                }
+
 
                 y2 = drawAnalysisSection(doc, 'Fuel Level Distribution', mL, y2, cW);
                 const fuelBuckets = { 'Low (0–25%)': 0, 'Medium (26–50%)': 0, 'Good (51–75%)': 0, 'Full (76–100%)': 0 }; let fuelSkipped = 0;
@@ -1839,7 +1931,17 @@ return sig;
                 }
             }
 
-            function drawAnalysisSection(doc, title, x, y, w) { doc.setFillColor(238, 246, 252); doc.rect(x, y - 4, w, 6, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(18, 64, 94); doc.text(title, x + 2, y); return y + 6; }
+           function drawAnalysisSection(doc, title, x, y, w, options) {
+    options = options || {};
+    const fillColor = options.fillColor || [238, 246, 252];
+    const textColor = options.textColor || [18, 64, 94];
+    doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+    doc.rect(x, y - 4, w, 6, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.text(title, x + 2, y);
+    return y + 6;
+}
             function drawSimpleTable(doc, headers, rows, x, y, w) {
                 if (rows.length === 0) { doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(150, 170, 190); doc.text('(no data)', x, y + 4); return y + 8; }
                 const colCount = headers.length; const colW = w / colCount; const rowH = 6;
