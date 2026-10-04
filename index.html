@@ -728,17 +728,36 @@
                 });
             }
 
-            async function pushTechnicianSignatureToCloud(techName, dataUrl) {
+                  async function pushTechnicianSignatureToCloud(techName, dataUrl) {
+                if (!techName || techName.trim() === '') {
+                    console.warn('Cannot upload signature — technician name is empty');
+                    return;
+                }
                 try {
+                    // Strip the "data:image/png;base64," prefix — send only the raw Base64
+                    let cleanBase64 = dataUrl;
+                    if (cleanBase64.startsWith('data:')) {
+                        cleanBase64 = cleanBase64.split(',')[1];
+                    }
                     await fetch(GOOGLE_SHEET_URL, {
-                        method: 'POST', mode: 'no-cors',
+                        method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ action: 'config_set_drive', key: 'TechSig_' + techName, value: dataUrl, mimeType: 'image/png', fileName: 'Sig_' + techName.replace(/\s+/g, '_') + '.png' })
+                        body: JSON.stringify({
+                            action: 'config_set_drive',
+                            key: 'TechSig_' + techName,
+                            value: cleanBase64,
+                            mimeType: 'image/png',
+                            fileName: 'Sig_' + techName.replace(/\s+/g, '_') + '.png'
+                        })
                     });
                 } catch (e) { console.warn('Could not sync visual signature', e); }
             }
-
-            async function pushPFXToCloud(techName, pfxBase64) {
+                     async function pushPFXToCloud(techName, pfxBase64) {
+                if (!techName || techName.trim() === '') {
+                    console.warn('Cannot upload PFX — technician name is empty');
+                    return;
+                }
                 try {
                     await fetch(GOOGLE_SHEET_URL, {
                         method: 'POST', mode: 'no-cors',
@@ -747,13 +766,16 @@
                     });
                 } catch (e) { console.warn('Could not sync PFX', e); }
             }
-
-            async function pushInchargeSignatureToCloud(sigB64) {
-                try {
-                    await fetch(GOOGLE_SHEET_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'config_set_drive', key: 'InchargeSignature', value: sigB64, mimeType: 'image/png', fileName: 'Incharge_Signature.png' }) });
-                    return true;
-                } catch (e) { return false; }
-            }
+           async function pushInchargeSignatureToCloud(sigB64) {
+    try {
+        let cleanBase64 = sigB64;
+        if (cleanBase64.startsWith('data:')) {
+            cleanBase64 = cleanBase64.split(',')[1];
+        }
+        await fetch(GOOGLE_SHEET_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'config_set_drive', key: 'InchargeSignature', value: cleanBase64, mimeType: 'image/png', fileName: 'Incharge_Signature.png' }) });
+        return true;
+    } catch (e) { return false; }
+}
 
             async function fetchTechnicianAssetsFromCloud(techName) {
                 try {
@@ -761,11 +783,26 @@
                     const json = await res.json();
                     const config = json.config || {};
                     
-                    const visualSig = config['TechSig_' + techName];
-                    if (visualSig) { saveSignatureFor(techName, visualSig); updateTechnicianDisplay(); }
+                    const visualSigRaw = config['TechSig_' + techName];
+if (visualSigRaw) {
+    // Rebuild the data URL with the correct MIME prefix
+    const visualSig = visualSigRaw.startsWith('data:') ? visualSigRaw : ('data:image/png;base64,' + visualSigRaw);
+    saveSignatureFor(techName, visualSig);
+    updateTechnicianDisplay();
+}
 
+                                    // ⭐ STRICT: Only load PFX if it belongs to the currently logged-in user
+                    const currentLoggedIn = technicianSelect.value;
+                    if (techName !== currentLoggedIn) {
+                        console.warn('PFX lookup skipped — ' + techName + ' does not match logged-in user ' + currentLoggedIn);
+                        return;
+                    }
                     const pfxBase64 = config['TechPFX_' + techName];
-                    if (pfxBase64) {
+                    if (!pfxBase64) {
+                        console.log('No PFX found for ' + techName + ' — user will need to upload their own certificate.');
+                        return;
+                    }
+                                    if (pfxBase64) {
                         const password = await askPfxPassword();
                         if (password) {
                             try {
@@ -774,6 +811,16 @@
                                 const binary = forge.util.decode64(cleanBase64); 
                                 const asn1 = forge.asn1.fromDer(binary);
                                 const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, password);
+                                
+                                // ⭐ SAFETY GUARD: Verify this PFX really belongs to the logged-in user
+                                const checkTech = technicianSelect.value;
+                                if (checkTech !== techName) {
+                                    console.warn('PFX was loaded for ' + techName + ' but current user is ' + checkTech + ' — discarding');
+                                    clearCert();
+                                    window.__cachedPfxBinary = null;
+                                    window.__cachedPfxPassword = null;
+                                    return;
+                                }
                                 
                                 const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
                                 const certBag = certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag][0];
@@ -812,9 +859,12 @@
                 try {
                     const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
                     const json = await res.json();
-                    const sig = (json && json.config && json.config.InchargeSignature) || '';
-                    if (sig) setInchargeSignatureCached(sig);
-                    return sig;
+                    let sig = (json && json.config && json.config.InchargeSignature) || '';
+if (sig && !sig.startsWith('data:')) {
+    sig = 'data:image/png;base64,' + sig;
+}
+if (sig) setInchargeSignatureCached(sig);
+return sig;
                 } catch (e) { console.warn('Config fetch failed:', e); return ''; }
             }
 
@@ -1233,9 +1283,32 @@
             async function generatePDF(records) {
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageWidth = doc.internal.pageSize.getWidth(); const pageHeight = doc.internal.pageSize.getHeight(); const margin = 16; const contentWidth = pageWidth - margin * 2;
-                const allSignatures = loadSignatures(); const sigDimensions = {};
+                               // ⭐ NEW: Pre-fetch any missing signatures from cloud
+                let allSignatures = loadSignatures(); const sigDimensions = {};
+                const techsInRecords = new Set(records.map(r => safeStr(r['Technician'] || r.technician || '')).filter(Boolean));
+                for (const t of techsInRecords) {
+                    if (!allSignatures[t]) {
+                        try {
+                            const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                            const json = await res.json();
+                            const cfg = json.config || {};
+                            const cloudSig = cfg['TechSig_' + t];
+                            if (cloudSig) { saveSignatureFor(t, cloudSig); allSignatures[t] = cloudSig; }
+                        } catch (e) { console.warn('Could not fetch signature for ' + t, e); }
+                    }
+                }
                 for (const [techName, dataUrl] of Object.entries(allSignatures)) { if (dataUrl) { const dims = await loadImageDimensions(dataUrl); if (dims) sigDimensions[techName] = dims; } }
-                const inchargeSigData = getInchargeSignatureCached(); let inchargeSigDims = null; if (inchargeSigData) inchargeSigDims = await loadImageDimensions(inchargeSigData);
+                               // ⭐ NEW: Fetch in-charge signature if missing
+                let inchargeSigData = getInchargeSignatureCached();
+                if (!inchargeSigData) {
+                    try {
+                        const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                        const json = await res.json();
+                        const cfg = json.config || {};
+                        if (cfg.InchargeSignature) { setInchargeSignatureCached(cfg.InchargeSignature); inchargeSigData = cfg.InchargeSignature; }
+                    } catch (e) { console.warn('Could not fetch in-charge signature', e); }
+                }
+                let inchargeSigDims = null; if (inchargeSigData) inchargeSigDims = await loadImageDimensions(inchargeSigData);
 
                 function addHeader(data) {
                     try { doc.addImage('chub-logo.png', 'PNG', margin, margin - 2, 22, 10); } catch (e) { doc.setFontSize(13); doc.setFont('helvetica', 'bolditalic'); doc.setTextColor(106, 141, 176); doc.text('CHUB', margin, margin + 5); }
@@ -1430,9 +1503,35 @@
                 if (!consIndex) consIndex = buildConsumptionIndex(records);
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pageW = 210, pageH = 297, mL = 14, mR = 14; const cW = pageW - mL - mR;
-                const allSignatures = loadSignatures(); const sigDimensions = {};
+                            // ⭐ NEW: Pre-fetch any missing signatures from cloud BEFORE building the PDF
+                let allSignatures = loadSignatures(); const sigDimensions = {};
+                const techsInRecords = new Set(records.map(r => safeStr(r['Technician'] || r.technician || '')).filter(Boolean));
+                for (const t of techsInRecords) {
+                    if (!allSignatures[t]) {
+                        try {
+                            console.log('🔍 Signature missing locally for ' + t + ' — fetching from cloud...');
+                            const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                            const json = await res.json();
+                            const cfg = json.config || {};
+                            const cloudSig = cfg['TechSig_' + t];
+                            if (cloudSig) {
+                                saveSignatureFor(t, cloudSig);
+                                allSignatures[t] = cloudSig;
+                                console.log('✅ Fetched signature for ' + t);
+                            }
+                        } catch (e) { console.warn('Could not fetch signature for ' + t, e); }
+                    }
+                }
                 for (const [techName, dataUrl] of Object.entries(allSignatures)) { if (dataUrl) { const dims = await loadImageDimensions(dataUrl); if (dims) sigDimensions[techName] = dims; } }
-                let inchargeSigData = getInchargeSignatureCached() || currentInchargeSignature; if (!inchargeSigData) inchargeSigData = await fetchInchargeSignatureFromCloud();
+                                let inchargeSigData = getInchargeSignatureCached() || currentInchargeSignature;
+                if (!inchargeSigData) {
+                    try {
+                        const res = await fetch(GOOGLE_SHEET_URL + '?type=config&_ts=' + Date.now(), { cache: 'no-store' });
+                        const json = await res.json();
+                        const cfg = json.config || {};
+                        if (cfg.InchargeSignature) { setInchargeSignatureCached(cfg.InchargeSignature); inchargeSigData = cfg.InchargeSignature; }
+                    } catch (e) { console.warn('Could not fetch in-charge signature', e); }
+                }
                 let inchargeSigDims = null; if (inchargeSigData) inchargeSigDims = await loadImageDimensions(inchargeSigData);
                 const currentTech = technicianSelect.value || '—'; const currentTechSig = allSignatures[currentTech] || ''; const currentTechDims = sigDimensions[currentTech];
 
@@ -1602,11 +1701,18 @@
                     const uniquePrefix = 'ABCDEF0123456789';
                     const placeholderHex = (uniquePrefix + '0'.repeat(SIG_HEX_LEN - uniquePrefix.length)).substring(0, SIG_HEX_LEN);
 
-                    // 3. Create signature dictionary
+                                  // 3. Create signature dictionary WITH ByteRange placeholder
+                    const byteRangeArr = PDFArray.withContext(ctx);
+                    byteRangeArr.push(PDFNumber.of(0));
+                    byteRangeArr.push(PDFNumber.of(7777777777));
+                    byteRangeArr.push(PDFNumber.of(7777777777));
+                    byteRangeArr.push(PDFNumber.of(7777777777));
+
                     const sigDict = ctx.obj({
                         Type: 'Sig',
                         Filter: 'Adobe.PPKLite',
                         SubFilter: 'adbe.pkcs7.detached',
+                        ByteRange: byteRangeArr,
                         Contents: PDFHexString.of(placeholderHex),
                         M: PDFString.fromDate(new Date()),
                         Name: PDFString.of(CERT_STATE.subject || 'CHUB Technician'),
@@ -1655,64 +1761,45 @@
                     const contentsHexStart = placeholderIdx;
                     const contentsHexEnd = contentsHexStart + SIG_HEX_LEN;
 
-                    // 8. Insert a clean ByteRange keyword with computed values
-                    // We insert our own /ByteRange before the /Contents keyword in the sig dict.
-                    // pdf-lib writes: /Contents <...> /M ... - we need to add /ByteRange before /Contents.
-                    // Easier approach: replace existing placeholder if present; otherwise insert fresh.
+                                      // 8. Locate our ByteRange placeholder (with 7777777777 values)
                     const byteRange = [0, contentsHexStart, contentsHexEnd, uint8.length - contentsHexEnd];
                     const byteRangeStr = `/ByteRange [0 ${byteRange[1]} ${byteRange[2]} ${byteRange[3]}]`;
-
-                    // Find the /Contents keyword position (before the placeholder)
-                    const contentsKeywordIdx = pdfStr.lastIndexOf('/Contents', placeholderIdx);
-                    if (contentsKeywordIdx === -1) { console.error('/Contents keyword not found'); return null; }
-
-                    // Check if there's already a /ByteRange before /Contents that we can overwrite
-                    const beforeContents = pdfStr.substring(Math.max(0, contentsKeywordIdx - 200), contentsKeywordIdx);
-                    const existingBRMatch = beforeContents.match(/\/ByteRange\s*\[[^\]]*\]/);
-
-                    if (existingBRMatch) {
-                        // Overwrite existing placeholder ByteRange with computed values
-                        const brStartInBefore = beforeContents.lastIndexOf(existingBRMatch[0]);
-                        const brAbsIdx = Math.max(0, contentsKeywordIdx - 200) + brStartInBefore;
-                        const brPadded = byteRangeStr.padEnd(existingBRMatch[0].length, ' ');
-                        const brBytes = new TextEncoder().encode(brPadded);
-                        uint8.set(brBytes, brAbsIdx);
-                    } else {
-                        // pdf-lib didn't write a ByteRange. We need to inject one.
-                        // Since /ByteRange comes before /Contents in the dict, we need space.
-                        // We'll replace the placeholder hex prefix with our ByteRange + padding, then move contents.
-                        // Simpler: prepend /ByteRange inside the hex placeholder region is impossible.
-                        // Instead: since we reserved a large hex block, we can split it.
-                        // Better strategy: re-save with manual sig dict insertion
-                        console.warn('No existing ByteRange — injecting new one is complex. Using fallback.');
-                        // Fallback: replace the placeholder region with (padded /ByteRange) + real contents
-                        // Since Contents is later in the dict, we can afford to overwrite earlier bytes.
-                        // Find the "<<" that starts the sig dict
-                        const dictStartIdx = pdfStr.lastIndexOf('<<', contentsKeywordIdx);
-                        if (dictStartIdx === -1) { console.error('Sig dict start not found'); return null; }
-                        // Build a replacement: (spaces) + /ByteRange [...] + (existing content)
-                        // We can overwrite the placeholder hex prefix with our ByteRange if it fits.
-                        // Actually simplest: overwrite the placeholder hex start with '/ByteRange [...]' and pad.
-                        const brInsertPos = contentsKeywordIdx - 2; // just before /Contents
-                        // We'll need the /ByteRange text to fit in the space between dictStart and /Contents.
-                        // That space is typically small, so prepend approach won't work.
-                        // Fallback: use the placeholder hex region itself to store /ByteRange - but then Contents would shift.
-                        // Simplest reliable fix: put /ByteRange in front of the /Contents value by replacing the placeholder hex start.
-                        // We reserve extra room before the hex placeholder: we cannot. 
-                        // Real fix: modify the sig dict to include ByteRange placeholder BEFORE /Contents
-                        // So we need to add ByteRange to the sigDict at obj creation time.
-                        console.error('ByteRange injection required but not supported in this run.');
+                    const brRegex = /\/ByteRange\s*\[\s*0\s+7777777777\s+7777777777\s+7777777777\s*\]/;
+                    const brMatch = pdfStr.match(brRegex);
+                    if (!brMatch) {
+                        console.error('ByteRange placeholder not found.');
+                        const brKwIdx = pdfStr.indexOf('/ByteRange');
+                        if (brKwIdx !== -1) {
+                            console.error('Actual text:', JSON.stringify(pdfStr.substring(brKwIdx, brKwIdx + 120)));
+                        } else {
+                            console.error('/ByteRange keyword missing entirely');
+                        }
                         return null;
                     }
+                    const brIdx = pdfStr.indexOf(brMatch[0]);
+                    const brPadded = byteRangeStr.padEnd(brMatch[0].length, ' ');
+                    const brBytes = new TextEncoder().encode(brPadded);
+                    uint8.set(brBytes, brIdx);
 
                     // 9. Compute SHA-256 over byte ranges
-                    const data1 = uint8.slice(byteRange[0], byteRange[0] + byteRange[1]);
+                                       const data1 = uint8.slice(byteRange[0], byteRange[0] + byteRange[1]);
                     const data2 = uint8.slice(byteRange[2], byteRange[2] + byteRange[3]);
                     const md = forge.md.sha256.create();
-                    md.update(forge.util.binary.raw.encode(data1));
-                    md.update(forge.util.binary.raw.encode(data2));
+                    // ⭐ Feed data in small chunks to avoid "Maximum call stack size exceeded"
+                    function feedForgeInChunks(mdInstance, bytes, chunkSize) {
+                        chunkSize = chunkSize || 4096;
+                        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+                            const end = Math.min(offset + chunkSize, bytes.length);
+                            let chunkStr = '';
+                            for (let i = offset; i < end; i++) {
+                                chunkStr += String.fromCharCode(bytes[i]);
+                            }
+                            mdInstance.update(chunkStr);
+                        }
+                    }
+                    feedForgeInChunks(md, data1);
+                    feedForgeInChunks(md, data2);
                     const digest = md.digest().bytes();
-
                     // 10. Create PKCS#7 detached signature
                     const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(pfxBinary), pfxPassword);
                     const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
@@ -1991,7 +2078,12 @@
             }
             function clearSession() { try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {} }
 
-            function unlockApp(name) {
+                     function unlockApp(name) {
+                // ⭐ NEW: Clear ALL previous session's cached PFX data before login
+                window.__cachedPfxBinary = null;
+                window.__cachedPfxPassword = null;
+                clearCert();
+                
                 technicianSelect.value = name; loggedInUserName.textContent = name; lockedTechName.textContent = name;
                 updateTechnicianDisplay(); applyRoleVisibility(); loginModal.classList.remove('show');
                 if (name === INCHARGE_NAME) { fetchInchargeSignatureFromCloud().then(sig => { if (sig) currentInchargeSignature = sig; }); }
