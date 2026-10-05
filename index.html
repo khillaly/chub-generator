@@ -1650,6 +1650,7 @@ dieselBoughtNumeric: dieselBought.value ? parseFloat(dieselBought.value) || 0 : 
                 y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
                 
                 // ⭐ NEW: Diesel Reserved by Generator (Bought − Refilled)
+                               // ⭐ Diesel Reserved — Visual chart only (table removed)
                 y2 = drawAnalysisSection(doc, 'Diesel Reserved by Generator (Bought − Refilled)', mL, y2, cW, {
                     fillColor: [230, 245, 235],
                     textColor: [27, 107, 63]
@@ -1669,32 +1670,16 @@ dieselBoughtNumeric: dieselBought.value ? parseFloat(dieselBought.value) || 0 : 
                     reservedByGen[g].reserved = Math.max(0, reservedByGen[g].bought - reservedByGen[g].refilled);
                 });
 
-                const reservedRows = Object.keys(reservedByGen).map(g => {
-                    const d = reservedByGen[g];
-                    return [
-                        g,
-                        roundClient(d.bought, 1) + ' L',
-                        roundClient(d.refilled, 1) + ' L',
-                        roundClient(d.reserved, 1) + ' L'
-                    ];
-                });
+                const reservedList = Object.keys(reservedByGen).map(g => ({ gen: g, val: reservedByGen[g].reserved }));
+                const totalBought = Object.values(reservedByGen).reduce((s, d) => s + d.bought, 0);
+                const totalRefilled = Object.values(reservedByGen).reduce((s, d) => s + d.refilled, 0);
+                const totalReserved = Object.values(reservedByGen).reduce((s, d) => s + d.reserved, 0);
 
-                if (reservedRows.length === 0) {
+                if (reservedList.length === 0) {
                     doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(150, 170, 190);
                     doc.text('No diesel purchase data recorded for this period.', mL, y2);
                     y2 += 8;
                 } else {
-                    y2 = drawSimpleTable(doc, ['Generator', 'Bought', 'Refilled', 'Reserved'], reservedRows, mL, y2, cW);
-
-                    const totalBought = Object.values(reservedByGen).reduce((s, d) => s + d.bought, 0);
-                    const totalRefilled = Object.values(reservedByGen).reduce((s, d) => s + d.refilled, 0);
-                    const totalReserved = Object.values(reservedByGen).reduce((s, d) => s + d.reserved, 0);
-                    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(27, 107, 63);
-                    doc.text('Total reserved across all generators: ' + roundClient(totalReserved, 1) + ' L (Bought: ' + roundClient(totalBought, 1) + ' L · Refilled: ' + roundClient(totalRefilled, 1) + ' L)', mL, y2);
-                    y2 += 8;
-
-                    y2 = drawAnalysisSection(doc, 'Diesel Reserved — Visual', mL, y2, cW);
-                    const reservedList = Object.keys(reservedByGen).map(g => ({ gen: g, val: reservedByGen[g].reserved }));
                     const maxReserved = Math.max(1, ...reservedList.map(r => r.val));
                     const barMaxW = cW - 65;
                     reservedList.forEach(r => {
@@ -1708,7 +1693,10 @@ dieselBoughtNumeric: dieselBought.value ? parseFloat(dieselBought.value) || 0 : 
                         doc.text(roundClient(r.val, 1) + ' L', mL + 45 + barW + 2, y2 + 3.5);
                         y2 += 5;
                     });
-                    y2 += 4;
+                    y2 += 3;
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(27, 107, 63);
+                    doc.text('Total reserved: ' + roundClient(totalReserved, 1) + ' L (Bought: ' + roundClient(totalBought, 1) + ' L · Refilled: ' + roundClient(totalRefilled, 1) + ' L)', mL, y2);
+                    y2 += 6;
                 }
                                 // ⭐ NEW: Attention Items Analysis
 y2 = drawAnalysisSection(doc, 'Anomalies Found During Inspections', mL, y2, cW, {
