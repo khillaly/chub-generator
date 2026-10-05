@@ -137,11 +137,35 @@
                 const genName = safeStr(latest['Generator']);
                 const hoursUntil = parseFloat(latest['Hours Until Service']);
                 const hoursSince = parseFloat(latest['Hours Since Service']);
-                const currentMeter = safeStr(latest['Current Hour Meter'] || latest['Total Run Hours']);
+                           let currentMeterRaw = latest['Current Hour Meter'] || latest['Total Run Hours'];
+let currentMeter = '—';
+if (currentMeterRaw !== null && currentMeterRaw !== undefined && currentMeterRaw !== '') {
+    const num = parseFloat(String(currentMeterRaw).replace(/[^\d.-]/g, ''));
+    if (!isNaN(num)) currentMeter = num.toFixed(1) + ' h';
+}
                 const lastService = safeStr(latest['Last Service Date']);
                 const predictedNext = safeStr(latest['Predicted Next Service Date']);
-                const avgRate = safeStr(latest['Avg Daily Run Rate']);
-                const fuel = safeStr(latest['Fuel %']);
+
+                // ⭐ FIX: Format avg rate to always show "x.xx h/day"
+                let avgRateRaw = latest['Avg Daily Run Rate'];
+                let avgRate = '—';
+                if (avgRateRaw !== null && avgRateRaw !== undefined && avgRateRaw !== '') {
+                    const num = parseFloat(String(avgRateRaw).replace(/[^\d.-]/g, ''));
+                    if (!isNaN(num)) avgRate = num.toFixed(2) + ' h/day';
+                }
+
+                // ⭐ FIX: Format fuel to always show as "XX%"
+                let fuelRaw = latest['Fuel %'];
+                let fuel = '—';
+                if (fuelRaw !== null && fuelRaw !== undefined && fuelRaw !== '') {
+                    let num = parseFloat(String(fuelRaw).replace(/[^\d.-]/g, ''));
+                    if (!isNaN(num)) {
+                        if (num >= 0 && num <= 1) num = num * 100;   // 0.88 → 88
+                        if (num < 0) num = 0;
+                        if (num > 100) num = 100;
+                        fuel = Math.round(num) + '%';
+                    }
+                }
 
                 // Determine service status
                 let statusClass = 'status-ok';
