@@ -1668,15 +1668,16 @@ y2 = drawAnalysisSection(doc, 'Anomalies Found During Inspections', mL, y2, cW, 
                         return [k, attentionMap[k].count, truncated];
                     });
 
+                              const totalFlags = attentionRows.reduce((s, r) => s + r[1], 0);
+
                 if (attentionRows.length === 0) {
                     doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(27, 107, 63);
-                 doc.text('Total anomalies detected: ' + totalX + ' across ' + attentionRows.length + ' distinct item(s).', mL, y2);
+                    doc.text('No anomalies detected — all checks passed.', mL, y2);
                     y2 += 6;
                 } else {
-                  y2 = drawSimpleTable(doc, ['Checklist Item', 'Times Flagged', 'Affected Generators'], attentionRows, mL, y2, cW);
-                    const totalX = attentionRows.reduce((s, r) => s + r[1], 0);
+                    y2 = drawSimpleTable(doc, ['Checklist Item', 'Times Flagged', 'Affected Generators'], attentionRows, mL, y2, cW);
                     doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(179, 58, 58);
-                    doc.text('Total attention flags: ' + totalX + ' across ' + attentionRows.length + ' distinct item(s).', mL, y2);
+                    doc.text('Total attention flags: ' + totalFlags + ' across ' + attentionRows.length + ' distinct item(s).', mL, y2);
                     y2 += 5;
                 }
 
