@@ -82,8 +82,7 @@ DAF 80 KVA</textarea>
                     <div class="logo">⚡ CHUB Generator</div>
                     <div class="name">${gen}</div>
                     <div class="qr" id="qr-${gen.replace(/[^a-z0-9]/gi, '_')}"></div>
-                    <div class="hint">Scan for live status:<br>Last service · Next service · Anomalies</div>
-                    <div class="url">${url}</div>
+                                       <div class="hint">Scan for live generator status</div>
                 `;
                 container.appendChild(div);
                 new QRCode(div.querySelector('.qr'), {
