@@ -225,20 +225,15 @@ if (currentMeterRaw !== null && currentMeterRaw !== undefined && currentMeterRaw
                             <div class="stat"><div class="label">Hours Since</div><div class="value">${isNaN(hoursSince) ? '—' : hoursSince.toFixed(1) + ' h'}</div></div>
                             <div class="stat"><div class="label">Hours Until</div><div class="value ${hoursUntil <= 25 ? 'warn' : (hoursUntil <= 50 ? 'warn-y' : 'ok')}">${isNaN(hoursUntil) ? '—' : hoursUntil.toFixed(1) + ' h'}</div></div>
                         </div>
-                        <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%;"></div></div>
-                        <div style="font-size:0.75rem; color:#5b7b96; margin-top:6px; text-align:right;">${isNaN(hoursSince) ? '0' : hoursSince.toFixed(1)} / 250 h</div>
-                    </div>
-
-                    <div class="card">
-                        <h2><span>📊</span> Current Readings</h2>
-                        <div class="stat-grid">
-                            <div class="stat"><div class="label">Hour Meter</div><div class="value">${escapeHtml(currentMeter || '—')}</div></div>
-                            <div class="stat"><div class="label">Fuel Level</div><div class="value">${escapeHtml(fuel || '—')}</div></div>
-                            <div class="stat"><div class="label">Avg Run Rate</div><div class="value">${escapeHtml(avgRate || '—')}</div></div>
-                            <div class="stat"><div class="label">Last Updated</div><div class="value" style="font-size:0.9rem;">${fmtDateTime(latest['Timestamp'])}</div></div>
+                                               <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%;"></div></div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#5b7b96; margin-top:6px;">
+                            <span>${isNaN(hoursSince) ? '0' : hoursSince.toFixed(1)} / 250 h</span>
+                            <span>Updated: ${fmtDateTime(latest['Timestamp'])}</span>
                         </div>
                     </div>
 
+                    <div class="card">
+                  
                     ${anomalies.length > 0 ? `
                     <div class="card">
                         <h2><span>⚠️</span> Anomalies (last 30 days)</h2>
