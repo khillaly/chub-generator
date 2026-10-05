@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Sticker Generator — CHUB</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #eef4fa; padding: 24px 16px; color: #1a2e45; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 24px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        h1 { color: #12405e; font-size: 1.6rem; margin-bottom: 8px; }
+        .sub { color: #5b7b96; margin-bottom: 24px; font-size: 0.9rem; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-weight: 600; color: #1f3c54; margin-bottom: 6px; font-size: 0.9rem; }
+        .field input, .field select { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #cfdfeb; font-size: 0.95rem; }
+        .field input:focus, .field select:focus { outline: none; border-color: #1e4a6d; box-shadow: 0 0 0 3px rgba(30,74,109,0.1); }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #1e4a6d; color: white; border: none; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+        .btn:hover { background: #0f3852; }
+        .btn-secondary { background: white; color: #1e4a6d; border: 1.5px solid #b8cfdf; }
+        .stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+        .sticker { border: 2px dashed #b8cfdf; border-radius: 14px; padding: 18px; text-align: center; background: #fbfdff; }
+        .sticker .logo { font-size: 0.72rem; font-weight: 800; color: #1e4a6d; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+        .sticker .name { font-size: 1.05rem; font-weight: 800; color: #0a2a3f; margin-bottom: 10px; line-height: 1.2; }
+        .sticker .qr { display: inline-block; padding: 8px; background: white; border-radius: 8px; border: 1px solid #d4e3ef; }
+        .sticker .hint { font-size: 0.72rem; color: #5b7b96; margin-top: 10px; line-height: 1.4; }
+        .sticker .url { font-size: 0.6rem; color: #96aabc; margin-top: 6px; word-break: break-all; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 0; }
+            .no-print { display: none !important; }
+            .stickers { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 0; }
+            .sticker { break-inside: avoid; page-break-inside: avoid; border: 2px dashed #999; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="no-print">
+            <h1>📱 QR Sticker Generator</h1>
+            <div class="sub">Generate printable QR stickers for each generator at CHUB.</div>
+
+            <div class="field">
+                <label for="baseUrl">Status page URL (where QR points to)</label>
+                <input type="text" id="baseUrl" value="https://khillaly.github.io/chub-generator/generator.html">
+            </div>
+
+            <div class="field">
+                <label for="generators">Generators (one per line, use exact names from app)</label>
+                <textarea id="generators" rows="6" style="width:100%;padding:12px 16px;border-radius:12px;border:1.5px solid #cfdfeb;font-size:0.9rem;font-family:inherit;">Ritewat 500KVA G1
+Ritewat 500KVA G2
+400KVA perkins
+CUMMINS 70KVA
+300KVA perkins
+DAF 80 KVA</textarea>
+            </div>
+
+            <div class="controls no-print">
+                <button class="btn" onclick="generateStickers()">🎨 Generate stickers</button>
+                <button class="btn btn-secondary" onclick="window.print()">🖨️ Print stickers</button>
+            </div>
+        </div>
+
+        <div class="stickers" id="stickers"></div>
+    </div>
+
+    <script>
+        function generateStickers() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const gens = document.getElementById('generators').value.split('\n').map(s => s.trim()).filter(Boolean);
+            const container = document.getElementById('stickers');
+            container.innerHTML = '';
+
+            if (gens.length === 0) { alert('Please enter at least one generator.'); return; }
+
+            gens.forEach(gen => {
+                const url = baseUrl + '?id=' + encodeURIComponent(gen);
+                const div = document.createElement('div');
+                div.className = 'sticker';
+                div.innerHTML = `
+                    <div class="logo">⚡ CHUB Generator</div>
+                    <div class="name">${gen}</div>
+                    <div class="qr" id="qr-${gen.replace(/[^a-z0-9]/gi, '_')}"></div>
+                    <div class="hint">Scan for live status:<br>Last service · Next service · Anomalies</div>
+                    <div class="url">${url}</div>
+                `;
+                container.appendChild(div);
+                new QRCode(div.querySelector('.qr'), {
+                    text: url,
+                    width: 160,
+                    height: 160,
+                    colorDark: '#0a2a3f',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            });
+        }
+
+        // Auto-generate on load
+        window.addEventListener('load', generateStickers);
+    </script>
+</body>
+</html>
