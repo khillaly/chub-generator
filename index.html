@@ -1644,10 +1644,63 @@ dieselBoughtNumeric: dieselBought.value ? parseFloat(dieselBought.value) || 0 : 
                 const techRows = Object.keys(byTech).map(t => [t, byTech[t]]);
                 y2 = drawSimpleTable(doc, ['Technician', 'Inspections'], techRows, mL, y2, cW);
 
-                y2 = drawAnalysisSection(doc, 'Weekly Trend', mL, y2, cW);
-                const byWeek = {}; records.forEach(r => { const d = new Date(r['Timestamp']); if (isNaN(d.getTime())) return; const wk = getISOWeekKeyClient(d); if (!byWeek[wk]) byWeek[wk] = { count: 0, diesel: 0, hours: 0 }; byWeek[wk].count++; byWeek[wk].diesel += validNum(r['Diesel Refilled (L)']) || 0; byWeek[wk].hours += validNum(r['Run Hours']) || 0; });
-                const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].diesel, 1), formatHoursMinutes(byWeek[w].hours)]);
-                y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Diesel (L)', 'Run Hours'], weekRows, mL, y2, cW);
+               // ⭐ Weekly Trend (overall)
+y2 = drawAnalysisSection(doc, 'Weekly Trend', mL, y2, cW);
+const byWeek = {}; records.forEach(r => { const d = new Date(r['Timestamp']); if (isNaN(d.getTime())) return; const wk = getISOWeekKeyClient(d); if (!byWeek[wk]) byWeek[wk] = { count: 0, refilled: 0, bought: 0, reserved: 0, hours: 0 }; byWeek[wk].count++; byWeek[wk].refilled += validNum(r['Diesel Refilled (L)']) || 0; byWeek[wk].bought += validNum(r['Diesel Bought (L)']) || 0; byWeek[wk].hours += validNum(r['Run Hours']) || 0; });
+Object.keys(byWeek).forEach(w => { byWeek[w].reserved = Math.max(0, byWeek[w].bought - byWeek[w].refilled); });
+const weekRows = Object.keys(byWeek).sort().map(w => [w, byWeek[w].count, roundClient(byWeek[w].bought, 1), roundClient(byWeek[w].refilled, 1), roundClient(byWeek[w].reserved, 1), formatHoursMinutes(byWeek[w].hours)]);
+y2 = drawSimpleTable(doc, ['Week', 'Inspections', 'Bought (L)', 'Refilled (L)', 'Reserved (L)', 'Run Hours'], weekRows, mL, y2, cW);
+
+// ⭐ NEW: Weekly Reserved Diesel per Generator
+y2 = drawAnalysisSection(doc, 'Weekly Reserved Diesel per Generator (Bought − Refilled)', mL, y2, cW, {
+    fillColor: [230, 245, 235],
+    textColor: [27, 107, 63]
+});
+
+const byWeekGen = {};
+records.forEach(r => {
+    const d = new Date(r['Timestamp']);
+    if (isNaN(d.getTime())) return;
+    const wk = getISOWeekKeyClient(d);
+    const g = safeStr(r['Generator']) || 'Unknown';
+    const key = wk + '||' + g;
+    if (!byWeekGen[key]) byWeekGen[key] = { week: wk, gen: g, bought: 0, refilled: 0 };
+    byWeekGen[key].bought += validNum(r['Diesel Bought (L)']) || 0;
+    byWeekGen[key].refilled += validNum(r['Diesel Refilled (L)']) || 0;
+});
+
+const weekGenRows = Object.values(byWeekGen)
+    .sort((a, b) => a.week === b.week ? a.gen.localeCompare(b.gen) : a.week.localeCompare(b.week))
+    .map(r => [
+        r.week,
+        r.gen,
+        roundClient(r.bought, 1),
+        roundClient(r.refilled, 1),
+        roundClient(Math.max(0, r.bought - r.refilled), 1)
+    ]);
+
+if (weekGenRows.length === 0) {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(150, 170, 190);
+    doc.text('No weekly diesel purchase data available for this period.', mL, y2);
+    y2 += 8;
+} else {
+    y2 = drawSimpleTable(doc, ['Week', 'Generator', 'Bought (L)', 'Refilled (L)', 'Reserved (L)'], weekGenRows, mL, y2, cW);
+
+    // Per-week total row
+    const weeklyTotals = {};
+    Object.values(byWeekGen).forEach(r => {
+        if (!weeklyTotals[r.week]) weeklyTotals[r.week] = { bought: 0, refilled: 0 };
+        weeklyTotals[r.week].bought += r.bought;
+        weeklyTotals[r.week].refilled += r.refilled;
+    });
+    const totalReservedAll = Object.values(weeklyTotals).reduce((s, w) => s + Math.max(0, w.bought - w.refilled), 0);
+    const totalBoughtAll = Object.values(weeklyTotals).reduce((s, w) => s + w.bought, 0);
+    const totalRefilledAll = Object.values(weeklyTotals).reduce((s, w) => s + w.refilled, 0);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(27, 107, 63);
+    doc.text('Total reserved for period: ' + roundClient(totalReservedAll, 1) + ' L  (Bought: ' + roundClient(totalBoughtAll, 1) + ' L  ·  Refilled: ' + roundClient(totalRefilledAll, 1) + ' L)', mL, y2);
+    y2 += 7;
+}
                 
                 // ⭐ NEW: Diesel Reserved by Generator (Bought − Refilled)
                                // ⭐ Diesel Reserved — Visual chart only (table removed)
